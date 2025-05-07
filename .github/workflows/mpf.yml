@@ -1,0 +1,45 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  MPF:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up aiken environment
+        uses: aiken-lang/setup-aiken@v1
+        with:
+          version: v1.1.15
+      - name: Test on-chain code
+        run: |
+          cd MPF/on_chain
+          aiken check
+      - name: Build on-chain code
+        run: |
+          cd MPF/on_chain
+          aiken build
+      - name: Set up E2E environment
+        run: |
+          curl -L https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.5/yaci-cli-0.10.5-linux-X64.zip -o yaci-cli-0.10.5-linux-X64.zip
+          unzip yaci-cli-0.10.5-linux-X64.zip
+          cd yaci-cli-0.10.5
+          ./yaci-cli up --enable-yaci-store > /dev/null &
+      - name: Set up javascript environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Set up off-chain code
+        run: |
+          cd MPF/off_chain
+          npm install
+      - name: Run E2E tests
+        run: |
+          cd MPF/off_chain
+          export YACI_STORE_PORT=8080
+          export YACI_ADMIN_PORT=10000
+          sleep 10
+          npx tsx service/test/E2E.ts
