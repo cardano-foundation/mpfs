@@ -1,0 +1,200 @@
+openapi: 3.0.1
+info:
+    title: MPF Token Management API
+    description: API for managing MPF tokens and their requests.
+    version: 1.0.0
+servers:
+    - url: http://localhost:3000
+paths:
+    /wallet:
+        get:
+            summary: Get wallet details
+            responses:
+                '200':
+                    description: Wallet details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    address:
+                                        type: string
+                                    owner:
+                                        type: string
+                                    utxos:
+                                        type: array
+                                        items:
+                                            type: object
+                '500':
+                    description: Server error
+    /token:
+        post:
+            summary: Create a new token
+            responses:
+                '200':
+                    description: Token created
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    tokenId:
+                                        type: string
+                '500':
+                    description: Error booting
+    /tokens:
+        get:
+            summary: Get all tokens
+            responses:
+                '200':
+                    description: List of tokens
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                '500':
+                    description: Error fetching tokens
+    /token/{tokenId}:
+        get:
+            summary: Get details of a specific token
+            parameters:
+                - name: tokenId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                '200':
+                    description: Token details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    owner:
+                                        type: string
+                                    root:
+                                        type: string
+                                    requests:
+                                        type: array
+                                        items:
+                                            type: object
+                '404':
+                    description: Token not found
+                '500':
+                    description: Error fetching token
+        put:
+            summary: Update a token
+            parameters:
+                - name: tokenId
+                  required: true
+                  in: path
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                requests:
+                                    type: array
+                                    items:
+                                        type: object
+            responses:
+                '200':
+                    description: Token updated
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    txHash:
+                                        type: string
+                '500':
+                    description: Error updating
+        delete:
+            summary: End a token
+            parameters:
+                - name: tokenId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Token ended
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    txHash:
+                                        type: string
+                '500':
+                    description: Error ending
+    /token/{tokenId}/request:
+        post:
+            summary: Create a request for a token
+            parameters:
+                - name: tokenId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                key:
+                                    type: string
+                                value:
+                                    type: string
+                                operation:
+                                    type: string
+            responses:
+                '200':
+                    description: Request created
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                '500':
+                    description: Error inserting
+    /token/{tokenId}/request/{txHash}/{outputIndexS}:
+        delete:
+            summary: Retract a request for a token
+            parameters:
+                - name: tokenId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                - name: txHash
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                - name: outputIndexS
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Request retracted
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    txHash:
+                                        type: string
+                '500':
+                    description: Error retracting
