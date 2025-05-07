@@ -1,0 +1,27 @@
+{
+        "name": "mpf",
+        "version": "1.0.0",
+        "description": "deploy mpf transactions",
+        "main": "index.js",
+        "type": "module",
+        "scripts": {
+                "test": "echo \"Error: no test specified\" && exit 1"
+        },
+        "author": "",
+        "license": "ISC",
+        "dependencies": {
+                "@aiken-lang/merkle-patricia-forestry": "^1.2.0",
+                "@bloxbean/yaci-devkit": "^0.10.5",
+                "@meshsdk/core": "^1.8.8",
+                "@meshsdk/core-csl": "^1.8.8",
+                "bip39": "^3.1.0",
+                "express": "^5.1.0",
+                "get-port": "^7.1.0",
+                "tsx": "^4.19.4",
+                "yargs": "^17.7.2"
+        },
+        "devDependencies": {
+                "@types/express": "^5.0.1",
+                "@types/node": "^22.15.3"
+        }
+}
