@@ -1,0 +1,39 @@
+# shellcheck disable=SC2121
+# shellcheck disable=SC2164
+set shell := ["bash", "-cu"]
+
+build-on-chain:
+    #!/usr/bin/env bash
+    cd on_chain
+    aiken build
+
+check-on-chain:
+    #!/usr/bin/env bash
+    cd on_chain
+    aiken check
+
+build-off-chain:
+    #!/usr/bin/env bash
+    cd off_chain
+    npm install
+
+run-E2E-tests:
+    #!/usr/bin/env bash
+    cd off_chain
+
+    export YACI_STORE_PORT=8080
+    export YACI_ADMIN_PORT=10000
+    rm -rf tmp
+    npx tsx service/test/E2E.ts
+
+inspect-tx tx_dir:
+    #!/usr/bin/env bash
+    tx_hex=$(jq -r '."tx-hex"' "{{tx_dir}}/log.json")
+    jq --arg cbor "$tx_hex" '.cborHex = $cbor' transaction.template.json > "{{tx_dir}}/tx-encoded.json"
+    cardano-cli debug transaction view --tx-file "{{tx_dir}}/tx-encoded.json" | jq > "{{tx_dir}}/tx.json"
+
+run-server:
+    #!/usr/bin/env bash
+    cd off_chain
+    rm -rf tmp
+    npx tsx service/main.ts
