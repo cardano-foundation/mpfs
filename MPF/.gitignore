@@ -1,0 +1,24 @@
+# Aiken compilation artifacts
+artifacts/
+# Aiken's project working directory
+build/
+# Aiken's default documentation export
+docs/
+# artifacts
+tmp/
+
+me.addr
+me.sk
+mnemonics*.*
+
+yaci-cli.log
+yaci-cli.history
+demo-cli.history
+
+config/download.properties
+config/node.properties
+config/application.properties
+
+off_chain/node_modules/
+
+.direnv
