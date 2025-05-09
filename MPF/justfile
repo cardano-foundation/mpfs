@@ -20,7 +20,15 @@ build-off-chain:
 run-E2E-tests:
     #!/usr/bin/env bash
     cd off_chain
-
+    name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+    docker compose -f docker/docker-compose.yaml -p "$name" up -d
+    down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
+    trap '$down' EXIT
+    until curl -s http://localhost:3000/tokens > /dev/null; do
+        echo "Waiting for server to start..."
+        sleep 1
+    done
+    sleep 10 # wait for yaci
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     rm -rf tmp
