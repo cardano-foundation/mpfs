@@ -426,3 +426,34 @@ curl -s -X DELETE $charlie/token/$tokenId | jq
 }
 
 ```
+
+## Docker
+
+Build the docker image with:
+
+```bash
+cd off_chain
+docker build -f docker/Dockerfile -t mpf-service .
+```
+
+There is a docker-compose file that will run the service with yaci
+
+```bash
+docker compose -f docker/docker-compose.yaml up -d
+```
+
+You will have port 3000 and 3001 as users
+
+```bash
+curl -s -X GET http://localhost:3000/tokens | jq
+```
+
+```json
+[]
+```
+
+Shut down the docker compose with:
+
+```bash
+docker compose -f docker/docker-compose.yaml down --volumes
+```
