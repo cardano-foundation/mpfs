@@ -1,0 +1,62 @@
+x-mpfs-template:
+  &mpfs-common
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  command:
+    - --port
+    - "3000"
+    - --provider
+    - "yaci"
+    - --yaci-store-host
+    - "http://yaci-cli:8080"
+    - --yaci-admin-host
+    - "http://yaci-cli:10000"
+    - --seed
+    - /data/seed
+    - --generate
+  networks:
+    - yaci-network
+
+services:
+  yaci-cli:
+    container_name: yaci-cli
+    image: bloxbean/yaci-cli:0.10.6-beta
+    ports:
+      - "8080:8080"
+      - "10000:10000"
+    volumes:
+      - cluster-data:/clusters
+      - ../config/node.properties:/app/config/node.properties
+    env_file:
+      - yaci.env
+      - ../config/node.properties
+    entrypoint: ["/app/yaci-cli.sh", "create-node", "-o", "--start"]
+    networks:
+      - yaci-network
+
+  mpfs-charlie:
+    <<: *mpfs-common
+    container_name: mpfs-charlie
+    ports:
+      - "3000:3000"
+    volumes:
+      - mpfs-charlie-data:/data
+
+  mpfs-alice:
+    <<: *mpfs-common
+    container_name: mpfs-alice
+    ports:
+      - "3001:3000"
+    volumes:
+      - mpfs-alice-data:/data
+
+
+
+volumes:
+  cluster-data:
+  mpfs-charlie-data:
+  mpfs-alice-data:
+
+networks:
+  yaci-network:

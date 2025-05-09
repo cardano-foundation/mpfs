@@ -10,13 +10,12 @@
     yaci-cli = {
       url =
         "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.5/yaci-cli-0.10.5-linux-X64.zip";
-      flake=false;
+      flake = false;
     };
-
 
   };
 
-  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli,  ... }:
+  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli, ... }:
     let
       mkOutputs = system:
         let
@@ -34,6 +33,8 @@
               cardano-cli
               cardano-submit-api
               just
+              nodePackages.npm
+              asciinema
             ];
             shellHook = ''
 
