@@ -23,6 +23,7 @@ async function walletTopup(host: string) {
         response.data.message === 'Top up successful',
         'Top up message is not valid'
     );
+    return response.data;
 }
 async function getTokens(host: string) {
     const response = await axios.get(`${host}/tokens`);

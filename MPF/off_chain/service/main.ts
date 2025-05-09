@@ -42,13 +42,13 @@ async function setup() {
                 describe:
                     'Blockfrost project ID (required if provider is blockfrost)'
             })
-            .option('yaci-store-port', {
-                type: 'number',
-                describe: 'Yaci store port (required if provider is yaci)'
+            .option('yaci-store-host', {
+                type: 'string',
+                describe: 'Yaci store host (required if provider is yaci)'
             })
-            .option('yaci-admin-port', {
-                type: 'number',
-                describe: 'Yaci admin port (required if provider is yaci)'
+            .option('yaci-admin-host', {
+                type: 'string',
+                describe: 'Yaci admin host (required if provider is yaci)'
             })
             .check(argv => {
                 if (
@@ -61,10 +61,11 @@ async function setup() {
                 }
                 if (
                     argv.provider === 'yaci' &&
-                    (!argv['yaci-store-port'] || !argv['yaci-admin-port'])
+                    (!argv['yaci-store-host'] ||
+                        !argv['yaci-admin-host'])
                 ) {
                     throw new Error(
-                        '--yaci-store-port and --yaci-admin-port are required when provider is yaci'
+                        '--yaci-store-host and --yaci-admin-host are required when provider is yaci'
                     );
                 }
                 return true;
@@ -103,18 +104,16 @@ async function setup() {
                 ctxProvider = blockfrostProvider(blockfrostProjectId);
                 break;
             case 'yaci':
-                if (!argv['yaci-store-port'] || !argv['yaci-admin-port']) {
-                    throw new Error('Yaci store and admin ports are required');
+                const yaciStoreHost = argv['yaci-store-host'];
+                const yaciAdminHost = argv['yaci-admin-host'];
+                if (!yaciStoreHost || !yaciAdminHost) {
+                    throw new Error(
+                        'Yaci store host and admin host are required'
+                    );
                 }
-                const yaciStorePort = validatePort(
-                    argv['yaci-store-port'].toString(),
-                    '--yaci-store-port'
-                );
-                const yaciAdminPort = validatePort(
-                    argv['yaci-admin-port'].toString(),
-                    '--yaci-admin-port'
-                );
-                ctxProvider = yaciProvider(yaciStorePort, yaciAdminPort);
+                
+
+                ctxProvider = yaciProvider(yaciStoreHost, yaciAdminHost);
                 break;
             default:
                 throw new Error('Invalid provider specified');

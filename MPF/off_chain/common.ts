@@ -10,7 +10,7 @@ import {
     serializePlutusScript,
     UTxO
 } from '@meshsdk/core';
-import blueprint from '../on_chain/plutus.json';
+import blueprint from './plutus.json';
 import { Context } from './context';
 import { OutputRef, selectUTxOWithToken, tokenIdParts } from './lib';
 

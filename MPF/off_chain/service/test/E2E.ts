@@ -54,8 +54,10 @@ async function main() {
         bob: `http://localhost:${bobPort}`,
         alice: `http://localhost:${alicePort}`
     };
+    const yaciAdminHost = `http://localhost:${yaciAdminPortNumber}`;
+    const yaciStoreHost = `http://localhost:${yaciPortNumber}`;
 
-    const provider = yaciProvider(yaciPortNumber, yaciAdminPortNumber);
+    const provider = yaciProvider(yaciStoreHost, yaciAdminHost);
     const servers = await runServices(
         [charliePort, bobPort, alicePort],
         provider,

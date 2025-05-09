@@ -8,7 +8,6 @@ import {
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import { generateMnemonic } from 'bip39';
 import { tokenIdParts } from './lib';
 import { SafeTrie } from './trie';
 
@@ -66,7 +65,6 @@ export async function withContext(
         throw error;
     }
 }
-
 
 const outputReferenceOrdering = (a, b) => {
     if (a.input.txHash < b.input.txHash) {
@@ -148,12 +146,12 @@ export type ContextProvider = {
 };
 
 export function yaciProvider(
-    storePort: number,
-    adminPort?: number
+    storeHost: string,
+    adminHost?: string
 ): ContextProvider {
     const provider = new YaciProvider(
-        `http://localhost:${storePort}/api/v1/`,
-        adminPort ? `http://localhost:${adminPort}/` : undefined
+        `${storeHost}/api/v1/`,
+        adminHost ? `${adminHost}` : undefined
     );
     async function topup(address: string, amount: number) {
         await provider.addressTopup(address, amount.toString());
@@ -167,9 +165,7 @@ export function yaciProvider(
     };
 }
 
-export function blockfrostProvider(
-    projectId: string,
-): ContextProvider {
+export function blockfrostProvider(projectId: string): ContextProvider {
     const provider = new BlockfrostProvider(projectId);
     return {
         provider,
@@ -179,7 +175,6 @@ export function blockfrostProvider(
         }
     };
 }
-
 
 export function getTxBuilder(provider: Provider) {
     return new MeshTxBuilder({
