@@ -1,4 +1,4 @@
-use aiken/collection/list.{find, foldl, has}
+use aiken/collection/list.{find, foldl, has, head}
 use aiken/crypto.{sha2_256}
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof}
 use aiken/merkle_patricia_forestry as mpf
@@ -6,7 +6,7 @@ use aiken/primitive/bytearray.{concat}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
-use lib.{TokenId, outputsOfToken, tokenFromValue}
+use lib.{TokenId, tokenFromValue}
 use mint.{CageDatum, Delete, Insert, Request, RequestDatum, State, StateDatum}
 
 pub type Redeemer {
@@ -154,7 +154,7 @@ fn validRootUpdate(
   let Transaction { outputs, inputs, .. } = tx
   let State { root, .. } = state
   // fail when there is not only one output with the token-id (impossible)
-  expect [output] = outputsOfToken(outputs, tokenId)
+  expect Some(output) = head(outputs)
   // fail when the output datum is not inline
   expect InlineDatum(state) = output.datum
   // fail when the output datum is not a state

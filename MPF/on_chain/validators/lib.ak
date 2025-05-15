@@ -10,18 +10,6 @@ pub type TokenId {
   assetName: AssetName,
 }
 
-// Extract the outputs that contain a token-id
-pub fn outputsOfToken(outputs: List<Output>, tokenId: TokenId) -> List<Output> {
-  outputs
-    |> filter(
-        fn(output) {
-          when quantity(output.value, tokenId) is {
-            Some(_) -> True
-            None -> False
-          }
-        },
-      )
-}
 
 pub fn quantity(value: Value, TokenId { policyId, assetName }) -> Option<Int> {
   get(tokens(value, policyId), assetName)

@@ -5,8 +5,9 @@ use cardano/assets.{PolicyId, zero}
 use cardano/transaction.{
   InlineDatum, Input, NoDatum, Output, OutputReference, Transaction, find_input,
 }
-use lib.{TokenId, assetName, outputsOfToken, quantity, valueFromToken}
+use lib.{TokenId, assetName, quantity, valueFromToken}
 use aiken/merkle_patricia_forestry.{empty, root}
+use aiken/collection/list.{head}
 
 // NFT mint
 // This validator is instantiated with a script address
@@ -96,7 +97,7 @@ fn validateMint(
       None -> False
     }
   // There is only one output with the token-id
-  expect [output] = outputsOfToken(outputs, tokenId)
+  expect Some(output) = head(outputs)
   // The output address is a script address
   expect address.Script(targetScriptHash) = output.address.payment_credential
   // The output address is the same as the caging_script (context)
