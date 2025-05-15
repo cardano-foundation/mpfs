@@ -101,10 +101,10 @@ fn validRequest(request: Request, tokenRef: OutputReference, tx: Transaction) {
   True
 }
 
-fn uncons(list: List<a>) {
+fn uncons(list: List<a>, cont: fn(a, List<a>) -> b) -> b {
   when list is {
     [] -> fail
-    [x, ..xs] -> (x, xs)
+    [x, ..xs] -> cont(x, xs)
   }
 }
 
@@ -123,7 +123,7 @@ fn mkUpdate(tokenId) {
           let Request { requestToken,  requestPath, requestValue, .. } = request
           if requestToken == tokenId {
             let (root, proofs) = acc
-            let (proof, proofsTail) = uncons(proofs)
+            let proof, proofsTail <- uncons(proofs)
             let pathHash = foldl(requestPath, "", hashAppend)
             let newRoot = when requestValue is {
               Insert(value) ->
