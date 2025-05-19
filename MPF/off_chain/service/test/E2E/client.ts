@@ -2,8 +2,6 @@ import axios from 'axios';
 import { OutputRef } from '../../../lib';
 import { assertThrows } from './lib';
 
-
-
 async function getWallet(host: string) {
     const response = await axios.get(`${host}/wallet`);
     assertThrows(response.status === 200, 'Failed to get wallet');
@@ -68,7 +66,7 @@ async function updateToken(
 async function createRequest(
     host: string,
     tokenId: string,
-    key: string[],
+    key: string,
     value: string,
     op: 'insert' | 'delete'
 ) {
@@ -85,11 +83,7 @@ async function createRequest(
     return response.data;
 }
 
-async function deleteRequest(
-    host: string,
-    tokenId: string,
-    ref: OutputRef
-) {
+async function deleteRequest(host: string, tokenId: string, ref: OutputRef) {
     const response = await axios.delete(
         `${host}/token/${tokenId}/request/${ref.txHash}/${ref.outputIndex}`
     );
@@ -110,5 +104,5 @@ export {
     createToken,
     getToken,
     deleteToken,
-    updateToken,
+    updateToken
 };

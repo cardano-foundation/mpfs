@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import fs from 'fs';
 export type Change = {
     type: 'insert' | 'delete';
-    key: string[];
+    key: string;
     value: string;
 };
 
@@ -35,15 +35,6 @@ class PrivateTrie {
     }
 }
 
-export function hashPath(key: string[]): Buffer {
-    let hash = Buffer.alloc(0);
-    for (const segment of key) {
-        const input = Buffer.concat([hash, Buffer.from(segment)]);
-        hash = crypto.createHash('sha256').update(input).digest();
-    }
-    return hash;
-}
-
 // An MPF that can roll back operations
 export class SafeTrie {
     private cold_trie: PrivateTrie;
@@ -69,9 +60,9 @@ export class SafeTrie {
         await fs.promises.mkdir(temp, { recursive: true });
         return new SafeTrie(cold_trie, temp);
     }
-    public async getKey(key: string[]): Promise<Buffer | undefined> {
+    public async getKey(key: string): Promise<Buffer | undefined> {
         let safe = this.hot_trie ? this.hot_trie : this.cold_trie;
-        return safe?.trie.get(hashPath(key));
+        return safe?.trie.get(key);
     }
     private async hotTrie(): Promise<Trie> {
         if (!this.hot_trie) {
@@ -128,25 +119,24 @@ export class SafeTrie {
 
 async function updateTrie(
     trie: Trie,
-    key: string[],
+    key: string,
     value: string,
     operation: 'insert' | 'delete'
 ): Promise<Proof> {
-    const hash = hashPath(key);
-    const present = await trie.get(hash);
+    const present = await trie.get(key);
     switch (operation) {
         case 'insert':
             if (present !== undefined) {
                 throw new Error('Key already exists');
             }
-            await trie.insert(hash, value);
-            return await trie.prove(hash);
+            await trie.insert(key, value);
+            return await trie.prove(key);
         case 'delete':
             if (present === undefined) {
                 throw new Error('Key does not exist');
             }
-            const proof = await trie.prove(hash);
-            await trie.delete(hash);
+            const proof = await trie.prove(key);
+            await trie.delete(key);
             return proof;
     }
 }

@@ -1,7 +1,5 @@
 import { mConStr3, Output } from '@meshsdk/core';
-import {
-    findRequests,
-    getCagingScript} from '../common';
+import { findRequests, getCagingScript } from '../common';
 import { Context } from '../context';
 import { OutputRef } from '../lib';
 
@@ -14,11 +12,10 @@ export async function retract(
     context: Context,
     walletIndex: number,
     requestOutputRef: OutputRef
-) : Promise<string> {
+): Promise<string> {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
 
-    const { utxos, walletAddress, collateral, signerHash } = await wallet(
-    );
+    const { utxos, walletAddress, collateral, signerHash } = await wallet();
 
     const { address: cageAddress, cbor: cageCbor } = getCagingScript(context);
 
@@ -35,9 +32,7 @@ export async function retract(
     }
 
     const { owner } = request;
-    if (!request) {
-        throw new Error('Request not found');
-    }
+
     if (owner !== signerHash) {
         throw new Error('Request owner does not match signer');
     }

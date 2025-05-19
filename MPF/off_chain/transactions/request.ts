@@ -7,10 +7,10 @@ export async function request(
     context: Context,
     index: number,
     tokenId: string,
-    key: string[],
+    key: string,
     value: string,
     op: 'insert' | 'delete'
-) : Promise<OutputRef> {
+): Promise<OutputRef> {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
     if (!tokenId) {
         throw new Error('No token id provided');
@@ -57,5 +57,5 @@ export async function request(
 
     const block = await context.waitSettlement(txHash);
     log('block', block);
-    return { txHash, outputIndex: 0 }
+    return { txHash, outputIndex: 0 };
 }

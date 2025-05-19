@@ -1,12 +1,12 @@
 use aiken/collection/list.{find, foldl, has, head}
-use aiken/crypto.{sha2_256}
-use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof}
+use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof, root}
 use aiken/merkle_patricia_forestry as mpf
-use aiken/primitive/bytearray.{concat}
+use cardano/address.{from_script}
+use cardano/assets.{from_lovelace}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
-use lib.{TokenId, tokenFromValue}
+use lib.{TokenId, tokenFromValue, valueFromToken}
 use mint.{CageDatum, Delete, Insert, Request, RequestDatum, State, StateDatum}
 
 pub type Redeemer {
@@ -52,8 +52,7 @@ validator counterCage {
         expect validateOwnership(state, tx)
         let (input, tokenId) = extractToken(self, tx)
         when redeemer is {
-          Update(proofs) ->
-            validRootUpdate(state, input, tokenId, tx, proofs)
+          Update(proofs) -> validRootUpdate(state, input, tokenId, tx, proofs)
           End -> validateEnd(tokenId, tx)
           _ -> fail
         }
@@ -108,10 +107,6 @@ fn uncons(list: List<a>, cont: fn(a, List<a>) -> b) -> b {
   }
 }
 
-fn hashAppend(x, acc) {
-  sha2_256(concat(acc, x))
-}
-
 fn mkUpdate(tokenId) {
   fn(input: Input, acc: (MerklePatriciaForestry, List<Proof>)) -> (
     MerklePatriciaForestry,
@@ -120,18 +115,16 @@ fn mkUpdate(tokenId) {
     when input.output.datum is {
       InlineDatum(datum) ->
         if datum is RequestDatum(request): CageDatum {
-          let Request { requestToken,  requestPath, requestValue, .. } = request
+          let Request { requestToken, requestKey, requestValue, .. } = request
           if requestToken == tokenId {
             let (root, proofs) = acc
             let proof, proofsTail <- uncons(proofs)
-            let pathHash = foldl(requestPath, "", hashAppend)
-            let newRoot = when requestValue is {
-              Insert(value) ->
-                mpf.insert(root, pathHash, value, proof)
-              Delete(value) ->
-                mpf.delete(root, pathHash, value, proof)
+            let newRoot =
+              when requestValue is {
+                Insert(value) -> mpf.insert(root, requestKey, value, proof)
+                Delete(value) -> mpf.delete(root, requestKey, value, proof)
+              }
 
-            }
             (newRoot, proofsTail)
           } else {
             acc
@@ -162,86 +155,99 @@ fn validRootUpdate(
 
   // collect addendums
   let (expectedNewRoot, _) =
-     inputs |> foldl((mpf.from_root(root), proofs), mkUpdate(tokenId))
+    inputs |> foldl((mpf.from_root(root), proofs), mkUpdate(tokenId))
   // fail when root was not updated as expected
-  expect mpf.root(expectedNewRoot) == newRoot
+  expect (mpf.root(expectedNewRoot) == newRoot)?
   // fail when the output address is not the same as the input address
   expect
     output.address.payment_credential == input.output.address.payment_credential
   // fail with no signature from the token-id owner
   True
 }
+
 // tests //
 
-// const testScriptAddress = from_script("counter_cage")
+const testScriptAddress = from_script("counter_cage")
 
-// const testStateRef =
-//   OutputReference { transaction_id: "1234567890abcdef", output_index: 255 }
+const testStateRef =
+  OutputReference { transaction_id: "1234567890abcdef", output_index: 255 }
 
-// const testRequestRef =
-//   OutputReference { transaction_id: "2234567890abcdef", output_index: 254 }
+const testRequestRef =
+  OutputReference { transaction_id: "2234567890abcdef", output_index: 254 }
 
-// const testToken = TokenId { policyId: "policy_id", assetName: "asset_name" }
+const testToken = TokenId { policyId: "policy_id", assetName: "asset_name" }
 
-// const testValue = valueFromToken(testToken)
+const testValue = valueFromToken(testToken)
 
-// test cageWorks() {
-//   let state = State { owner: "owner", root: mpf.empty }
-//   let stateDatum = Some(StateDatum(state))
-//   let aRequest =
-//     RequestDatum(
-//       Request {
-//         requestToken: testToken,
-//         requestPath: Path { segments: [] },
-//         requestValue: "42",
-//       },
-//     )
-//   let update =
-//     Input {
-//       output_reference: testStateRef,
-//       output: Output {
-//         address: testScriptAddress,
-//         value: testValue,
-//         datum: InlineDatum(stateDatum),
-//         reference_script: None,
-//       },
-//     }
-//   let request =
-//     Input {
-//       output_reference: testRequestRef,
-//       output: Output {
-//         address: testScriptAddress,
-//         value: from_lovelace(0),
-//         datum: InlineDatum(aRequest),
-//         reference_script: None,
-//       },
-//     }
-//   let output =
-//     Output {
-//       address: testScriptAddress,
-//       value: testValue,
-//       datum: InlineDatum(StateDatum(State { owner: "new-owner", root: mpf.empty })),
-//       reference_script: None,
-//     }
-//   counterCage.spend(
-//     stateDatum,
-//     Update(
-//       [Pair(testRequestRef, Proof { path: [], value: "42" })],
-//     ),
-//     testStateRef,
-//     Transaction {
-//       ..transaction.placeholder,
-//       outputs: [output],
-//       extra_signatories: ["owner"],
-//       inputs: [update, request],
-//     },
-//   ) && counterCage.spend(
-//     Some(aRequest),
-//     Contribute(testStateRef),
-//     testRequestRef,
-//     Transaction { ..transaction.placeholder, inputs: [update, request] },
-//   )
-// }
+const state = State { owner: "owner", root: root(mpf.empty) }
+
+const stateDatum = Some(StateDatum(state))
+
+const aRequest =
+  RequestDatum(
+    Request {
+      requestToken: testToken,
+      requestKey: "42",
+      requestValue: Insert("42"),
+      requestOwner: "owner",
+    },
+  )
+
+const update =
+  Input {
+    output_reference: testStateRef,
+    output: Output {
+      address: testScriptAddress,
+      value: testValue,
+      datum: InlineDatum(stateDatum),
+      reference_script: None,
+    },
+  }
+
+const request =
+  Input {
+    output_reference: testRequestRef,
+    output: Output {
+      address: testScriptAddress,
+      value: from_lovelace(0),
+      datum: InlineDatum(aRequest),
+      reference_script: None,
+    },
+  }
+
+const output =
+  Output {
+    address: testScriptAddress,
+    value: testValue,
+    datum: InlineDatum(
+      StateDatum(
+        State {
+          owner: "new-owner",
+          root: #"484dee386bcb51e285896271048baf6ea4396b2ee95be6fd29a92a0eeb8462ea",
+        },
+      ),
+    ),
+    reference_script: None,
+  }
+
+test cageWorks() {
+  counterCage.spend(
+    stateDatum,
+    Update([[]]),
+    testStateRef,
+    Transaction {
+      ..transaction.placeholder,
+      outputs: [output],
+      extra_signatories: ["owner"],
+      inputs: [update, request],
+    },
+  ) && counterCage.spend(
+    Some(aRequest),
+    Contribute(testStateRef),
+    testRequestRef,
+    Transaction { ..transaction.placeholder, inputs: [update, request] },
+  )
+}
 // // Test that the script fails if the owner of the token-id-id hasn't signed
 // // the transaction
 // test missingSignature() fail {

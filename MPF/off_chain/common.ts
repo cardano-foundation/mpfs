@@ -133,9 +133,7 @@ export function parseRequest(utxo: UTxO) {
         const op = stateDatum.fields[3].constructor as number;
         const opname = op == 0 ? 'insert' : 'delete';
         const value = fromHex(stateDatum.fields[3].fields[0].bytes);
-        const key = stateDatum.fields[2].list.map((item: any) =>
-            fromHex(item.bytes)
-        );
+        const key = fromHex(stateDatum.fields[2].bytes);
         const owner = stateDatum.fields[1].bytes;
         return { policyId, assetName, key, value, operation: opname, owner };
     } catch (error) {
@@ -196,7 +194,7 @@ export async function findTokens(context: Context) {
 
 export type Request = {
     tokenId: string;
-    key: string[];
+    key: string;
     value: string;
     operation: string;
     owner: string;
@@ -217,7 +215,8 @@ export async function findRequests(context: Context) {
                 value: request.value,
                 operation: request.operation,
                 owner: request.owner,
-                ref: {txHash: utxo.input.txHash,
+                ref: {
+                    txHash: utxo.input.txHash,
                     outputIndex: utxo.input.outputIndex
                 }
             });

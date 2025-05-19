@@ -1,4 +1,6 @@
+use aiken/collection/list.{head}
 use aiken/crypto.{ScriptHash, VerificationKeyHash}
+use aiken/merkle_patricia_forestry.{empty, root}
 use aiken/option.{is_some}
 use cardano/address as address
 use cardano/assets.{PolicyId, zero}
@@ -6,8 +8,6 @@ use cardano/transaction.{
   InlineDatum, Input, NoDatum, Output, OutputReference, Transaction, find_input,
 }
 use lib.{TokenId, assetName, quantity, valueFromToken}
-use aiken/merkle_patricia_forestry.{empty, root}
-use aiken/collection/list.{head}
 
 // NFT mint
 // This validator is instantiated with a script address
@@ -50,14 +50,14 @@ pub type State {
 }
 
 pub type Operation {
-    Insert(ByteArray)
-    Delete(ByteArray)
-    }
+  Insert(ByteArray)
+  Delete(ByteArray)
+}
 
 pub type Request {
   requestToken: TokenId,
   requestOwner: VerificationKeyHash,
-  requestPath: List<ByteArray>,
+  requestKey: ByteArray,
   requestValue: Operation,
 }
 
@@ -123,7 +123,9 @@ test newToken() {
     Output {
       address: output_address,
       value: minted_value,
-      datum: InlineDatum(StateDatum(State { owner: minting.owner, root: root(empty) })),
+      datum: InlineDatum(
+        StateDatum(State { owner: minting.owner, root: root(empty) }),
+      ),
       reference_script: None,
     }
   let paying_address = address.from_verification_key("paying_address")

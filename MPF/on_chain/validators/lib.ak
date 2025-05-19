@@ -1,5 +1,5 @@
 use aiken/collection/dict.{get, keys}
-use aiken/collection/list.{delete, filter, find}
+use aiken/collection/list.{delete, find}
 use aiken/crypto.{Hash, Sha2_256, sha2_256}
 use aiken/primitive/bytearray.{concat, from_int_big_endian}
 use cardano/assets.{AssetName, PolicyId, Value, from_asset, policies, tokens}
@@ -9,7 +9,6 @@ pub type TokenId {
   policyId: PolicyId,
   assetName: AssetName,
 }
-
 
 pub fn quantity(value: Value, TokenId { policyId, assetName }) -> Option<Int> {
   get(tokens(value, policyId), assetName)
