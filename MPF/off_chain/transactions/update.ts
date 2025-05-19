@@ -24,6 +24,11 @@ const guessingLowCost = {
     steps: 1_000_000_000
 };
 
+const guessingRequestCost = {
+    mem: 200_000,
+    steps: 100_000_000
+};
+
 export async function update(
     context: Context,
     index: number,
@@ -71,7 +76,7 @@ export async function update(
             tx.spendingPlutusScriptV3()
                 .txIn(promoted.input.txHash, promoted.input.outputIndex)
                 .txInInlineDatumPresent()
-                .txInRedeemerValue(stateOutputRef, 'Mesh', guessingLowCost)
+                .txInRedeemerValue(stateOutputRef, 'Mesh', guessingRequestCost)
                 .txInScript(cageCbor);
         }
         if (proofs.length === 0) {
