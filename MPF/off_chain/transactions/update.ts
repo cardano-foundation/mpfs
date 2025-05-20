@@ -31,7 +31,6 @@ const guessingRequestCost = {
 
 export async function update(
     context: Context,
-    index: number,
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
@@ -58,6 +57,7 @@ export async function update(
     ]);
 
     const { requests: presents } = selectUTxOsRequests(cageUTxOs, tokenId);
+    log('requests', presents);
     const promoteds = presents.filter(present =>
         requireds.some(
             required =>
@@ -65,6 +65,7 @@ export async function update(
                 present.input.outputIndex === required.outputIndex
         )
     );
+    log('promoteds', promoteds);
 
     let proofs: Proof[] = [];
     let txHash: string;
@@ -85,7 +86,7 @@ export async function update(
         const hotRoot = trie.hotRoot();
         const newRoot = hotRoot ? toHex(hotRoot) : nullHash;
         const newStateDatum = mConStr1([mConStr0([signerHash, newRoot])]);
-
+        log('newStateDatum', newStateDatum);
         const jsonProofs: Data[] = proofs.map(serializeProof);
 
         tx.selectUtxosFrom(utxos) // select the remaining UTXOs
@@ -104,11 +105,11 @@ export async function update(
             );
 
         await tx.complete();
-        const signedTx = await signTx(index, tx);
+        const signedTx = await signTx(tx);
 
         // const e = await evaluate(tx.txHex)
         // console.log('evaluate', JSON.stringify(e, null, 2));
-        txHash = await submitTx(index, signedTx);
+        txHash = await submitTx(signedTx);
         log('txHash', txHash);
         const block = await context.waitSettlement(txHash);
         log('block', block);

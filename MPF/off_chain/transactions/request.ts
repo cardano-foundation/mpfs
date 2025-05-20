@@ -5,7 +5,6 @@ import { OutputRef, tokenIdParts } from '../lib';
 
 export async function request(
     context: Context,
-    index: number,
     tokenId: string,
     key: string,
     value: string,
@@ -16,9 +15,6 @@ export async function request(
         throw new Error('No token id provided');
     }
     log('token-id', tokenId);
-    // const pathHash = hashPath(key);
-    // trie.insert(pathHash, value);
-    // const proof = await trie.prove(pathHash);
 
     const { address: cageAddress } = getCagingScript(context);
     const _ = await fetchTokenIdUTxO(context, cageAddress, tokenId);
@@ -51,8 +47,8 @@ export async function request(
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
         .complete();
-    const signedTx = await signTx(index, tx);
-    const txHash = await submitTx(index, signedTx);
+    const signedTx = await signTx(tx);
+    const txHash = await submitTx(signedTx);
     log('txHash', txHash);
 
     const block = await context.waitSettlement(txHash);

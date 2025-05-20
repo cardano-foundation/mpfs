@@ -3,7 +3,7 @@ import { fetchTokenIdUTxO, getCagingScript, getMintingScript } from '../common';
 import { Context } from '../context';
 import { tokenIdParts } from '../lib';
 
-export async function end(context: Context, index: number, tokenId: string) {
+export async function end(context: Context, tokenId: string) {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
     log('token-id', tokenId);
 
@@ -45,8 +45,8 @@ export async function end(context: Context, index: number, tokenId: string) {
         .selectUtxosFrom(utxos)
         .complete();
 
-    const signedTx = await signTx(index, tx);
-    const txHash = await submitTx(index, signedTx);
+    const signedTx = await signTx(tx);
+    const txHash = await submitTx(signedTx);
     log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     log('block', block);

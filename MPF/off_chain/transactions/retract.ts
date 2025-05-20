@@ -10,7 +10,6 @@ const guessingLowCost = {
 
 export async function retract(
     context: Context,
-    walletIndex: number,
     requestOutputRef: OutputRef
 ): Promise<string> {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
@@ -49,8 +48,8 @@ export async function retract(
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
 
     await tx.complete();
-    const signedTx = await signTx(walletIndex, tx);
-    const txHash = await submitTx(walletIndex, signedTx);
+    const signedTx = await signTx( tx);
+    const txHash = await submitTx( signedTx);
     log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     log('block', block);

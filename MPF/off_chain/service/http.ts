@@ -62,13 +62,14 @@ function mkAPI(topup: TopUp | undefined, context) {
                 'tmp/boot',
                 'log',
                 context,
-                async context => await boot(context, 0)
+                async context => await boot(context)
             );
             res.json({ tokenId });
         } catch (error) {
+            console.error('Error booting:', error);
             res.status(500).json({
                 error: 'Error booting',
-                details: error.message
+                details: JSON.stringify(error)
             });
         }
     });
@@ -119,7 +120,7 @@ function mkAPI(topup: TopUp | undefined, context) {
                 'tmp/update',
                 'log',
                 context,
-                async context => await update(context, 0, tokenId, requests)
+                async context => await update(context, tokenId, requests)
             );
             res.json({ txHash: tx });
         } catch (error) {
@@ -137,7 +138,7 @@ function mkAPI(topup: TopUp | undefined, context) {
                 'tmp/end',
                 'log',
                 context,
-                async context => await end(context, 0, tokenId)
+                async context => await end(context, tokenId)
             );
 
             res.json({ txHash: tx });
@@ -159,7 +160,7 @@ function mkAPI(topup: TopUp | undefined, context) {
                 'log',
                 context,
                 async context =>
-                    request(context, 0, tokenId, key, value, operation)
+                    request(context, tokenId, key, value, operation)
             );
             res.json(ref);
         } catch (error) {
@@ -181,7 +182,7 @@ function mkAPI(topup: TopUp | undefined, context) {
                     'log',
                     context,
                     async context =>
-                        await retract(context, 0, { txHash, outputIndex })
+                        await retract(context, { txHash, outputIndex })
                 );
                 res.json({ txHash: tx });
             } catch (error) {

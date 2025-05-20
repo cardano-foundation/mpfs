@@ -31,8 +31,8 @@ export type Context = {
     wallet: () => Promise<Wallet>;
     newTxBuilder: () => MeshTxBuilder;
     fetchAddressUTxOs: (address: string) => Promise<UTxO[]>;
-    signTx: (index: number, tx: MeshTxBuilder) => Promise<string>;
-    submitTx: (index: number, tx: string) => Promise<string>;
+    signTx: (tx: MeshTxBuilder) => Promise<string>;
+    submitTx: ( tx: string) => Promise<string>;
     evaluate: (txHex: string) => Promise<any>;
     trie: (index: string) => Promise<SafeTrie>;
     waitSettlement: (txHash: string) => Promise<string>;
@@ -103,13 +103,13 @@ export async function newContext(
                 outputReferenceOrdering
             );
         },
-        signTx: async (index, tx: MeshTxBuilder) => {
+        signTx: async ( tx: MeshTxBuilder) => {
             const unsignedTx = tx.txHex;
             log('tx-hex', unsignedTx);
             const signedTx = await wallet.signTx(unsignedTx);
             return signedTx;
         },
-        submitTx: async (index, tx: string) => {
+        submitTx: async ( tx: string) => {
             const txHash = await wallet.submitTx(tx);
             log('tx-hash', txHash);
             return txHash;

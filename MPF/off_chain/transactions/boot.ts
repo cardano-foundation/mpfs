@@ -8,7 +8,7 @@ import { assetName, OutputRef } from '../lib';
 
 export const nullHash =
     '0000000000000000000000000000000000000000000000000000000000000000';
-export async function boot(context: Context, index: number) {
+export async function boot(context: Context) {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
 
     const { utxos, walletAddress, collateral, signerHash } = await wallet();
@@ -54,8 +54,8 @@ export async function boot(context: Context, index: number) {
         .selectUtxosFrom(utxos)
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex)
         .complete();
-    const signedTx = await signTx(index, tx);
-    const txHash = await submitTx(index, signedTx);
+    const signedTx = await signTx(tx);
+    const txHash = await submitTx(signedTx);
     log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     log('block', block);
