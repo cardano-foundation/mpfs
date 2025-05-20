@@ -1,8 +1,5 @@
-import {
-    mConStr0,
-    mConStr1,
-} from '@meshsdk/core';
-import { getCagingScript, getMintingScript} from '../common';
+import { mConStr0, mConStr1 } from '@meshsdk/core';
+import { getCagingScript } from '../common';
 import { Context } from '../context';
 import { assetName, OutputRef } from '../lib';
 
@@ -31,22 +28,18 @@ export async function boot(context: Context) {
     const {
         address: cageAddress,
         cbor: cageCbor,
-        scriptHash: cageScriptHash
+        policyId: mintPolicyId
     } = getCagingScript(context);
-
-    const { cbor: mintCbor, policyId: mintPolicyId } = getMintingScript(
-        context,
-        cageScriptHash
-    );
 
     const tokenId = mintPolicyId + asset;
     log('token-id', tokenId);
+
     const tx = newTxBuilder();
     await tx
         .txIn(firstUTxO.input.txHash, firstUTxO.input.outputIndex)
         .mintPlutusScriptV3()
         .mint('1', mintPolicyId, asset)
-        .mintingScript(mintCbor)
+        .mintingScript(cageCbor)
         .mintRedeemerValue(mConStr0([mConStr0([uniquenessP, signerHash])]))
         .txOut(cageAddress, [{ unit: tokenId, quantity: '1' }])
         .txOutInlineDatumValue(mConStr1([mConStr0([signerHash, nullHash])]))
@@ -59,6 +52,6 @@ export async function boot(context: Context) {
     log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     log('block', block);
-    await context.trie(tokenId)
+    await context.trie(tokenId);
     return tokenId;
 }

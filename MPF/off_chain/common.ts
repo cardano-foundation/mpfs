@@ -25,61 +25,15 @@ export function getCagingScript(context: Context) {
         version: 'V3'
     }).address;
     const { scriptHash } = deserializeAddress(address);
+    const policyId = resolveScriptHash(cbor, 'V3');
     const caging = {
         cbor,
         address,
-        scriptHash
+        scriptHash,
+        policyId,
     };
     context.log('caging-script', caging);
     return caging;
-}
-
-export function getMintingScript(context: Context, cageScriptHash: string) {
-    const cbor = applyParamsToScript(
-        blueprint.validators[2].compiledCode, // crap
-        [builtinByteString(cageScriptHash)],
-        'JSON'
-    );
-    const { address } = serializePlutusScript(
-        { code: cbor, version: 'V3' },
-        undefined
-    );
-
-    const policyId = resolveScriptHash(cbor, 'V3');
-    const minting = {
-        cbor,
-        address,
-        policyId
-    };
-    context.log('minting-script', minting);
-    return minting;
-}
-
-export function getThresholdScript(
-    context: Context,
-    tokenId: string,
-    threshold: number
-) {
-    const { log } = context;
-    const { policyId, assetName } = tokenIdParts(tokenId);
-    const cbor = applyParamsToScript(
-        blueprint.validators[4].compiledCode, // crap
-        [
-            conStr0([
-                builtinByteString(policyId),
-                builtinByteString(assetName)
-            ]),
-            integer(threshold)
-        ],
-        'JSON'
-    );
-    const { address } = serializePlutusScript(
-        { code: cbor, version: 'V3' },
-        undefined
-    );
-    const script = { cbor, address };
-    context.log('threshold-script', script);
-    return script;
 }
 
 export async function fetchTokenIdUTxO(

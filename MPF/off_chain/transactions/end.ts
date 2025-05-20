@@ -1,5 +1,5 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { fetchTokenIdUTxO, getCagingScript, getMintingScript } from '../common';
+import { fetchTokenIdUTxO, getCagingScript } from '../common';
 import { Context } from '../context';
 import { tokenIdParts } from '../lib';
 
@@ -19,8 +19,6 @@ export async function end(context: Context, tokenId: string) {
         cbor: cageCbor,
         scriptHash: cageScriptHash
     } = getCagingScript(context);
-    
-    const { cbor: mintCbor } = getMintingScript(context, cageScriptHash);
 
     const { state: token } = await fetchTokenIdUTxO(
         context,
@@ -38,7 +36,7 @@ export async function end(context: Context, tokenId: string) {
         .mintPlutusScriptV3()
         .mint('-1', policyId, assetName)
         .mintRedeemerValue(mConStr1([]))
-        .mintingScript(mintCbor)
+        .mintingScript(cageCbor)
         .changeAddress(walletAddress) // send change back to the wallet address
         .requiredSignerHash(signerHash)
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex)

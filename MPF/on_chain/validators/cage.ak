@@ -1,29 +1,51 @@
+// NFT mint
+// This validator is instantiated with a script address
+// and a root datum.
+// The script address is the address we expect the token to be sent to.
+// The root is the datum we expect to be found in the token datum.
+
+// The validator will receive a redeemer with the following fields:
+// - asset: the hash of the output reference. This must be one of the transaction
+//      inputs and source of uniqueness for the asset name.
+// - owner: the public key of the owner of the token. This is not used in the
+//      validator, but it will be passed verbatim in the datum.
+
+// The validator will check that
+// - the target address is a script address
+// - the asset minted has quantity 1
+// - the asset has the name of the hash of the output reference in the redeemer
+// - the minted token has the owner and the root datum
+
 use aiken/collection/list.{find, foldl, has, head}
-use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof, root}
+use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof, empty, root}
 use aiken/merkle_patricia_forestry as mpf
+use aiken/option.{is_some}
 use cardano/address.{from_script}
-use cardano/assets.{from_lovelace}
+use cardano/assets.{PolicyId, from_lovelace, zero}
 use cardano/transaction.{
-  InlineDatum, Input, Output, OutputReference, Transaction,
+  InlineDatum, Input, NoDatum, Output, OutputReference, Transaction, find_input,
 }
-use lib.{TokenId, tokenFromValue, valueFromToken}
-use mint.{CageDatum, Delete, Insert, Request, RequestDatum, State, StateDatum}
-
-pub type Redeemer {
-  // Destroy the token
-  End
-  // Accept a request for the token at the reference
-  Contribute(OutputReference)
-  // Update the state of the token
-  Update(List<Proof>)
-  // Request owner takes it back
-  Retract
+use lib.{TokenId, assetName, quantity, tokenFromValue, valueFromToken}
+use types.{
+  Burning, CageDatum, Contribute, Delete, End, Insert, Mint, MintRedeemer, Minting,
+  Request, RequestDatum, Retract, State, StateDatum, Update, UpdateRedeemer,
 }
 
-validator counterCage {
+validator mpfCage {
+  mint(redeemer: MintRedeemer, policyId: PolicyId, tx: Transaction) {
+    trace @"minting": redeemer
+    when redeemer is {
+      Minting(mint) -> {
+        trace "minting": mint
+        validateMint(mint, policyId, tx)
+        }
+      Burning -> True
+    }
+  }
+
   spend(
     maybeDatum: Option<CageDatum>,
-    redeemer: Redeemer,
+    redeemer: UpdateRedeemer,
     self: OutputReference,
     tx: Transaction,
   ) {
@@ -165,6 +187,33 @@ fn validRootUpdate(
   True
 }
 
+pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
+  let Mint { asset, owner } = minting
+  let Transaction { outputs, mint, inputs, .. } = tx
+  let tokenId = TokenId { policyId, assetName: assetName(asset) }
+  // Source of uniqueness for the asset name
+  expect is_some(find_input(inputs, asset))
+  // Mint only one token-id
+  expect
+    when quantity(mint, tokenId) is {
+      Some(quantity) -> quantity == 1
+      None -> False
+    }
+  // There is only one output with the token-id
+  expect Some(output) = head(outputs)
+  // The output address is a script address
+  expect address.Script(targetScriptHash) = output.address.payment_credential
+  // The output address is the same as the caging_script (context)
+  expect targetScriptHash == policyId
+  // The output datum is inline
+  expect InlineDatum(tokenState) = output.datum
+  // The output datum is respecting requested owner (redeemer) and root (context)
+  expect StateDatum(State { root: tokenRoot, owner: tokenOwner }) = tokenState
+  expect tokenRoot == root(empty)
+  expect tokenOwner == owner
+  True
+}
+
 // tests //
 
 const testScriptAddress = from_script("counter_cage")
@@ -230,8 +279,8 @@ const output =
     reference_script: None,
   }
 
-test cageWorks() {
-  counterCage.spend(
+test canCage() {
+  mpfCage.spend(
     stateDatum,
     Update([[]]),
     testStateRef,
@@ -241,11 +290,57 @@ test cageWorks() {
       extra_signatories: ["owner"],
       inputs: [update, request],
     },
-  ) && counterCage.spend(
+  ) && mpfCage.spend(
     Some(aRequest),
     Contribute(testStateRef),
     testRequestRef,
     Transaction { ..transaction.placeholder, inputs: [update, request] },
+  )
+}
+
+const reference =
+  OutputReference { transaction_id: "1234567890abcdef", output_index: 255 }
+
+const token = TokenId { policyId: "policy_id", assetName: assetName(reference) }
+
+const minting = Mint { asset: reference, owner: "public_key" }
+
+const minted_value = valueFromToken(token)
+
+const output_address = address.from_script("policy_id")
+
+const minted =
+  Output {
+    address: output_address,
+    value: minted_value,
+    datum: InlineDatum(
+      StateDatum(State { owner: minting.owner, root: root(empty) }),
+    ),
+    reference_script: None,
+  }
+
+const paying_address = address.from_verification_key("paying_address")
+
+const consumed_value = zero
+
+const consumed_utxo =
+  Output {
+    address: paying_address,
+    value: consumed_value,
+    datum: NoDatum,
+    reference_script: None,
+  }
+
+test canMint() {
+  mpfCage.mint(
+    Minting(minting),
+    token.policyId,
+    Transaction {
+      ..transaction.placeholder,
+      outputs: [minted],
+      mint: minted_value,
+      inputs: [Input { output_reference: reference, output: consumed_utxo }],
+    },
   )
 }
 // // Test that the script fails if the owner of the token-id-id hasn't signed
