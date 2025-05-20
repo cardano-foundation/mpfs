@@ -53,3 +53,6 @@ docker-down:
     #!/usr/bin/env bash
     cd off_chain
     docker compose -f docker/docker-compose.yaml down --volumes
+
+run-yaci:
+    yaci-cli up --enable-yaci-store
