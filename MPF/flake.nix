@@ -9,7 +9,7 @@
     };
     yaci-cli = {
       url =
-        "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.5/yaci-cli-0.10.5-linux-X64.zip";
+        "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6-beta/yaci-cli-0.10.6-beta-linux-X64.zip";
       flake = false;
     };
 

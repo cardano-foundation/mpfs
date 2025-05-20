@@ -1728,14 +1728,14 @@
     "yaci-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1742305942,
-        "narHash": "sha256-ior/DzAcJW4g6P5J/3HR4o7diBvrQ0ruEG1OI5tk9iY=",
+        "lastModified": 1746302242,
+        "narHash": "sha256-6P7ihK0SdFMbaH63DRzUojrjXoGPnZoux8RZ6SL/1Dg=",
         "type": "tarball",
-        "url": "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.5/yaci-cli-0.10.5-linux-X64.zip"
+        "url": "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6-beta/yaci-cli-0.10.6-beta-linux-X64.zip"
       },
       "original": {
         "type": "tarball",
-        "url": "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.5/yaci-cli-0.10.5-linux-X64.zip"
+        "url": "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6-beta/yaci-cli-0.10.6-beta-linux-X64.zip"
       }
     },
     "yants": {
