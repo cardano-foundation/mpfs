@@ -16,11 +16,11 @@ jobs:
           version: v1.1.15
       - name: Test on-chain code
         run: |
-          cd MPF/on_chain
+          cd on_chain
           aiken check
       - name: Build on-chain code
         run: |
-          cd MPF/on_chain
+          cd on_chain
           aiken build
       - name: Set up E2E environment
         run: |
@@ -34,11 +34,11 @@ jobs:
           node-version: '20'
       - name: Set up off-chain code
         run: |
-          cd MPF/off_chain
+          cd off_chain
           npm install
       - name: Run E2E tests
         run: |
-          cd MPF/off_chain
+          cd off_chain
           export YACI_STORE_PORT=8080
           export YACI_ADMIN_PORT=10000
           sleep 10
