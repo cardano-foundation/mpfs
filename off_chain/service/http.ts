@@ -207,6 +207,12 @@ export async function runServices(
             const wallet = mkWallet(ctxProvider.provider);
             const context = await newContext(ctxProvider, wallet);
             const app = mkAPI(ctxProvider.topup, context);
+            await ctxProvider.topup?.(
+                (
+                    await context.wallet()
+                ).walletAddress,
+                10_000
+            );
             const server = await new Promise<Server>((resolve, reject) => {
                 const srv = app.listen(port, () => {
                     resolve(srv);
