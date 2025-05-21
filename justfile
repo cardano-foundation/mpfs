@@ -43,11 +43,21 @@ inspect-tx tx_dir:
     jq --arg cbor "$tx_hex" '.cborHex = $cbor' transaction.template.json > "{{tx_dir}}/tx-encoded.json"
     cardano-cli debug transaction view --tx-file "{{tx_dir}}/tx-encoded.json" | jq > "{{tx_dir}}/tx.json"
 
+run-server-generate:
+    #!/usr/bin/env bash
+    cd off_chain
+    rm -rf tmp
+    npx tsx service/main.ts --port 3000 --seed mnemonics.txt --generate \
+        --provider yaci --yaci-store-host http://localhost:8080 \
+        --yaci-admin-host http://localhost:10000
+
 run-server:
     #!/usr/bin/env bash
     cd off_chain
     rm -rf tmp
-    npx tsx service/main.ts
+    npx tsx service/main.ts --port 3000 --seed mnemonics.txt \
+        --provider yaci --yaci-store-host http://localhost:8080 \
+        --yaci-admin-host http://localhost:10000
 
 docker-down:
     #!/usr/bin/env bash
