@@ -116,7 +116,7 @@ const canRetractRequest = async ({ run, log, wallets: { charlie, bob } }) => {
         log('charlie created an mpf token');
         const request = await createRequest(bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
-        await deleteRequest(bob, tk, request);
+        await deleteRequest(bob, request);
         log('bob retracted his request');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
@@ -134,7 +134,7 @@ const cannotRetractAnotherUsersRequest = async ({
         log('charlie created an mpf token');
         const request = await createRequest(bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
-        await shouldFail(deleteRequest(charlie, tk, request));
+        await shouldFail(deleteRequest(charlie, request));
         log('charlie failed to retract bob request as expected');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
@@ -183,7 +183,7 @@ const canInspectRequestsForAToken = async ({
             'Request operation is not insert'
         );
         log('bob inspected charlie mpf token');
-        await deleteRequest(bob, tk, requests[0].ref);
+        await deleteRequest(bob, requests[0].ref);
         log('bob retracted his request');
         const { requests: requests2 } = await getToken(alice, tk);
         assertThrows(requests2.length === 0, 'Request still found');
@@ -226,7 +226,7 @@ const cannotUpdateAnotherUsersToken = async ({
         log('bob created a request to insert a fact');
         await shouldFail(updateToken(bob, tk, [request]));
         log('bob failed to update charlie token as expected');
-        await deleteRequest(bob, tk, request);
+        await deleteRequest(bob, request);
         log('bob retracted his request');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');

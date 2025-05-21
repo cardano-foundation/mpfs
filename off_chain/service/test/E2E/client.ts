@@ -83,9 +83,9 @@ async function createRequest(
     return response.data;
 }
 
-async function deleteRequest(host: string, tokenId: string, ref: OutputRef) {
+async function deleteRequest(host: string, ref: OutputRef) {
     const response = await axios.delete(
-        `${host}/token/${tokenId}/request/${ref.txHash}/${ref.outputIndex}`
+        `${host}/request/${ref.txHash}/${ref.outputIndex}`
     );
     assertThrows(response.status === 200, 'Failed to delete request');
     assertThrows(

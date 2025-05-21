@@ -47,7 +47,7 @@ services:
     <<: *mpfs-common
     container_name: mpfs-alice
     ports:
-      - "3001:3000"
+      - "3002:3000"
     volumes:
       - mpfs-alice-data:/data
 

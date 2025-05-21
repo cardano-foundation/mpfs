@@ -171,28 +171,24 @@ function mkAPI(topup: TopUp | undefined, context) {
         }
     });
 
-    app.delete(
-        '/token/:tokenId/request/:txHash/:outputIndexS',
-        async (req, res) => {
-            const { tokenId, txHash, outputIndexS } = req.params;
-            const outputIndex = parseInt(outputIndexS, 10);
-            try {
-                const tx = await withContext(
-                    'tmp/retract',
-                    'log',
-                    context,
-                    async context =>
-                        await retract(context, { txHash, outputIndex })
-                );
-                res.json({ txHash: tx });
-            } catch (error) {
-                res.status(500).json({
-                    error: 'Error retracting',
-                    details: error.message
-                });
-            }
+    app.delete('/request/:txHash/:outputIndexS', async (req, res) => {
+        const { txHash, outputIndexS } = req.params;
+        const outputIndex = parseInt(outputIndexS, 10);
+        try {
+            const tx = await withContext(
+                'tmp/retract',
+                'log',
+                context,
+                async context => await retract(context, { txHash, outputIndex })
+            );
+            res.json({ txHash: tx });
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error retracting',
+                details: error.message
+            });
         }
-    );
+    });
     return app;
 }
 
