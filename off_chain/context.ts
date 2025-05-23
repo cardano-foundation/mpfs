@@ -36,6 +36,7 @@ export type Context = {
     evaluate: (txHex: string) => Promise<any>;
     trie: (index: string) => Promise<SafeTrie>;
     waitSettlement: (txHash: string) => Promise<string>;
+    facts: (tokenId: string) => Promise<Record<string, string>>;
 };
 
 export async function withContext(
@@ -134,6 +135,17 @@ export async function newContext(
         },
         waitSettlement: async txHash => {
             return await onTxConfirmedPromise(provider, txHash, progress, 50);
+        },
+        facts: async (tokenId: string) => {
+            const { assetName } = tokenIdParts(tokenId);
+            const trie = tries[assetName];
+            if (!trie) {
+                throw new Error(
+                    `Trie not found for asset name: ${assetName}`
+                );
+            }
+            const facts = await trie.allFacts();
+            return facts;
         }
     };
 }

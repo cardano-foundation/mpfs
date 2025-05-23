@@ -2,6 +2,7 @@ import { Proof, Store, Trie } from '@aiken-lang/merkle-patricia-forestry';
 import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import * as crypto from 'crypto';
 import fs from 'fs';
+import { Facts } from './facts/store';
 export type Change = {
     type: 'insert' | 'delete';
     key: string;
@@ -35,11 +36,11 @@ class PrivateTrie {
     }
 }
 
-
 // An MPF that can roll back operations
 export class SafeTrie {
     private cold_trie: PrivateTrie;
     private hot_trie: PrivateTrie | undefined;
+    private facts: Facts;
     private changes: Change[] = [];
     private base_temp_dir: string; // temporary directory for hot trie
     private current_temp_dir: string; // current temporary directory for hot trie
@@ -51,9 +52,10 @@ export class SafeTrie {
         return tempDir;
     }
 
-    private constructor(cold_trie: PrivateTrie, temp: string) {
+    private constructor(cold_trie: PrivateTrie, temp: string, facts: Facts) {
         this.base_temp_dir = temp;
         this.cold_trie = cold_trie;
+        this.facts = facts;
         this.hot_trie = undefined;
     }
     public static async create(path: string): Promise<SafeTrie> {
@@ -64,7 +66,8 @@ export class SafeTrie {
         await fs.promises.mkdir(trieTempPath, { recursive: true });
         await fs.promises.mkdir(factsPath, { recursive: true });
         await fs.promises.mkdir(triePath, { recursive: true });
-        return new SafeTrie(cold_trie, trieTempPath);
+        const facts = new Facts(factsPath);
+        return new SafeTrie(cold_trie, trieTempPath, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
         let safe = this.hot_trie ? this.hot_trie : this.cold_trie;
@@ -109,6 +112,19 @@ export class SafeTrie {
             for (const change of this.changes) {
                 const { type, key, value } = change;
                 proofs.push(await updateTrie(cold, key, value, type));
+                switch (type) {
+                    case 'insert': {
+                        await this.facts.set(key, value);
+                        break;
+                    }
+                    case 'delete': {
+                        await this.facts.delete(key);
+                        break;
+                    }
+                    default: {
+                        throw new Error(`Unknown operation type: ${type}`);
+                    }
+                }
             }
         } finally {
             await this.rollback();
@@ -120,6 +136,9 @@ export class SafeTrie {
         this.rollback();
         await this.cold_trie.close();
         await fs.promises.rm(this.base_temp_dir, { recursive: true });
+    }
+    public async allFacts(): Promise<Record<string, string>> {
+        return await this.facts.getAll();
     }
 }
 
