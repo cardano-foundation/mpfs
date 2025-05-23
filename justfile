@@ -1,7 +1,8 @@
-# shellcheck disable=SC2121
+# shellcheck shell=bash
 # shellcheck disable=SC2164
+# https://www.shellcheck.net/wiki/SC2121
 # shellcheck disable=SC2155
-set shell := ["bash", "-cu"]
+# https://www.shellcheck.net/wiki/SC2155
 
 build-on-chain:
     #!/usr/bin/env bash
@@ -43,6 +44,12 @@ run-docker-E2E-tests:
     sleep 10 # wait for yaci
     rm -rf tmp
     npx tsx service/test/E2E.ts
+
+run-bare-E2E-tests:
+    #!/usr/bin/env bash
+    just build-on-chain
+    just build-off-chain
+    cd off_chain
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     rm -rf tmp
