@@ -35,6 +35,7 @@ class PrivateTrie {
     }
 }
 
+
 // An MPF that can roll back operations
 export class SafeTrie {
     private cold_trie: PrivateTrie;
@@ -55,10 +56,15 @@ export class SafeTrie {
         this.cold_trie = cold_trie;
         this.hot_trie = undefined;
     }
-    public static async create(path: string, temp: string): Promise<SafeTrie> {
-        const cold_trie = await PrivateTrie.create(path);
-        await fs.promises.mkdir(temp, { recursive: true });
-        return new SafeTrie(cold_trie, temp);
+    public static async create(path: string): Promise<SafeTrie> {
+        const factsPath = path + '/facts';
+        const triePath = path + '/trie';
+        const trieTempPath = path + '/trie-tmp';
+        const cold_trie = await PrivateTrie.create(triePath);
+        await fs.promises.mkdir(trieTempPath, { recursive: true });
+        await fs.promises.mkdir(factsPath, { recursive: true });
+        await fs.promises.mkdir(triePath, { recursive: true });
+        return new SafeTrie(cold_trie, trieTempPath);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
         let safe = this.hot_trie ? this.hot_trie : this.cold_trie;

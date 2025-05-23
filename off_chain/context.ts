@@ -121,8 +121,7 @@ export async function newContext(
             const { assetName } = tokenIdParts(index);
             if (!tries[assetName]) {
                 const path = `tmp/tries/${assetName}`;
-                const temp = `tmp/tries/${assetName}-temp`;
-                const trie = await SafeTrie.create(path, temp);
+                const trie = await SafeTrie.create(path);
                 if (trie) {
                     tries[assetName] = trie;
                 } else {
