@@ -117,7 +117,7 @@ export async function update(
         trie.rollback();
         throw new Error(`Failed to create or submit a transaction: ${error}`);
     }
-    trie.commit();
+    await trie.commit();
     return txHash;
 }
 
