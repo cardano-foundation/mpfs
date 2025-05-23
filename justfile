@@ -1,5 +1,6 @@
 # shellcheck disable=SC2121
 # shellcheck disable=SC2164
+# shellcheck disable=SC2155
 set shell := ["bash", "-cu"]
 
 build-on-chain:
@@ -18,20 +19,30 @@ build-off-chain:
     cd off_chain
     npm install
 
-run-E2E-tests:
+run-docker-E2E-tests:
     #!/usr/bin/env bash
     just build-on-chain
     just build-off-chain
     cd off_chain
+    export YACI_STORE_PORT=$(shuf -i 1024-65535 -n 1)
+    export YACI_ADMIN_PORT=$(shuf -i 1024-65535 -n 1)
+    export CHARLIE_PORT=$(shuf -i 1024-65535 -n 1)
+    export BOB_PORT=$(shuf -i 1024-65535 -n 1)
+    export ALICE_PORT=$(shuf -i 1024-65535 -n 1)
     name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
     docker compose -f docker/docker-compose.yaml -p "$name" up  -d
     down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
     trap '$down' EXIT
-    until curl -s http://localhost:3000/tokens > /dev/null; do
-        echo "Waiting for server to start..."
-        sleep 1
+    for port in "$CHARLIE_PORT" "$ALICE_PORT" "$BOB_PORT"; do
+        until curl -s "http://localhost:$port/tokens" > /dev/null; do
+            echo "Waiting for server on port $port to start..."
+            sleep 1
+        done
     done
+
     sleep 10 # wait for yaci
+    rm -rf tmp
+    npx tsx service/test/E2E.ts
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     rm -rf tmp

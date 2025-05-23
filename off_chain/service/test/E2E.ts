@@ -1,7 +1,7 @@
 import { validatePort } from '../../lib';
 import { runServices, stopServices } from '../http';
 import getPort from 'get-port';
-import { Provider, yaciProvider } from '../../context';
+import { ContextProvider, Provider, yaciProvider } from '../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from './E2E/client';
 import {
@@ -23,6 +23,7 @@ import {
     deleteCommutes
 } from './E2E/scenarios';
 import { catchFailure } from './E2E/lib';
+import { IncomingMessage, Server, ServerResponse } from 'http';
 
 function newWallet(provider: Provider) {
     const seed = crypto.getRandomValues(new Uint32Array(4)).join('');
@@ -39,30 +40,49 @@ function newWallet(provider: Provider) {
     });
 }
 
+async function selectWallet(
+    servers: number[],
+    port: string | undefined
+) {
+    if (port) {
+        const portNumber = validatePort(port, 'CHARLIE_PORT');
+        return `http://localhost:${portNumber}`;
+    } else {
+        const portNumber = await getPort();
+        servers.push(portNumber);
+        return `http://localhost:${portNumber}`;
+    }
+}
+
 async function main() {
-    const yaciPort = process.env.YACI_STORE_PORT;
-    const yaciPortNumber = validatePort(yaciPort, 'YACI_STORE_PORT');
+    const yaciStorePort = process.env.YACI_STORE_PORT;
+    const yaciStorePortNumber = validatePort(yaciStorePort, 'YACI_STORE_PORT');
+    const yaciStoreHost = `http://localhost:${yaciStorePortNumber}`;
+
     const yaciAdminPort = process.env.YACI_ADMIN_PORT;
     const yaciAdminPortNumber = validatePort(yaciAdminPort, 'YACI_ADMIN_PORT');
-
-    const charliePort = await getPort();
-    const bobPort = await getPort();
-    const alicePort = await getPort();
-
-    const wallets: Wallets = {
-        charlie: `http://localhost:${charliePort}`,
-        bob: `http://localhost:${bobPort}`,
-        alice: `http://localhost:${alicePort}`
-    };
     const yaciAdminHost = `http://localhost:${yaciAdminPortNumber}`;
-    const yaciStoreHost = `http://localhost:${yaciPortNumber}`;
 
     const provider = yaciProvider(yaciStoreHost, yaciAdminHost);
+
+    let portsToServe: number[] = [];
+
+    const charliePort = process.env.CHARLIE_PORT;
+    const charlie = await selectWallet(portsToServe, charliePort);
+
+    const bobPort = process.env.BOB_PORT;
+    const bob = await selectWallet(portsToServe, bobPort);
+
+    const alicePort = process.env.ALICE_PORT;
+    const alice = await selectWallet(portsToServe, alicePort);
+    
     const servers = await runServices(
-        [charliePort, bobPort, alicePort],
-        provider,
-        newWallet
-    );
+            portsToServe,
+            provider,
+            newWallet
+        );
+    const wallets: Wallets = { charlie, bob, alice };
+
     await walletTopup(wallets.charlie);
     await walletTopup(wallets.bob);
     await walletTopup(wallets.alice);

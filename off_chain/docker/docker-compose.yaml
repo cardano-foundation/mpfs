@@ -23,8 +23,8 @@ services:
     container_name: yaci-cli
     image: bloxbean/yaci-cli:0.10.6-beta
     ports:
-      - "8080:8080"
-      - "10000:10000"
+      - "${YACI_STORE_PORT:-8080}:8080"
+      - "${YACI_ADMIN_PORT:-10000}:10000"
     volumes:
       - cluster-data:/clusters
       - ../config/node.properties:/app/config/node.properties
@@ -39,17 +39,27 @@ services:
     <<: *mpfs-common
     container_name: mpfs-charlie
     ports:
-      - "3000:3000"
+      - "${CHARLIE_PORT:-3000}:3000"
     volumes:
       - mpfs-charlie-data:/data
+
+  mpfs-bob:
+    <<: *mpfs-common
+    container_name: mpfs-bob
+    ports:
+      - "${BOB_PORT:-3001}:3000"
+    volumes:
+      - mpfs-bob-data:/data
 
   mpfs-alice:
     <<: *mpfs-common
     container_name: mpfs-alice
+
     ports:
-      - "3002:3000"
+      - "${ALICE_PORT:-3002}:3000"
     volumes:
       - mpfs-alice-data:/data
+
 
 
 
@@ -57,6 +67,7 @@ volumes:
   cluster-data:
   mpfs-charlie-data:
   mpfs-alice-data:
+  mpfs-bob-data:
 
 networks:
   yaci-network:
