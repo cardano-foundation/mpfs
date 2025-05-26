@@ -66,6 +66,17 @@ just run-yaci
 This will spin up a local cluster so that you can experimnent with the service. The rest of the
 commands will be run against `yaci` and the local cluster.
 
+**NOTE**: `yaci-store` listens by default on port 8080, which is what the following instructions expect. Should you happen to modify `yaci-store`'s default configuration please use the correct port. In the `yaci-cli/config/application.properties` check the following lines
+
+```
+## Default ports
+#ogmios.port=1337
+#kupo.port=1442
+#yaci.store.port=8080
+#socat.port=3333
+#prometheus.port=12798
+```
+
 #### Via blockfrost
 
 To use blockfrost with preview network just export your blockfrost key:
@@ -125,8 +136,8 @@ Let's fund `charlie`, `bob` and `alice` wallets
 
 ```bash
 curl -s -X PUT $charlie/wallet/topup -H "Content-Type: application/json" -d '{"amount": 10000}' | jq
-curl -s -X PUT $bob/wallet/topup -H "Content-Type: application/json" -d '{"amount": 10000}' | jq
 curl -s -X PUT $alice/wallet/topup -H "Content-Type: application/json" -d '{"amount": 10000}' | jq
+curl -s -X PUT $bob/wallet/topup -H "Content-Type: application/json" -d '{"amount": 10000}' | jq
 ```
 
 After each command you should see:
@@ -188,11 +199,11 @@ In order to create a new MPF token that `charlie` controls, he can get his owner
 and use it in token minting.
 
 ```bash
-curl -X GET $charlie/wallet | jq '.owner'
+curl -s -X GET $charlie/wallet | head -1 | jq -r '.owner'
 ```
 
 ```json
-"be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d"
+be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d
 ```
 
 Now `charlie` can create a token under his control via:
@@ -200,7 +211,7 @@ Now `charlie` can create a token under his control via:
 ```bash
 curl -s -X POST $charlie/token \
   -H "Content-Type: application/json" \
-  -d '{ "owner": "be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d" }'
+  -d "$(curl -s -X GET $charlie/wallet | head -1 | jq '{"owner": .owner}')"
 ```
 
 ```json
@@ -408,7 +419,6 @@ Now `charlie` who is the owner of the token can apply the request(s) to the toke
 > ATM batching is possible but very primitive, do not batch more than 4 requests.
 
 ```bash
-
 curl -s -X PUT $charlie/token/$tokenId \
   -H "Content-Type: application/json" \
   -d '{"requests": [{"txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d","outputIndex": 0}]}' | jq
