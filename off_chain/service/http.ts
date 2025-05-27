@@ -3,11 +3,11 @@ import { newContext, withContext, ContextProvider, TopUp } from '../context';
 import { boot } from '../transactions/boot';
 import { update } from '../transactions/update';
 import { request } from '../transactions/request';
-import { findTokenIdRequests, findTokens } from '../common';
 import { end } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
+import { findTokenIdRequests, findTokens } from '../token';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context) {
@@ -16,7 +16,11 @@ function mkAPI(topup: TopUp | undefined, context) {
             'tmp/tokens',
             'log',
             context,
-            async context => findTokens(context)
+            async context => {
+                const utxos = await context.fetchUTxOs();
+                const tokens = findTokens(utxos);
+                return tokens;
+            }
         );
         return f(tokens);
     }
@@ -98,7 +102,8 @@ function mkAPI(topup: TopUp | undefined, context) {
                 res.status(404).json({ error: 'Token not found' });
                 return;
             }
-            const tokenRequests = await findTokenIdRequests(context, tokenId);
+            const utxos = await context.fetchUTxOs();
+            const tokenRequests = findTokenIdRequests(utxos, tokenId);
 
             res.json({
                 owner: token.owner,

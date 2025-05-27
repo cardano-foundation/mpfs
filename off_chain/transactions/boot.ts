@@ -1,5 +1,4 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { getCagingScript } from '../common';
 import { Context } from '../context';
 import { assetName, OutputRef } from '../lib';
 
@@ -29,7 +28,7 @@ export async function boot(context: Context) {
         address: cageAddress,
         cbor: cageCbor,
         policyId: mintPolicyId
-    } = getCagingScript(context);
+    } = context.cagingScript;
 
     const tokenId = mintPolicyId + asset;
     log('token-id', tokenId);

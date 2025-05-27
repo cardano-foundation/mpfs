@@ -1,7 +1,7 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { fetchTokenIdUTxO, getCagingScript } from '../common';
 import { Context } from '../context';
 import { tokenIdParts } from '../lib';
+import { fetchTokenIdUTxO } from '../token';
 
 export async function end(context: Context, tokenId: string) {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
@@ -14,17 +14,15 @@ export async function end(context: Context, tokenId: string) {
 
     const { utxos, walletAddress, collateral, signerHash } = await wallet();
 
+    const cageUTxOs = await context.fetchUTxOs();
     const {
         address: cageAddress,
         cbor: cageCbor,
         scriptHash: cageScriptHash
-    } = getCagingScript(context);
+    } = context.cagingScript;
 
-    const { state: token } = await fetchTokenIdUTxO(
-        context,
-        cageAddress,
-        tokenId
-    );
+    const { state: token } = await fetchTokenIdUTxO(cageUTxOs, tokenId);
+
     log('token', token);
     const tx = newTxBuilder();
     await tx

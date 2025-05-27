@@ -1,5 +1,5 @@
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { newContext, withContext, yaciProvider } from '../../context';
+import { newContext, yaciProvider } from '../../context';
 import { promises as fsPromises } from 'fs';
 
 export async function setup() {

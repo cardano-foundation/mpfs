@@ -1,15 +1,19 @@
 import fs from 'node:fs';
 import {
+    applyParamsToScript,
     BlockfrostProvider,
     deserializeAddress,
     MeshTxBuilder,
     MeshWallet,
+    resolveScriptHash,
+    serializePlutusScript,
     UTxO,
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
 import { tokenIdParts } from './lib';
 import { SafeTrie } from './trie';
+import blueprint from './plutus.json';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;
@@ -27,10 +31,16 @@ type Progress = (message: string) => void;
 export type Context = {
     log: Log;
     logs: () => any;
+    cagingScript: {
+        cbor: string;
+        address: string;
+        scriptHash: string;
+        policyId: string;
+    };
     deleteLogs: () => void;
     wallet: () => Promise<Wallet>;
     newTxBuilder: () => MeshTxBuilder;
-    fetchAddressUTxOs: (address: string) => Promise<UTxO[]>;
+    fetchUTxOs: () => Promise<UTxO[]>;
     signTx: (tx: MeshTxBuilder) => Promise<string>;
     submitTx: (tx: string) => Promise<string>;
     evaluate: (txHex: string) => Promise<any>;
@@ -77,6 +87,32 @@ const outputReferenceOrdering = (a, b) => {
     return a.input.outputIndex - b.input.outputIndex;
 };
 
+export async function fetchAddressUTxOs(provider: Provider, address: string) {
+    return (await provider.fetchAddressUTxOs(address)).sort(
+        outputReferenceOrdering
+    );
+}
+
+export function getCagingScript(blueprint: any) {
+    const cbor = applyParamsToScript(
+        blueprint.validators[0].compiledCode, // crap
+        []
+    );
+    const address = serializePlutusScript({
+        code: cbor,
+        version: 'V3'
+    }).address;
+    const { scriptHash } = deserializeAddress(address);
+    const policyId = resolveScriptHash(cbor, 'V3');
+    const caging = {
+        cbor,
+        address,
+        scriptHash,
+        policyId
+    };
+    return caging;
+}
+
 export async function newContext(
     ctxProvider: ContextProvider,
     wallet: MeshWallet,
@@ -99,8 +135,10 @@ export async function newContext(
         logs,
         deleteLogs,
         newTxBuilder,
-        fetchAddressUTxOs: async s => {
-            return (await provider.fetchAddressUTxOs(s)).sort(
+        cagingScript: getCagingScript(blueprint),
+        fetchUTxOs: async () => {
+            const caging = getCagingScript(blueprint);
+            return (await provider.fetchAddressUTxOs(caging.address)).sort(
                 outputReferenceOrdering
             );
         },

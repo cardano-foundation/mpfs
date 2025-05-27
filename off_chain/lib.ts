@@ -51,3 +51,10 @@ export function validatePort(port: string | undefined, name: string = 'PORT') {
     }
     return portNumber;
 }
+
+export const toHex = (buffer: Buffer): string => buffer.toString('hex');
+
+export function fromHex(hex: string) {
+    const buffer = Buffer.from(hex, 'hex');
+    return buffer.toString('utf-8');
+}

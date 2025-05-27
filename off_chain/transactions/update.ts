@@ -5,19 +5,14 @@ import {
     mConStr2,
     mOutputReference
 } from '@meshsdk/core';
-import {
-    extractPlutusData,
-    fetchTokenIdUTxO,
-    getCagingScript,
-    parseRequest,
-    selectUTxOsRequests,
-    toHex
-} from '../common';
+
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { nullHash } from './boot';
 import { SafeTrie, serializeProof } from '../trie';
-import { OutputRef } from '../lib';
+import { extractPlutusData, OutputRef, toHex } from '../lib';
+import { fetchTokenIdUTxO } from '../token';
+import { parseRequest, selectUTxOsRequests } from '../request';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -39,13 +34,10 @@ export async function update(
 
     const { utxos, walletAddress, collateral, signerHash } = await wallet();
 
-    const { address: cageAddress, cbor: cageCbor } = getCagingScript(context);
+    const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
-    const { state, cageUTxOs } = await fetchTokenIdUTxO(
-        context,
-        cageAddress,
-        tokenId
-    );
+    const cageUTxOs = await context.fetchUTxOs();
+    const { state } = await fetchTokenIdUTxO(cageUTxOs, tokenId);
     const datum = extractPlutusData(state);
     log('datum:', datum);
 

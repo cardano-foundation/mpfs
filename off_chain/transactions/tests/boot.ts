@@ -1,5 +1,5 @@
-import { findTokens } from '../../common';
 import { withContext } from '../../context';
+import { findTokens } from '../../token';
 import { boot } from '../boot';
 import { setup } from './fixtures';
 
@@ -12,8 +12,14 @@ const tokenId = await withContext(
 );
 console.log(tokenId);
 
-const tokens = await withContext('tmp/tokens', 'log', context, async context =>
-    findTokens(context)
+const tokens = await withContext(
+    'tmp/tokens',
+    'log',
+    context,
+    async context => {
+        const utxos = await context.fetchUTxOs();
+        findTokens(utxos);
+    }
 );
 console.log('tokens', tokens);
 const token = tokens.find(token => token.tokenId === tokenId);

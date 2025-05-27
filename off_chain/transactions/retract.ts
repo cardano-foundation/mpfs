@@ -1,7 +1,7 @@
 import { mConStr3, Output } from '@meshsdk/core';
-import { findRequests, getCagingScript } from '../common';
 import { Context } from '../context';
 import { OutputRef } from '../lib';
+import { findRequests } from '../request';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -14,11 +14,11 @@ export async function retract(
 ): Promise<string> {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
 
-    const { utxos, walletAddress, collateral, signerHash } = await wallet();
+    const { walletAddress, collateral, signerHash } = await wallet();
 
-    const { address: cageAddress, cbor: cageCbor } = getCagingScript(context);
-
-    const requests = await findRequests(context);
+    const { cbor: cageCbor } = context.cagingScript;
+    const cageUTxOs = await context.fetchUTxOs();
+    const requests = findRequests(cageUTxOs);
     log('request-output-ref', requestOutputRef);
     log('requests', requests);
     const request = requests.find(

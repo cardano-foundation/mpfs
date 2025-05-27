@@ -1,5 +1,4 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { fetchTokenIdUTxO, getCagingScript } from '../common';
 import { Context } from '../context';
 import { OutputRef, tokenIdParts } from '../lib';
 
@@ -16,8 +15,6 @@ export async function request(
     }
     log('token-id', tokenId);
 
-    const { address: cageAddress } = getCagingScript(context);
-    const _ = await fetchTokenIdUTxO(context, cageAddress, tokenId);
     const { policyId, assetName } = tokenIdParts(tokenId);
     const { walletAddress, utxos, signerHash } = await wallet();
     if (!utxos.length) {
@@ -42,7 +39,9 @@ export async function request(
     log('datum', datum);
     const tx = newTxBuilder();
     await tx
-        .txOut(cageAddress, [{ unit: 'lovelace', quantity: '2000000' }])
+        .txOut(context.cagingScript.address, [
+            { unit: 'lovelace', quantity: '2000000' }
+        ])
         .txOutInlineDatumValue(datum)
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
