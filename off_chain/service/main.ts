@@ -61,8 +61,7 @@ async function setup() {
                 }
                 if (
                     argv.provider === 'yaci' &&
-                    (!argv['yaci-store-host'] ||
-                        !argv['yaci-admin-host'])
+                    (!argv['yaci-store-host'] || !argv['yaci-admin-host'])
                 ) {
                     throw new Error(
                         '--yaci-store-host and --yaci-admin-host are required when provider is yaci'
@@ -111,7 +110,6 @@ async function setup() {
                         'Yaci store host and admin host are required'
                     );
                 }
-                
 
                 ctxProvider = yaciProvider(yaciStoreHost, yaciAdminHost);
                 break;

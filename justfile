@@ -84,3 +84,12 @@ docker-down:
 
 run-yaci:
     yaci-cli up --enable-yaci-store
+
+format:
+    #!/usr/bin/env bash
+    cd off_chain
+    npx prettier --write "**/*.ts"
+    if ! git diff --quiet; then
+        echo "Formatting changed files. Please commit the changes." >&2
+        exit 1
+    fi

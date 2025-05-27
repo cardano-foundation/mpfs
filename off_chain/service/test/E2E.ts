@@ -40,10 +40,7 @@ function newWallet(provider: Provider) {
     });
 }
 
-async function selectWallet(
-    servers: number[],
-    port: string | undefined
-) {
+async function selectWallet(servers: number[], port: string | undefined) {
     if (port) {
         const portNumber = validatePort(port, 'CHARLIE_PORT');
         return `http://localhost:${portNumber}`;
@@ -76,11 +73,7 @@ async function main() {
     const alicePort = process.env.ALICE_PORT;
     const alice = await selectWallet(portsToServe, alicePort);
 
-    const servers = await runServices(
-            portsToServe,
-            provider,
-            newWallet
-        );
+    const servers = await runServices(portsToServe, provider, newWallet);
     const wallets: Wallets = { charlie, bob, alice };
 
     await walletTopup(wallets.charlie);

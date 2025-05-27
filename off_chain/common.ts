@@ -30,7 +30,7 @@ export function getCagingScript(context: Context) {
         cbor,
         address,
         scriptHash,
-        policyId,
+        policyId
     };
     context.log('caging-script', caging);
     return caging;

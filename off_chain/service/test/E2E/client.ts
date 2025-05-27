@@ -110,5 +110,5 @@ export {
     getToken,
     deleteToken,
     updateToken,
-    getTokenFacts,
+    getTokenFacts
 };

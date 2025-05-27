@@ -48,8 +48,8 @@ export async function retract(
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
 
     await tx.complete();
-    const signedTx = await signTx( tx);
-    const txHash = await submitTx( signedTx);
+    const signedTx = await signTx(tx);
+    const txHash = await submitTx(signedTx);
     log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     log('block', block);

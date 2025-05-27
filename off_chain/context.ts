@@ -32,7 +32,7 @@ export type Context = {
     newTxBuilder: () => MeshTxBuilder;
     fetchAddressUTxOs: (address: string) => Promise<UTxO[]>;
     signTx: (tx: MeshTxBuilder) => Promise<string>;
-    submitTx: ( tx: string) => Promise<string>;
+    submitTx: (tx: string) => Promise<string>;
     evaluate: (txHex: string) => Promise<any>;
     trie: (index: string) => Promise<SafeTrie>;
     waitSettlement: (txHash: string) => Promise<string>;
@@ -104,13 +104,13 @@ export async function newContext(
                 outputReferenceOrdering
             );
         },
-        signTx: async ( tx: MeshTxBuilder) => {
+        signTx: async (tx: MeshTxBuilder) => {
             const unsignedTx = tx.txHex;
             log('tx-hex', unsignedTx);
             const signedTx = await wallet.signTx(unsignedTx);
             return signedTx;
         },
-        submitTx: async ( tx: string) => {
+        submitTx: async (tx: string) => {
             const txHash = await wallet.submitTx(tx);
             log('tx-hash', txHash);
             return txHash;
@@ -140,9 +140,7 @@ export async function newContext(
             const { assetName } = tokenIdParts(tokenId);
             const trie = tries[assetName];
             if (!trie) {
-                throw new Error(
-                    `Trie not found for asset name: ${assetName}`
-                );
+                throw new Error(`Trie not found for asset name: ${assetName}`);
             }
             const facts = await trie.allFacts();
             return facts;

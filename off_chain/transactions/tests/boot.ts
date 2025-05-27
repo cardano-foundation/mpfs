@@ -12,11 +12,8 @@ const tokenId = await withContext(
 );
 console.log(tokenId);
 
-const tokens = await withContext(
-            'tmp/tokens',
-            'log',
-            context,
-    async context => findTokens(context)
+const tokens = await withContext('tmp/tokens', 'log', context, async context =>
+    findTokens(context)
 );
 console.log('tokens', tokens);
 const token = tokens.find(token => token.tokenId === tokenId);

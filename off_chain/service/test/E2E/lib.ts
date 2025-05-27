@@ -1,4 +1,3 @@
-
 const assertThrows = (cond: boolean, error: string) => {
     if (!cond) {
         throw new Error(error);
@@ -20,7 +19,7 @@ async function shouldFail(x: Promise<any>) {
 async function catchFailure(
     fn: () => Promise<void>,
     name: string,
-    failures: { error: Error, name: string } [] = []
+    failures: { error: Error; name: string }[] = []
 ) {
     try {
         await fn();
@@ -33,9 +32,4 @@ async function catchFailure(
     }
 }
 
-export {
-    assertThrows,
-    notAssertThrows,
-    shouldFail,
-    catchFailure
-};
+export { assertThrows, notAssertThrows, shouldFail, catchFailure };

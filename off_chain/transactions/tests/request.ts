@@ -11,17 +11,15 @@ const tokenId = await withContext(
     context,
     async context => await boot(context)
 );
-console.log("booted token-id", tokenId);
+console.log('booted token-id', tokenId);
 
 const { txHash: txHashRq, outputIndex: outputIndexRq } = await withContext(
     'tmp/request',
     'log',
     context,
-    async context =>
-        await request(context, tokenId, 'key', 'value', 'insert')
+    async context => await request(context, tokenId, 'key', 'value', 'insert')
 );
-console.log("request utxo", txHashRq, outputIndexRq);
-
+console.log('request utxo', txHashRq, outputIndexRq);
 
 const txHash = await withContext(
     'tmp/end',
@@ -29,4 +27,4 @@ const txHash = await withContext(
     context,
     async context => await end(context, tokenId)
 );
-console.log("ending token-id tx-hash", txHash);
+console.log('ending token-id tx-hash', txHash);

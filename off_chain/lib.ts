@@ -1,14 +1,10 @@
-import {
-    deserializeDatum,
-    UTxO
-} from '@meshsdk/core';
+import { deserializeDatum, UTxO } from '@meshsdk/core';
 import { createHash } from 'crypto';
 
 export type OutputRef = {
     txHash: string;
     outputIndex: number;
 };
-
 
 // this must match the aiken code
 export function assetName(outputRef: OutputRef) {
@@ -19,7 +15,6 @@ export function assetName(outputRef: OutputRef) {
     const bytes = Buffer.concat([transaction_id_bytes, outputIndexBytes]);
     return createHash('sha256').update(bytes).digest().toString('hex');
 }
-
 
 export function tokenIdParts(tokenId: string) {
     const policyId = tokenId.slice(0, 56);
@@ -43,9 +38,8 @@ export function extractPlutusData(utxo: UTxO): any {
     return deserializeDatum(utxo.output.plutusData);
 }
 
-
 export function validatePort(port: string | undefined, name: string = 'PORT') {
-    if(!port) {
+    if (!port) {
         throw new Error(`${name} env var is not set`);
     }
     const portNumber = parseInt(port, 10);
