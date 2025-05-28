@@ -4,7 +4,7 @@ import { end } from '../end';
 import { request } from '../request';
 import { setup } from './fixtures';
 
-const context = await setup();
+const context = await setup(3000);
 const tokenId = await withContext(
     'tmp/boot',
     'log',

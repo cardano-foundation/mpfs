@@ -27,9 +27,11 @@ run-docker-E2E-tests:
     cd off_chain
     export YACI_STORE_PORT=$(shuf -i 1024-65535 -n 1)
     export YACI_ADMIN_PORT=$(shuf -i 1024-65535 -n 1)
+    export OGMIOS_PORT=$(shuf -i 1024-65535 -n 1)
     export CHARLIE_PORT=$(shuf -i 1024-65535 -n 1)
     export BOB_PORT=$(shuf -i 1024-65535 -n 1)
     export ALICE_PORT=$(shuf -i 1024-65535 -n 1)
+
     name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
     docker compose -f docker/docker-compose.yaml -p "$name" up  -d
     down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
@@ -52,6 +54,7 @@ run-bare-E2E-tests:
     cd off_chain
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
+    export OGMIOS_PORT=1337
     rm -rf tmp
     npx tsx service/test/E2E.ts
 

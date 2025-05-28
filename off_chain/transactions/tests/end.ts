@@ -3,7 +3,7 @@ import { boot } from '../boot';
 import { end } from '../end';
 import { setup } from './fixtures';
 
-const context = await setup();
+const context = await setup(3000);
 const tokenId = await withContext(
     'tmp/boot',
     'log',
