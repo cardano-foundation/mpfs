@@ -1,9 +1,7 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from '../context';
-import { assetName, OutputRef } from '../lib';
+import { assetName, nullHash, OutputRef } from '../lib';
 
-export const nullHash =
-    '0000000000000000000000000000000000000000000000000000000000000000';
 export async function boot(context: Context) {
     const { log, wallet, signTx, submitTx, newTxBuilder } = context;
 

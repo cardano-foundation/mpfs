@@ -52,6 +52,9 @@ export function validatePort(port: string | undefined, name: string = 'PORT') {
     return portNumber;
 }
 
+export const nullHash =
+    '0000000000000000000000000000000000000000000000000000000000000000';
+
 export const toHex = (buffer: Buffer): string => buffer.toString('hex');
 
 export function fromHex(hex: string) {

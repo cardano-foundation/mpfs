@@ -1,5 +1,4 @@
-import { OutputRef } from '../../../lib';
-import { nullHash } from '../../../transactions/boot';
+import { nullHash, OutputRef } from '../../../lib';
 import {
     createRequest,
     createToken,

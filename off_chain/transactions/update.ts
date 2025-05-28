@@ -8,9 +8,8 @@ import {
 
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
-import { nullHash } from './boot';
 import { SafeTrie, serializeProof } from '../trie';
-import { extractPlutusData, OutputRef, toHex } from '../lib';
+import { nullHash, OutputRef, toHex } from '../lib';
 import { fetchTokenIdUTxO } from '../token';
 import { parseRequest, selectUTxOsRequests } from '../request';
 
