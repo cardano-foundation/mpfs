@@ -11,10 +11,16 @@ import {
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import { tokenIdParts } from './lib';
+import { rootHex, selectUTxOWithToken, toHex, tokenIdParts } from './lib';
 import { SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { tokenOfTokenId } from './token';
+import {
+    RequestManager,
+    TrieManager,
+    Process,
+    Indexer
+} from './history/indexer';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;
@@ -94,7 +100,7 @@ export async function fetchAddressUTxOs(provider: Provider, address: string) {
     );
 }
 
-export function getCagingScript(blueprint: any) {
+export function getCagingScript() {
     const cbor = applyParamsToScript(
         blueprint.validators[0].compiledCode, // crap
         []
@@ -114,7 +120,14 @@ export function getCagingScript(blueprint: any) {
     return caging;
 }
 
+async function fetchUTxOs(provider: Provider): Promise<UTxO[]> {
+    const caging = getCagingScript();
+    const utxos = await provider.fetchAddressUTxOs(caging.address);
+    return utxos.sort(outputReferenceOrdering);
+}
+
 export async function newContext(
+    tries: TrieManager,
     ctxProvider: ContextProvider,
     wallet: MeshWallet,
     progress?: Progress
@@ -128,7 +141,8 @@ export async function newContext(
     const deleteLogs = () => logger.deleteLogs();
 
     const newTxBuilder = () => getTxBuilder(provider);
-    const tries = {};
+
+    // run the indexer
 
     return {
         log,
@@ -136,13 +150,8 @@ export async function newContext(
         logs,
         deleteLogs,
         newTxBuilder,
-        cagingScript: getCagingScript(blueprint),
-        fetchUTxOs: async () => {
-            const caging = getCagingScript(blueprint);
-            return (await provider.fetchAddressUTxOs(caging.address)).sort(
-                outputReferenceOrdering
-            );
-        },
+        cagingScript: getCagingScript(),
+        fetchUTxOs: async () => await fetchUTxOs(provider),
         signTx: async (tx: MeshTxBuilder) => {
             const unsignedTx = tx.txHex;
             log('tx-hex', unsignedTx);
@@ -157,29 +166,27 @@ export async function newContext(
         evaluate: async (txHex: string) => {
             await ctxProvider.evaluate(txHex);
         },
-        trie: async (index: string) => {
-            const { assetName } = tokenIdParts(index);
-            if (!tries[assetName]) {
-                const path = `tmp/tries/${assetName}`;
-                const trie = await SafeTrie.create(path);
-                if (trie) {
-                    tries[assetName] = trie;
-                } else {
-                    throw new Error(
-                        `Failed to load or create trie for index: ${assetName}`
-                    );
-                }
-            }
-            return tries[assetName];
-        },
+        trie: async (index: string) => await tries.trie(index),
         waitSettlement: async txHash => {
             return await onTxConfirmedPromise(provider, txHash, progress, 50);
         },
         facts: async (tokenId: string) => {
             const { assetName } = tokenIdParts(tokenId);
-            const trie = tries[assetName];
-            if (!trie) {
-                throw new Error(`Trie not found for asset name: ${assetName}`);
+            const utxos = await fetchUTxOs(provider);
+            const { state, token } = tokenOfTokenId(utxos, tokenId);
+            if (!state) {
+                throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
+            }
+            const trie = await tries.trie(assetName);
+
+            const localRoot = rootHex(trie.coldRoot());
+
+            if (token.root !== localRoot) {
+                const tx = await provider.fetchTxInfo(state.input.txHash);
+                console.log('tx', tx);
+                throw new Error(
+                    `Root mismatch for tokenId ${tokenId}: expected ${token.root}, got ${localRoot}`
+                );
             }
             const facts = await trie.allFacts();
             return facts;

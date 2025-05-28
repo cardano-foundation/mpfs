@@ -11,12 +11,10 @@ export type Change = {
 
 class PrivateTrie {
     public trie: Trie;
-    private store: Store;
     public path: string;
 
-    private constructor(path: string, store: Store, trie: Trie) {
+    private constructor(path: string, trie: Trie) {
         this.path = path;
-        this.store = store;
         this.trie = trie;
     }
     public static async create(path: string): Promise<PrivateTrie> {
@@ -28,7 +26,7 @@ class PrivateTrie {
         } catch (error) {
             trie = new Trie(store);
         }
-        return new PrivateTrie(path, store, trie);
+        return new PrivateTrie(path, trie);
     }
     public async close(): Promise<void> {
         // we would like to close the store before deleting it
@@ -40,10 +38,9 @@ class PrivateTrie {
 export class SafeTrie {
     private cold_trie: PrivateTrie;
     private hot_trie: PrivateTrie | undefined;
+    // private hot_lock: boolean = false;
     private facts: Facts;
-    private changes: Change[] = [];
     private base_temp_dir: string; // temporary directory for hot trie
-    private current_temp_dir: string; // current temporary directory for hot trie
 
     // this is a hack because we cannot currently reuse a directory for the hot trie
     private temporaryDir() {
@@ -85,55 +82,36 @@ export class SafeTrie {
         return this.hot_trie.trie;
     }
 
-    public async update(key, value, operation): Promise<Proof> {
+    public async tryUpdate(key, value, operation): Promise<Proof> {
         const hot = await this.hotTrie();
         const proof = await updateTrie(hot, key, value, operation);
-        this.changes.push({ type: operation, key: key, value });
         return proof;
     }
-
-    public async rollback(): Promise<void> {
-        if (this.hot_trie) {
-            this.hot_trie.close();
-            this.hot_trie = undefined;
-            this.changes = [];
+    public async update(key: string, value: string, operation): Promise<void> {
+        await updateTrie(this.cold_trie.trie, key, value, operation);
+        switch (operation) {
+            case 'insert': {
+                await this.facts.set(key, value);
+                break;
+            }
+            case 'delete': {
+                await this.facts.delete(key);
+                break;
+            }
+            default: {
+                throw new Error(`Unknown operation type: ${operation}`);
+            }
         }
     }
+
     public hotRoot(): Buffer | undefined {
         return this.hot_trie?.trie.hash;
     }
     public coldRoot(): Buffer {
         return this.cold_trie.trie.hash;
     }
-    public async commit(): Promise<{ proofs: Proof[]; root: Buffer }> {
-        const cold = this.cold_trie.trie;
-        const proofs: Proof[] = [];
-        try {
-            for (const change of this.changes) {
-                const { type, key, value } = change;
-                proofs.push(await updateTrie(cold, key, value, type));
-                switch (type) {
-                    case 'insert': {
-                        await this.facts.set(key, value);
-                        break;
-                    }
-                    case 'delete': {
-                        await this.facts.delete(key);
-                        break;
-                    }
-                    default: {
-                        throw new Error(`Unknown operation type: ${type}`);
-                    }
-                }
-            }
-        } finally {
-            await this.rollback();
-        }
 
-        return { proofs, root: cold.hash };
-    }
     public async close(): Promise<void> {
-        this.rollback();
         await this.cold_trie.close();
         await fs.promises.rm(this.base_temp_dir, { recursive: true });
     }
@@ -191,3 +169,43 @@ export const serializeProof = (proof: Proof): Data => {
     const json = proof.toJSON() as Array<Record<string, unknown>>;
     return json.map((item: Record<string, unknown>) => serializeStepJ(item));
 };
+
+// Managing tries
+export class TrieManager {
+    private tries: Record<string, SafeTrie> = {};
+    private dbPath: string;
+
+    constructor(dbPath: string) {
+        this.dbPath = dbPath;
+    }
+    public static async create(dbPath: string): Promise<TrieManager> {
+        if (!fs.existsSync(dbPath)) {
+            fs.mkdirSync(dbPath, { recursive: true });
+        } else {
+            fs.rmSync(dbPath, { recursive: true, force: true });
+            fs.mkdirSync(dbPath, { recursive: true });
+        }
+        return new TrieManager(dbPath);
+    }
+
+    public static async load(dbPath: string): Promise<TrieManager> {
+        if (!fs.existsSync(dbPath)) {
+            throw new Error(`Database path does not exist: ${dbPath}`);
+        }
+        return new TrieManager(dbPath);
+    }
+    async trie(assetName: string): Promise<SafeTrie> {
+        if (!this.tries[assetName]) {
+            const dbpath = `${this.dbPath}/${assetName}.json`;
+            const trie = await SafeTrie.create(dbpath);
+            if (trie) {
+                this.tries[assetName] = trie;
+            } else {
+                throw new Error(
+                    `Failed to load or create trie for index: ${assetName}`
+                );
+            }
+        }
+        return this.tries[assetName];
+    }
+}

@@ -1,5 +1,11 @@
 import express from 'express';
-import { newContext, withContext, ContextProvider, TopUp } from '../context';
+import {
+    newContext,
+    withContext,
+    ContextProvider,
+    TopUp,
+    getCagingScript
+} from '../context';
 import { boot } from '../transactions/boot';
 import { update } from '../transactions/update';
 import { request } from '../transactions/request';
@@ -8,9 +14,11 @@ import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { findTokenIdRequests, findTokens } from '../token';
+import { TrieManager } from '../trie';
+import { Indexer } from '../history/indexer';
 
 // API Endpoints
-function mkAPI(topup: TopUp | undefined, context) {
+function mkAPI(topup: TopUp | undefined, context): Function {
     async function withTokens(f: (tokens: any[]) => any): Promise<any> {
         const tokens = await withContext(
             'tmp/tokens',
@@ -216,16 +224,40 @@ function mkAPI(topup: TopUp | undefined, context) {
     return app;
 }
 
+type Service = {
+    server: Server;
+    indexer: Indexer;
+};
+
 export async function runServices(
+    dbPath: string,
     ports: number[],
     ctxProvider: ContextProvider,
-    mkWallet: (Provider) => MeshWallet
+    mkWallet: (Provider) => MeshWallet,
+    ogmios: string
 ) {
-    const servers: Server[] = [];
+    const servers: Service[] = [];
     for (const port of ports) {
+        const dbPathWithPort = `${dbPath}/${port}`;
         try {
             const wallet = mkWallet(ctxProvider.provider);
-            const context = await newContext(ctxProvider, wallet);
+            const tries = await TrieManager.create(dbPathWithPort);
+
+            const { address, policyId } = getCagingScript();
+
+            const indexer = Indexer.create(
+                tries,
+                dbPathWithPort,
+                address,
+                policyId,
+                ogmios,
+                port.toString(10)
+            );
+            new Promise(() => {
+                indexer.run();
+            });
+
+            const context = await newContext(tries, ctxProvider, wallet);
             const app = mkAPI(ctxProvider.topup, context);
 
             const server = await new Promise<Server>((resolve, reject) => {
@@ -240,7 +272,7 @@ export async function runServices(
                     reject(err);
                 });
             });
-            servers.push(server);
+            servers.push({ server, indexer });
         } catch (error) {
             console.error(`Failed to start service on port ${port}:`, error);
             throw error;
@@ -249,10 +281,11 @@ export async function runServices(
     return servers;
 }
 
-export async function stopServices(servers: Server[]) {
+export async function stopServices(servers: Service[]) {
     return Promise.all(
-        servers.map(server => {
+        servers.map(({ server, indexer }) => {
             return new Promise<void>((resolve, reject) => {
+                indexer.close();
                 server.close(err => {
                     if (err) {
                         console.error('Error stopping server:', err);

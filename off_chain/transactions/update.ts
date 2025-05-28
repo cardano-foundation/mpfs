@@ -109,10 +109,8 @@ export async function update(
         const block = await context.waitSettlement(txHash);
         log('block', block);
     } catch (error) {
-        trie.rollback();
         throw new Error(`Failed to create or submit a transaction: ${error}`);
     }
-    await trie.commit();
     return txHash;
 }
 
@@ -122,5 +120,5 @@ async function addRequest(trie: SafeTrie, request: any): Promise<Proof> {
         throw new Error('Invalid request');
     }
     const { key, value } = parsed;
-    return await trie.update(key, value, parsed.operation);
+    return await trie.tryUpdate(key, value, parsed.operation);
 }

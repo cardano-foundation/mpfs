@@ -12,6 +12,8 @@ x-mpfs-template:
     - "http://yaci-cli:8080"
     - --yaci-admin-host
     - "http://yaci-cli:10000"
+    - --ogmios-host
+    - "http://yaci-cli:1337"
     - --seed
     - /data/seed
     - --generate

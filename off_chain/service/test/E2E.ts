@@ -1,5 +1,5 @@
 import { validatePort } from '../../lib';
-import { runServices, stopServices } from '../http';
+import { Name, runServices, stopServices } from '../http';
 import getPort from 'get-port';
 import { ContextProvider, Provider, yaciProvider } from '../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
@@ -40,13 +40,17 @@ function newWallet(provider: Provider) {
     });
 }
 
-async function selectWallet(servers: number[], port: string | undefined) {
+async function selectWallet(
+    servers: Name[],
+    port: string | undefined,
+    envvarName: string = 'PORT'
+) {
     if (port) {
-        const portNumber = validatePort(port, 'CHARLIE_PORT');
+        const portNumber = validatePort(port, envvarName);
         return `http://localhost:${portNumber}`;
     } else {
         const portNumber = await getPort();
-        servers.push(portNumber);
+        servers.push({ port: portNumber, name: envvarName });
         return `http://localhost:${portNumber}`;
     }
 }
@@ -60,20 +64,34 @@ async function main() {
     const yaciAdminPortNumber = validatePort(yaciAdminPort, 'YACI_ADMIN_PORT');
     const yaciAdminHost = `http://localhost:${yaciAdminPortNumber}`;
 
+    const ogmiosPort = process.env.OGMIOS_PORT;
+    const ogmiosPortNumber = validatePort(ogmiosPort, 'OGMIOS_PORT');
+    const ogmiosHost = `http://localhost:${ogmiosPortNumber}`;
+
     const provider = yaciProvider(yaciStoreHost, yaciAdminHost);
 
-    let portsToServe: number[] = [];
+    let namesToServe: Name[] = [];
 
     const charliePort = process.env.CHARLIE_PORT;
-    const charlie = await selectWallet(portsToServe, charliePort);
+    const charlie = await selectWallet(
+        namesToServe,
+        charliePort,
+        'CHARLIE_PORT'
+    );
 
     const bobPort = process.env.BOB_PORT;
-    const bob = await selectWallet(portsToServe, bobPort);
+    const bob = await selectWallet(namesToServe, bobPort, 'BOB_PORT');
 
     const alicePort = process.env.ALICE_PORT;
-    const alice = await selectWallet(portsToServe, alicePort);
+    const alice = await selectWallet(namesToServe, alicePort, 'ALICE_PORT');
 
-    const servers = await runServices(portsToServe, provider, newWallet);
+    const servers = await runServices(
+        'tmp',
+        namesToServe,
+        provider,
+        newWallet,
+        ogmiosHost
+    );
     const wallets: Wallets = { charlie, bob, alice };
 
     await walletTopup(wallets.charlie);

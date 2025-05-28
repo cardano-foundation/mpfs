@@ -50,6 +50,16 @@ async function setup() {
                 type: 'string',
                 describe: 'Yaci admin host (required if provider is yaci)'
             })
+            .option('ogmios-host', {
+                type: 'string',
+                describe: 'Ogmios service URL (default: http://localhost:1337)',
+                default: 'http://localhost:1337'
+            })
+            .option('database-path', {
+                type: 'string',
+                describe: 'Path to the database directory',
+                default: 'tmp'
+            })
             .check(argv => {
                 if (
                     argv.provider === 'blockfrost' &&
@@ -77,7 +87,6 @@ async function setup() {
         if (argv.generate) {
             const mnemonic = generateMnemonic();
             fs.writeFileSync(argv.seed, mnemonic);
-            console.log(`Seed file generated at ${argv.seed}`);
         }
         const mnemonic = fs.readFileSync(argv.seed, 'utf8');
 
@@ -116,7 +125,13 @@ async function setup() {
             default:
                 throw new Error('Invalid provider specified');
         }
-        return { portNumber, ctxProvider, mkWallet };
+        return {
+            portNumber,
+            ctxProvider,
+            mkWallet,
+            ogmios: argv['ogmios-host'],
+            database: argv['database-path']
+        };
     } catch (error) {
         console.error('Error in setup:', error.message);
         process.exit(1);
@@ -124,8 +139,15 @@ async function setup() {
 }
 
 async function main() {
-    const { portNumber, ctxProvider, mkWallet } = await setup();
-    servers = await runServices([portNumber], ctxProvider, mkWallet);
+    const { portNumber, ctxProvider, mkWallet, ogmios, database } =
+        await setup();
+    servers = await runServices(
+        database,
+        [portNumber],
+        ctxProvider,
+        mkWallet,
+        ogmios
+    );
     console.log(`Server is running on port ${portNumber}`);
 
     process.on('SIGINT', async () => {
