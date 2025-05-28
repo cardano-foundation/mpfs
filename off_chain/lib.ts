@@ -56,6 +56,12 @@ export const nullHash =
     '0000000000000000000000000000000000000000000000000000000000000000';
 
 export const toHex = (buffer: Buffer): string => buffer.toString('hex');
+export const rootHex = (root: Buffer | undefined): string => {
+    if (!root) {
+        return nullHash;
+    }
+    return toHex(root);
+};
 
 export function fromHex(hex: string) {
     const buffer = Buffer.from(hex, 'hex');
