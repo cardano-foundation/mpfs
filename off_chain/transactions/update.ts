@@ -10,7 +10,7 @@ import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { SafeTrie, serializeProof } from '../trie';
 import { nullHash, OutputRef, toHex } from '../lib';
-import { fetchTokenIdUTxO } from '../token';
+import { parseStateDatum, tokenOfTokenId } from '../token';
 import { parseRequest, selectUTxOsRequests } from '../request';
 
 const guessingLowCost = {
@@ -36,11 +36,15 @@ export async function update(
     const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
     const cageUTxOs = await context.fetchUTxOs();
-    const { state } = await fetchTokenIdUTxO(cageUTxOs, tokenId);
-    const datum = extractPlutusData(state);
+    const { state } = tokenOfTokenId(cageUTxOs, tokenId);
+    const datum = parseStateDatum(state);
     log('datum:', datum);
 
-    const root = datum.fields[0].fields[1].bytes;
+    if (!datum) {
+        throw new Error(`State datum not found for tokenId: ${tokenId}`);
+    }
+
+    const { root } = datum;
     log('root', root);
 
     const stateOutputRef = mConStr1([

@@ -31,13 +31,6 @@ export function selectUTxOWithToken(utxos: UTxO[], tokenId: string) {
     return utxos.find(utxo => containsToken(utxo, tokenId));
 }
 
-export function extractPlutusData(utxo: UTxO): any {
-    if (!utxo.output.plutusData) {
-        throw new Error('Plutus data is undefined');
-    }
-    return deserializeDatum(utxo.output.plutusData);
-}
-
 export function validatePort(port: string | undefined, name: string = 'PORT') {
     if (!port) {
         throw new Error(`${name} env var is not set`);

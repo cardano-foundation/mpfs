@@ -2,16 +2,9 @@ import { Asset, deserializeDatum, UTxO } from '@meshsdk/core';
 import { findRequests } from './request';
 import { selectUTxOWithToken } from './lib';
 
-export function extractPlutusData(utxo: UTxO): any {
-    if (!utxo.output.plutusData) {
-        throw new Error('Plutus data is undefined');
-    }
-    return deserializeDatum(utxo.output.plutusData);
-}
-
-export function parseStateDatum(utxo: UTxO) {
+export function parseStateDatumCbor(cbor: string) {
     try {
-        const datum = extractPlutusData(utxo);
+        const datum = deserializeDatum(cbor);
         const stateDatum = datum.fields[0];
         const owner = stateDatum.fields[0].bytes;
         const root = stateDatum.fields[1].bytes;
@@ -19,6 +12,12 @@ export function parseStateDatum(utxo: UTxO) {
     } catch (error) {
         return undefined;
     }
+}
+export function parseStateDatum(utxo: UTxO) {
+    if (!utxo.output.plutusData) {
+        throw new Error('Plutus data is undefined');
+    }
+    return parseStateDatumCbor(utxo.output.plutusData);
 }
 
 const selectTokenId: (assets: Asset[]) => string | undefined = (
@@ -57,13 +56,17 @@ export function findTokenIdRequests(utxos: UTxO[], tokenId: string) {
     return requests.filter(request => request.tokenId === tokenId);
 }
 
-export async function fetchTokenIdUTxO(
+export function tokenOfTokenId(
     utxos: UTxO[],
     tokenId: string
-): Promise<{ state: UTxO; cageUTxOs: UTxO[] }> {
+): { state: UTxO; token: { owner: string; root: string } } {
     const state = selectUTxOWithToken(utxos, tokenId);
     if (!state) {
         throw new Error('No state UTxO found');
     }
-    return { state, cageUTxOs: utxos };
+    const token = parseStateDatum(state);
+    if (!token) {
+        throw new Error('No token found in state UTxO');
+    }
+    return { state, token };
 }

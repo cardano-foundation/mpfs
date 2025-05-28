@@ -14,6 +14,7 @@ import { OutputLogger } from './logging';
 import { tokenIdParts } from './lib';
 import { SafeTrie } from './trie';
 import blueprint from './plutus.json';
+import { tokenOfTokenId } from './token';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;

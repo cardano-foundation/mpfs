@@ -1,5 +1,5 @@
-import { UTxO } from '@meshsdk/core';
-import { extractPlutusData, fromHex, OutputRef } from './lib';
+import { deserializeDatum, UTxO } from '@meshsdk/core';
+import { fromHex, OutputRef } from './lib';
 
 export type Request = {
     tokenId: string;
@@ -10,9 +10,9 @@ export type Request = {
     ref: OutputRef;
 };
 
-export function parseRequest(utxo: UTxO) {
+export function parseRequestCbor(cbor: string) {
     try {
-        const datum = extractPlutusData(utxo);
+        const datum = deserializeDatum(cbor);
         const stateDatum = datum.fields[0];
         const tokenIdP = stateDatum.fields[0];
         const policyId = tokenIdP.fields[0].bytes;
@@ -26,6 +26,13 @@ export function parseRequest(utxo: UTxO) {
     } catch (error) {
         return undefined;
     }
+}
+
+export function parseRequest(utxo: UTxO) {
+    if (!utxo.output.plutusData) {
+        throw new Error('Plutus data is undefined');
+    }
+    return parseRequestCbor(utxo.output.plutusData);
 }
 
 export function selectUTxOsRequests(
