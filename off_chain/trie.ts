@@ -196,7 +196,7 @@ export class TrieManager {
     }
     async trie(assetName: string): Promise<SafeTrie> {
         if (!this.tries[assetName]) {
-            const dbpath = `${this.dbPath}/${assetName}.json`;
+            const dbpath = `${this.dbPath}/${assetName}`;
             const trie = await SafeTrie.create(dbpath);
             if (trie) {
                 this.tries[assetName] = trie;
