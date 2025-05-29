@@ -210,6 +210,8 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
         log('charlie updated the mpf token');
         const facts = await getTokenFacts(charlie, tk);
         assertThrows(facts['abc'] === 'value', 'Token fact is not value');
+        const factsBob = await getTokenFacts(bob, tk);
+        assertThrows(facts['abc'] === 'value', 'Token fact is not value');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
     };
