@@ -35,26 +35,106 @@ export type Wallet = {
 export type TopUp = (address: string, amount: number) => Promise<void>;
 type Progress = (message: string) => void;
 
-export type Context = {
-    log: Log;
-    logs: () => any;
-    cagingScript: {
+export class Context {
+    private logger: OutputLogger;
+    private provider: Provider;
+    private walletInstance: MeshWallet;
+    private tries: TrieManager;
+    private progress?: Progress;
+
+    constructor(
+        provider: Provider,
+        wallet: MeshWallet,
+        tries: TrieManager,
+        progress?: Progress
+    ) {
+        this.logger = new OutputLogger();
+        this.provider = provider;
+        this.walletInstance = wallet;
+        this.tries = tries;
+        this.progress = progress;
+    }
+
+    log(key: string, value: any): void {
+        this.logger.log(key, value);
+    }
+
+    logs(): any {
+        return this.logger.getLogs();
+    }
+
+    deleteLogs(): void {
+        this.logger.deleteLogs();
+    }
+
+    get cagingScript(): {
         cbor: string;
         address: string;
         scriptHash: string;
         policyId: string;
-    };
-    deleteLogs: () => void;
-    wallet: () => Promise<Wallet>;
-    newTxBuilder: () => MeshTxBuilder;
-    fetchUTxOs: () => Promise<UTxO[]>;
-    signTx: (tx: MeshTxBuilder) => Promise<string>;
-    submitTx: (tx: string) => Promise<string>;
-    evaluate: (txHex: string) => Promise<any>;
-    trie: (index: string) => Promise<SafeTrie>;
-    waitSettlement: (txHash: string) => Promise<string>;
-    facts: (tokenId: string) => Promise<Record<string, string>>;
-};
+    } {
+        return getCagingScript();
+    }
+
+    async wallet(): Promise<Wallet> {
+        return await getWalletInfoForTx(this.log.bind(this), this.walletInstance);
+    }
+
+    newTxBuilder(): MeshTxBuilder {
+        return getTxBuilder(this.provider);
+    }
+
+    async fetchUTxOs(): Promise<UTxO[]> {
+        return await fetchUTxOs(this.provider);
+    }
+
+    async signTx(tx: MeshTxBuilder): Promise<string> {
+        const unsignedTx = tx.txHex;
+        this.log('tx-hex', unsignedTx);
+        const signedTx = await this.walletInstance.signTx(unsignedTx);
+        return signedTx;
+    }
+
+    async submitTx(tx: string): Promise<string> {
+        const txHash = await this.walletInstance.submitTx(tx);
+        this.log('tx-hash', txHash);
+        return txHash;
+    }
+
+    async evaluate(txHex: string): Promise<any> {
+        await this.provider.evaluateTx(txHex);
+    }
+
+    async trie(assetName: string): Promise<SafeTrie> {
+        return await this.tries.trie(assetName);
+    }
+
+    async waitSettlement(txHash: string): Promise<string> {
+        return await onTxConfirmedPromise(this.provider, txHash, this.progress, 50);
+    }
+
+    async facts(tokenId: string): Promise<Record<string, string>> {
+        const { assetName } = tokenIdParts(tokenId);
+        const utxos = await fetchUTxOs(this.provider);
+        const { state, token } = tokenOfTokenId(utxos, tokenId);
+        if (!state) {
+            throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
+        }
+        const trie = await this.tries.trie(assetName);
+
+        const localRoot = rootHex(trie.coldRoot());
+
+        if (token.root !== localRoot) {
+            const tx = await this.provider.fetchTxInfo(state.input.txHash);
+            console.log('tx', tx);
+            throw new Error(
+                `Root mismatch for tokenId ${tokenId}: expected ${token.root}, got ${localRoot}`
+            );
+        }
+        const facts = await trie.allFacts();
+        return facts;
+    }
+}
 
 export async function withContext(
     baseDir: string,
@@ -142,57 +222,13 @@ export async function newContext(
 
     const newTxBuilder = () => getTxBuilder(provider);
 
-    // run the indexer
+    return new Context(
+        provider,
+        wallet,
+        tries,
+        progress
+    );
 
-    return {
-        log,
-        wallet: async () => await getWalletInfoForTx(log, wallet),
-        logs,
-        deleteLogs,
-        newTxBuilder,
-        cagingScript: getCagingScript(),
-        fetchUTxOs: async () => await fetchUTxOs(provider),
-        signTx: async (tx: MeshTxBuilder) => {
-            const unsignedTx = tx.txHex;
-            log('tx-hex', unsignedTx);
-            const signedTx = await wallet.signTx(unsignedTx);
-            return signedTx;
-        },
-        submitTx: async (tx: string) => {
-            const txHash = await wallet.submitTx(tx);
-            log('tx-hash', txHash);
-            return txHash;
-        },
-        evaluate: async (txHex: string) => {
-            await ctxProvider.evaluate(txHex);
-        },
-        trie: async (index: string) => await tries.trie(index),
-        waitSettlement: async txHash => {
-            return await onTxConfirmedPromise(provider, txHash, progress, 50);
-        },
-        facts: async (tokenId: string) => {
-            const { assetName } = tokenIdParts(tokenId);
-            const utxos = await fetchUTxOs(provider);
-            const { state, token } = tokenOfTokenId(utxos, tokenId);
-            if (!state) {
-                throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
-            }
-            const trie = await tries.trie(assetName);
-
-            const localRoot = rootHex(trie.coldRoot());
-
-            if (token.root !== localRoot) {
-                const tx = await provider.fetchTxInfo(state.input.txHash);
-                console.log('tx', tx);
-                throw new Error(
-                    `Root mismatch for tokenId ${tokenId}: expected ${token.root}, got ${localRoot}`
-                );
-            }
-            const facts = await trie.allFacts();
-            return facts;
-        }
-    };
-}
 
 export type ContextProvider = {
     provider: Provider;

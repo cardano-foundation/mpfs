@@ -12,15 +12,13 @@ export async function retract(
     context: Context,
     requestOutputRef: OutputRef
 ): Promise<string> {
-    const { log, wallet, signTx, submitTx, newTxBuilder } = context;
-
-    const { walletAddress, collateral, signerHash } = await wallet();
+    const { walletAddress, collateral, signerHash } = await context.wallet();
 
     const { cbor: cageCbor } = context.cagingScript;
     const cageUTxOs = await context.fetchUTxOs();
     const requests = findRequests(cageUTxOs);
-    log('request-output-ref', requestOutputRef);
-    log('requests', requests);
+    context.log('request-output-ref', requestOutputRef);
+    context.log('requests', requests);
     const request = requests.find(
         request =>
             request.ref.txHash === requestOutputRef.txHash &&
@@ -36,7 +34,7 @@ export async function retract(
         throw new Error('Request owner does not match signer');
     }
 
-    const tx = newTxBuilder(); // Initialize the transaction builder
+    const tx = context.newTxBuilder(); // Initialize the transaction builder
     tx.spendingPlutusScriptV3()
         .txIn(request.ref.txHash, request.ref.outputIndex)
         .txInInlineDatumPresent()
@@ -48,10 +46,10 @@ export async function retract(
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
 
     await tx.complete();
-    const signedTx = await signTx(tx);
-    const txHash = await submitTx(signedTx);
-    log('txHash', txHash);
+    const signedTx = await context.signTx(tx);
+    const txHash = await context.submitTx(signedTx);
+    context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
-    log('block', block);
+    context.log('block', block);
     return txHash;
 }

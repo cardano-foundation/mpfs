@@ -4,15 +4,15 @@ import { tokenIdParts } from '../lib';
 import { tokenOfTokenId } from '../token';
 
 export async function end(context: Context, tokenId: string) {
-    const { log, wallet, signTx, submitTx, newTxBuilder } = context;
-    log('token-id', tokenId);
+    context.log('token-id', tokenId);
 
     const { policyId, assetName } = tokenIdParts(tokenId);
-    log('asset-name', assetName);
+    context.log('asset-name', assetName);
 
-    log('policy-id', policyId);
+    context.log('policy-id', policyId);
 
-    const { utxos, walletAddress, collateral, signerHash } = await wallet();
+    const { utxos, walletAddress, collateral, signerHash } =
+        await context.wallet();
 
     const cageUTxOs = await context.fetchUTxOs();
     const {
@@ -23,8 +23,8 @@ export async function end(context: Context, tokenId: string) {
 
     const { state: token } = tokenOfTokenId(cageUTxOs, tokenId);
 
-    log('token', token);
-    const tx = newTxBuilder();
+    context.log('token', token);
+    const tx = context.newTxBuilder();
     await tx
         .spendingPlutusScriptV3()
         .txIn(token.input.txHash, token.input.outputIndex)
@@ -41,12 +41,12 @@ export async function end(context: Context, tokenId: string) {
         .selectUtxosFrom(utxos)
         .complete();
 
-    const signedTx = await signTx(tx);
-    const txHash = await submitTx(signedTx);
-    log('txHash', txHash);
+    const signedTx = await context.signTx(tx);
+    const txHash = await context.submitTx(signedTx);
+    context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
-    log('block', block);
-    const trie = await context.trie(tokenId);
+    context.log('block', block);
+    const trie = await context.trie(assetName);
     await trie.close();
     return txHash;
 }

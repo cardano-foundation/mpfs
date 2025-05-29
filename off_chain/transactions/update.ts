@@ -9,7 +9,7 @@ import {
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { SafeTrie, serializeProof } from '../trie';
-import { nullHash, OutputRef, toHex } from '../lib';
+import { nullHash, OutputRef, toHex, tokenIdParts } from '../lib';
 import { parseStateDatum, tokenOfTokenId } from '../token';
 import { parseRequest, selectUTxOsRequests } from '../request';
 
@@ -28,31 +28,31 @@ export async function update(
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
-    const { log, wallet, signTx, submitTx, newTxBuilder, evaluate } = context;
-    log('token-id', tokenId);
+    context.log('token-id', tokenId);
 
-    const { utxos, walletAddress, collateral, signerHash } = await wallet();
+    const { utxos, walletAddress, collateral, signerHash } =
+        await context.wallet();
 
     const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
     const cageUTxOs = await context.fetchUTxOs();
     const { state } = tokenOfTokenId(cageUTxOs, tokenId);
     const datum = parseStateDatum(state);
-    log('datum:', datum);
+    context.log('datum:', datum);
 
     if (!datum) {
         throw new Error(`State datum not found for tokenId: ${tokenId}`);
     }
 
     const { root } = datum;
-    log('root', root);
+    context.log('root', root);
 
     const stateOutputRef = mConStr1([
         mOutputReference(state.input.txHash, state.input.outputIndex)
     ]);
 
     const { requests: presents } = selectUTxOsRequests(cageUTxOs, tokenId);
-    log('requests', presents);
+    context.log('requests', presents);
     const promoteds = presents.filter(present =>
         requireds.some(
             required =>
@@ -60,12 +60,13 @@ export async function update(
                 present.input.outputIndex === required.outputIndex
         )
     );
-    log('promoteds', promoteds);
+    context.log('promoteds', promoteds);
 
     let proofs: Proof[] = [];
     let txHash: string;
-    const tx = newTxBuilder();
-    const trie = await context.trie(tokenId);
+    const tx = context.newTxBuilder();
+    const { assetName } = tokenIdParts(tokenId);
+    const trie = await context.trie(assetName);
     try {
         for (const promoted of promoteds) {
             proofs.push(await addRequest(trie, promoted));
@@ -81,7 +82,7 @@ export async function update(
         const hotRoot = trie.hotRoot();
         const newRoot = hotRoot ? toHex(hotRoot) : nullHash;
         const newStateDatum = mConStr1([mConStr0([signerHash, newRoot])]);
-        log('newStateDatum', newStateDatum);
+        context.log('newStateDatum', newStateDatum);
         const jsonProofs: Data[] = proofs.map(serializeProof);
 
         tx.selectUtxosFrom(utxos) // select the remaining UTXOs
@@ -100,14 +101,14 @@ export async function update(
             );
 
         await tx.complete();
-        const signedTx = await signTx(tx);
+        const signedTx = await context.signTx(tx);
 
         // const e = await evaluate(tx.txHex)
         // console.log('evaluate', JSON.stringify(e, null, 2));
-        txHash = await submitTx(signedTx);
-        log('txHash', txHash);
+        txHash = await context.submitTx(signedTx);
+        context.log('txHash', txHash);
         const block = await context.waitSettlement(txHash);
-        log('block', block);
+        context.log('block', block);
     } catch (error) {
         throw new Error(`Failed to create or submit a transaction: ${error}`);
     }

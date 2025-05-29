@@ -3,9 +3,8 @@ import { Context } from '../context';
 import { assetName, nullHash, OutputRef } from '../lib';
 
 export async function boot(context: Context) {
-    const { log, wallet, signTx, submitTx, newTxBuilder } = context;
-
-    const { utxos, walletAddress, collateral, signerHash } = await wallet();
+    const { utxos, walletAddress, collateral, signerHash } =
+        await context.wallet();
 
     const firstUTxO = utxos[0];
     if (!firstUTxO) {
@@ -20,7 +19,7 @@ export async function boot(context: Context) {
     const uniquenessP = mConStr0([uniqueness.txHash, uniqueness.outputIndex]);
 
     const asset = assetName(uniqueness);
-    log('asset-name', asset);
+    context.log('asset-name', asset);
 
     const {
         address: cageAddress,
@@ -29,9 +28,9 @@ export async function boot(context: Context) {
     } = context.cagingScript;
 
     const tokenId = mintPolicyId + asset;
-    log('token-id', tokenId);
+    context.log('token-id', tokenId);
 
-    const tx = newTxBuilder();
+    const tx = context.newTxBuilder();
     await tx
         .txIn(firstUTxO.input.txHash, firstUTxO.input.outputIndex)
         .mintPlutusScriptV3()
@@ -44,11 +43,10 @@ export async function boot(context: Context) {
         .selectUtxosFrom(utxos)
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex)
         .complete();
-    const signedTx = await signTx(tx);
-    const txHash = await submitTx(signedTx);
-    log('txHash', txHash);
+    const signedTx = await context.signTx(tx);
+    const txHash = await context.submitTx(signedTx);
+    context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
-    log('block', block);
-    await context.trie(tokenId);
+    context.log('block', block);
     return tokenId;
 }
