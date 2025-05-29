@@ -16,6 +16,7 @@ import { MeshWallet } from '@meshsdk/core';
 import { findTokenIdRequests, findTokens } from '../token';
 import { TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
+import { Mutex } from 'async-mutex';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context): Function {
@@ -253,8 +254,9 @@ export async function runServices(
                 ogmios,
                 port.toString(10)
             );
-            new Promise(() => {
-                indexer.run();
+            new Promise(async () => {
+                const mutex = new Mutex();
+                await indexer.run(mutex);
             });
 
             const context = await newContext(tries, ctxProvider, wallet);

@@ -116,6 +116,7 @@ class Indexer {
     private process: Process;
     private client: WebSocket;
     private name: string;
+    // private syncTip: number | null = null;
 
     constructor(process: Process, address: string, name: string = 'Indexer') {
         this.process = process;
@@ -149,8 +150,9 @@ class Indexer {
     close(): void {
         this.client.close();
     }
-    run(): void {
-        this.client.once('open', () => {
+    async run(mutex): Promise<void> {
+        this.client.on('open', () => {
+            console.log(`${this.name} connected to ${this.client.url}`);
             this.rpc(
                 'findIntersection',
                 { points: ['origin'] },
@@ -158,7 +160,9 @@ class Indexer {
             );
         });
 
-        this.client.on('message', msg => {
+        console.log(`${this.name} waiting for messages...`);
+        this.client.on('message', async msg => {
+            const release = await mutex.acquire();
             const response = JSON.parse(msg);
 
             switch (response.id) {
@@ -171,6 +175,7 @@ class Indexer {
 
                 default:
                     if (response.result.direction === 'forward') {
+                        // this.syncTip = response.result.block.header.height;
                         response.result.block.transactions.forEach(tx => {
                             // console.log(this.name, JSON.stringify(tx.outputs, null, 2))
                             this.process.process(tx);
@@ -180,6 +185,7 @@ class Indexer {
                     this.rpc('nextBlock', {}, 1);
                     break;
             }
+            release();
         });
     }
 }
