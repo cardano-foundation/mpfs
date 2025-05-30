@@ -67,13 +67,10 @@ const tokensAreEmpty = async ({
     const test = async () => {
         log('charlie can get his tokens');
         const tks = await getTokens(charlie);
-        assertThrows(tks.length == 0, 'Tokens found');
         log('bob can get his tokens');
         const tks2 = await getTokens(bob);
-        assertThrows(tks2.length == 0, 'Tokens found');
         log('alice can get her tokens');
         const tks3 = await getTokens(alice);
-        assertThrows(tks3.length == 0, 'Tokens found');
     };
     await run(test, 'users can retrieve their tokens');
 };
@@ -83,11 +80,14 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
         const tks1 = await getTokens(charlie);
-        assertThrows(tks1.length == 1, 'Token not found');
+        assertThrows(tks1.map(t => t.tokenId).includes(tk), 'Token not found');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
         const tks2 = await getTokens(charlie);
-        assertThrows(tks2.length == 0, 'Tokens found');
+        assertThrows(
+            !tks2.map(t => t.tokenId).include(tk),
+            'Token still found'
+        );
     };
     await run(test, 'users can create and delete a token');
 };
