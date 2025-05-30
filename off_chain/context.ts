@@ -39,22 +39,31 @@ export class Context {
     private logger: OutputLogger;
     private provider: Provider;
     private walletInstance: MeshWallet;
-    private tries: TrieManager;
+    private indexer: Indexer;
     private progress?: Progress;
 
     constructor(
         provider: Provider,
         wallet: MeshWallet,
-        tries: TrieManager,
+        indexer: Indexer,
         progress?: Progress
     ) {
         this.logger = new OutputLogger();
         this.provider = provider;
         this.walletInstance = wallet;
-        this.tries = tries;
+        this.indexer = indexer;
         this.progress = progress;
     }
-
+    async stopIndexer(): Promise<any> {
+        return await this.indexer.pause();
+    }
+    get indexerStatus() {
+        return {
+            ready: this.indexer.isReady,
+            networkTip: this.indexer.networkTipSlot,
+            indexerTip: this.indexer.indexerTipSlot
+        };
+    }
     log(key: string, value: any): void {
         this.logger.log(key, value);
     }
@@ -77,7 +86,10 @@ export class Context {
     }
 
     async wallet(): Promise<Wallet> {
-        return await getWalletInfoForTx(this.log.bind(this), this.walletInstance);
+        return await getWalletInfoForTx(
+            this.log.bind(this),
+            this.walletInstance
+        );
     }
 
     newTxBuilder(): MeshTxBuilder {
@@ -106,11 +118,16 @@ export class Context {
     }
 
     async trie(assetName: string): Promise<SafeTrie> {
-        return await this.tries.trie(assetName);
+        return await this.indexer.tries.trie(assetName);
     }
 
     async waitSettlement(txHash: string): Promise<string> {
-        return await onTxConfirmedPromise(this.provider, txHash, this.progress, 50);
+        return await onTxConfirmedPromise(
+            this.provider,
+            txHash,
+            this.progress,
+            50
+        );
     }
 
     async facts(tokenId: string): Promise<Record<string, string>> {
@@ -120,7 +137,7 @@ export class Context {
         if (!state) {
             throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
         }
-        const trie = await this.tries.trie(assetName);
+        const trie = await this.indexer.tries.trie(assetName);
 
         const localRoot = rootHex(trie.coldRoot());
 
@@ -207,7 +224,7 @@ async function fetchUTxOs(provider: Provider): Promise<UTxO[]> {
 }
 
 export async function newContext(
-    tries: TrieManager,
+    indexer: Indexer,
     ctxProvider: ContextProvider,
     wallet: MeshWallet,
     progress?: Progress
@@ -222,13 +239,9 @@ export async function newContext(
 
     const newTxBuilder = () => getTxBuilder(provider);
 
-    return new Context(
-        provider,
-        wallet,
-        tries,
-        progress
-    );
-
+    // run the indexer
+    return new Context(provider, wallet, indexer, progress);
+}
 
 export type ContextProvider = {
     provider: Provider;

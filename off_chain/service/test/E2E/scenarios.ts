@@ -194,6 +194,24 @@ const canInspectRequestsForAToken = async ({
     await run(test, 'users can inspect requests for a token');
 };
 
+const waitForSync = async (log, wallet, tk) => {
+    while (true) {
+        const { ready, networkTip, indexerTip } = (await getTokens(wallet)).indexerStatus;
+        if (ready) {
+            break;
+        }
+        log(
+            `waiting 5s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
+        );
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+};
+
+const waitAndUpdate = async (log, wallet, tk, refs) => {
+    await waitForSync(log, wallet, tk);
+    await updateToken(wallet, tk, refs);
+};
+
 const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
     const test = async () => {
         const tk = await createToken(charlie);
@@ -206,7 +224,7 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
             'insert'
         );
         log('bob created a request to insert a fact');
-        await updateToken(charlie, tk, [{ txHash, outputIndex }]);
+        await waitAndUpdate(log, charlie, tk, [{ txHash, outputIndex }]);
         log('charlie updated the mpf token');
         const facts = await getTokenFacts(charlie, tk);
         assertThrows(facts['abc'] === 'value', 'Token fact is not value');

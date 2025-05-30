@@ -17,6 +17,7 @@ import { findTokenIdRequests, findTokens } from '../token';
 import { TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
 import { Mutex } from 'async-mutex';
+import { read } from 'fs';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context): Function {
@@ -37,6 +38,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
     const app = express();
 
     app.use(express.json()); // Ensure JSON parsing middleware is applied
+
     app.get('/wallet', async (req, res) => {
         const wallet = await withContext(
             'tmp/wallet',
@@ -89,8 +91,12 @@ function mkAPI(topup: TopUp | undefined, context): Function {
 
     app.get('/tokens', async (req, res) => {
         try {
+            const indexerStatus = context.indexerStatus;
             const tokens = await withTokens(tokens => tokens);
-            res.json(tokens);
+            res.json({
+                tokens,
+                indexerStatus
+            });
         } catch (error) {
             res.status(500).json({
                 error: 'Error fetching tokens',
@@ -113,7 +119,6 @@ function mkAPI(topup: TopUp | undefined, context): Function {
             }
             const utxos = await context.fetchUTxOs();
             const tokenRequests = findTokenIdRequests(utxos, tokenId);
-
             res.json({
                 owner: token.owner,
                 root: token.root,
@@ -230,15 +235,20 @@ type Service = {
     indexer: Indexer;
 };
 
+export type Name = {
+    name: string;
+    port: number;
+};
+
 export async function runServices(
     dbPath: string,
-    ports: number[],
+    names: Name[],
     ctxProvider: ContextProvider,
     mkWallet: (Provider) => MeshWallet,
     ogmios: string
 ) {
     const servers: Service[] = [];
-    for (const port of ports) {
+    for (const { port, name } of names) {
         const dbPathWithPort = `${dbPath}/${port}`;
         try {
             const wallet = mkWallet(ctxProvider.provider);
@@ -252,14 +262,13 @@ export async function runServices(
                 address,
                 policyId,
                 ogmios,
-                port.toString(10)
+                name
             );
             new Promise(async () => {
-                const mutex = new Mutex();
-                await indexer.run(mutex);
+                await indexer.run();
             });
 
-            const context = await newContext(tries, ctxProvider, wallet);
+            const context = await newContext(indexer, ctxProvider, wallet);
             const app = mkAPI(ctxProvider.topup, context);
 
             const server = await new Promise<Server>((resolve, reject) => {

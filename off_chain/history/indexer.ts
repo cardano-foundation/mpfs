@@ -4,6 +4,7 @@ import { parseRequestCbor } from '../request';
 import { rootHex, toHex } from '../lib';
 import { Level } from 'level';
 import { TrieManager } from '../trie';
+import { Mutex } from 'async-mutex';
 
 function mkOutputRefId(txId: string, index: number): string {
     return `${txId}#${index}`;
@@ -56,6 +57,9 @@ class Process {
         this.tries = tries;
         this.address = address;
         this.policyId = policyId;
+    }
+    get trieManager(): TrieManager {
+        return this.tries;
     }
     async process(tx: any): Promise<void> {
         tx.outputs.forEach(async (output, index) => {
@@ -116,12 +120,17 @@ class Indexer {
     private process: Process;
     private client: WebSocket;
     private name: string;
-    // private syncTip: number | null = null;
+    private indexerTip: number | null = null;
+    private networkTip: number | null = null;
+    private networkTipQueried: boolean = false;
+    private ready: boolean = false;
+    private stop: Mutex;
 
     constructor(process: Process, address: string, name: string = 'Indexer') {
         this.process = process;
         this.client = new WebSocket(address);
         this.name = name;
+        this.stop = new Mutex();
     }
 
     public static create(
@@ -134,6 +143,7 @@ class Indexer {
     ): Indexer {
         const requests = new RequestManager(`${dbPath}/requests`);
         const process = new Process(requests, tries, address, policyId);
+
         return new Indexer(process, wsAddress, name);
     }
 
@@ -150,40 +160,87 @@ class Indexer {
     close(): void {
         this.client.close();
     }
-    async run(mutex): Promise<void> {
+    get isReady(): boolean {
+        return this.ready;
+    }
+    get tries(): TrieManager {
+        return this.process.trieManager;
+    }
+    get networkTipSlot(): number | null {
+        return this.networkTip;
+    }
+    get indexerTipSlot(): number | null {
+        return this.indexerTip;
+    }
+    async pause() {
+        return await this.stop.acquire();
+    }
+    private withTips(f) {
+        if (this.networkTip && this.indexerTip) {
+            f(this.networkTip, this.indexerTip);
+        }
+    }
+    private queryFindIntersection(points: any[]): void {
+        this.rpc('findIntersection', { points }, 'intersection');
+    }
+    private queryNetworkTip(): void {
+        if (!this.networkTipQueried) {
+            this.rpc('queryNetwork/tip', {}, 'tip');
+            this.networkTipQueried = true;
+        }
+    }
+    private queryNextBlock(): void {
+        this.rpc('nextBlock', {}, 'block');
+    }
+    async run(): Promise<void> {
         this.client.on('open', () => {
-            console.log(`${this.name} connected to ${this.client.url}`);
-            this.rpc(
-                'findIntersection',
-                { points: ['origin'] },
-                'find-intersection'
-            );
+            this.queryFindIntersection(['origin']);
+            this.queryNetworkTip();
         });
 
-        console.log(`${this.name} waiting for messages...`);
         this.client.on('message', async msg => {
-            const release = await mutex.acquire();
+            const release = await this.stop.acquire();
             const response = JSON.parse(msg);
 
             switch (response.id) {
-                case 'find-intersection':
+                case 'intersection':
                     if (!response.result.intersection) {
                         throw 'No intersection found';
                     }
-                    this.rpc('nextBlock', {}, 1);
+                    this.queryNextBlock();
                     break;
-
-                default:
-                    if (response.result.direction === 'forward') {
-                        // this.syncTip = response.result.block.header.height;
-                        response.result.block.transactions.forEach(tx => {
-                            // console.log(this.name, JSON.stringify(tx.outputs, null, 2))
-                            this.process.process(tx);
-                        });
+                case 'tip':
+                    this.networkTip = response.result.slot;
+                    this.networkTipQueried = false;
+                    this.withTips((networkTip, indexerTip) => {
+                        if (networkTip == indexerTip) {
+                            this.ready = true;
+                        } else {
+                            this.ready = false;
+                            if (networkTip < indexerTip) {
+                                this.queryNetworkTip();
+                            }
+                        }
+                    });
+                    break;
+                case 'block':
+                    switch (response.result.direction) {
+                        case 'forward':
+                            this.indexerTip = response.result.block.slot;
+                            this.withTips((networkTip, indexerTip) => {
+                                if (networkTip < indexerTip) {
+                                    this.queryNetworkTip();
+                                }
+                            });
+                            response.result.block.transactions.forEach(tx => {
+                                this.process.process(tx);
+                            });
+                            this.queryNextBlock();
+                            break;
+                        case 'backward':
+                            this.queryNextBlock();
+                            break;
                     }
-
-                    this.rpc('nextBlock', {}, 1);
-                    break;
             }
             release();
         });

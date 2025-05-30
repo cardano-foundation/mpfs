@@ -12,6 +12,7 @@ import { SafeTrie, serializeProof } from '../trie';
 import { nullHash, OutputRef, toHex, tokenIdParts } from '../lib';
 import { parseStateDatum, tokenOfTokenId } from '../token';
 import { parseRequest, selectUTxOsRequests } from '../request';
+import { Indexer } from '../history/indexer';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -28,6 +29,12 @@ export async function update(
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
+    if (context.indexerStatus.ready === false) {
+        throw new Error(
+            'Indexer is not ready. Please wait for the indexer to be ready.'
+        );
+    }
+    const releaseIndexer = await context.stopIndexer();
     context.log('token-id', tokenId);
 
     const { utxos, walletAddress, collateral, signerHash } =
@@ -110,8 +117,10 @@ export async function update(
         const block = await context.waitSettlement(txHash);
         context.log('block', block);
     } catch (error) {
+        releaseIndexer();
         throw new Error(`Failed to create or submit a transaction: ${error}`);
     }
+    releaseIndexer();
     return txHash;
 }
 

@@ -49,8 +49,8 @@ run-docker-E2E-tests:
 
 run-bare-E2E-tests:
     #!/usr/bin/env bash
-    just build-on-chain
-    just build-off-chain
+    # just build-on-chain
+    # just build-off-chain
     cd off_chain
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
