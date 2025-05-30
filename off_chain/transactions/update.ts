@@ -34,7 +34,7 @@ export async function update(
             'Indexer is not ready. Please wait for the indexer to be ready.'
         );
     }
-    const releaseIndexer = await context.stopIndexer();
+
     context.log('token-id', tokenId);
 
     const { utxos, walletAddress, collateral, signerHash } =
@@ -59,7 +59,6 @@ export async function update(
     ]);
 
     const { requests: presents } = selectUTxOsRequests(cageUTxOs, tokenId);
-    context.log('requests', presents);
     const promoteds = presents.filter(present =>
         requireds.some(
             required =>
@@ -73,7 +72,9 @@ export async function update(
     let txHash: string;
     const tx = context.newTxBuilder();
     const { assetName } = tokenIdParts(tokenId);
+    const releaseIndexer = await context.stopIndexer();
     const trie = await context.trie(assetName);
+    const oldRoot = trie.root();
     try {
         for (const promoted of promoteds) {
             proofs.push(await addRequest(trie, promoted));
@@ -86,8 +87,8 @@ export async function update(
         if (proofs.length === 0) {
             throw new Error('No requests found');
         }
-        const hotRoot = trie.hotRoot();
-        const newRoot = hotRoot ? toHex(hotRoot) : nullHash;
+        const root = trie.root();
+        const newRoot = root ? toHex(root) : nullHash;
         const newStateDatum = mConStr1([mConStr0([signerHash, newRoot])]);
         context.log('newStateDatum', newStateDatum);
         const jsonProofs: Data[] = proofs.map(serializeProof);
@@ -117,10 +118,13 @@ export async function update(
         const block = await context.waitSettlement(txHash);
         context.log('block', block);
     } catch (error) {
-        releaseIndexer();
+        trie.rollback();
+        await releaseIndexer();
         throw new Error(`Failed to create or submit a transaction: ${error}`);
     }
-    releaseIndexer();
+    await trie.rollback(); // Rollback the trie to the previous state
+
+    await releaseIndexer();
     return txHash;
 }
 
@@ -129,6 +133,6 @@ async function addRequest(trie: SafeTrie, request: any): Promise<Proof> {
     if (!parsed) {
         throw new Error('Invalid request');
     }
-    const { key, value } = parsed;
-    return await trie.tryUpdate(key, value, parsed.operation);
+    const { change } = parsed;
+    return await trie.temporaryUpdate(change);
 }

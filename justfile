@@ -55,7 +55,6 @@ run-bare-E2E-tests:
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     export OGMIOS_PORT=1337
-    rm -rf tmp
     npx tsx service/test/E2E.ts
 
 inspect-tx tx_dir:

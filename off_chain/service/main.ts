@@ -143,7 +143,7 @@ async function main() {
         await setup();
     servers = await runServices(
         database,
-        [portNumber],
+        [{ name: 'main', port: portNumber }],
         ctxProvider,
         mkWallet,
         ogmios

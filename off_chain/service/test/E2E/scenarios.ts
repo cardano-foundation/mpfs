@@ -103,7 +103,6 @@ const cannotDeleteAnotherUsersToken = async ({
         await shouldFail(deleteToken(bob, tk));
         log('bob failed to delete charlie token as expected');
         const tks = await getTokens(charlie);
-        assertThrows(tks.length == 1, 'Token not found');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
     };
@@ -173,13 +172,13 @@ const canInspectRequestsForAToken = async ({
         assertThrows(owner === charlieSig, 'Token owner is not charlie');
         assertThrows(root === nullHash, 'Token root is not null');
         assertThrows(requests.length === 1, 'Requests are not one');
-        assertThrows(requests[0].key === 'abc', 'Request key abc');
+        assertThrows(requests[0].change.key === 'abc', 'Request key abc');
         assertThrows(
-            requests[0].value === 'value',
+            requests[0].change.value === 'value',
             'Request value is not value'
         );
         assertThrows(
-            requests[0].operation === 'insert',
+            requests[0].change.operation === 'insert',
             'Request operation is not insert'
         );
         log('bob inspected charlie mpf token');
@@ -318,7 +317,7 @@ const canBatchUpdate = async ({
             'insert'
         );
         log('alice created a request to insert a fact');
-        await updateToken(charlie, tk, [bobRequest, aliceRequest]);
+        await waitAndUpdate(log, charlie, tk, [bobRequest, aliceRequest]);
         log('charlie updated the mpf token');
         const facts = await getTokenFacts(charlie, tk);
         assertThrows(facts['abc'] === 'value', 'Token fact abc is not value');

@@ -17,8 +17,6 @@ export async function retract(
     const { cbor: cageCbor } = context.cagingScript;
     const cageUTxOs = await context.fetchUTxOs();
     const requests = findRequests(cageUTxOs);
-    context.log('request-output-ref', requestOutputRef);
-    context.log('requests', requests);
     const request = requests.find(
         request =>
             request.ref.txHash === requestOutputRef.txHash &&

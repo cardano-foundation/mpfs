@@ -139,7 +139,7 @@ export class Context {
         }
         const trie = await this.indexer.tries.trie(assetName);
 
-        const localRoot = rootHex(trie.coldRoot());
+        const localRoot = rootHex(trie.root());
 
         if (token.root !== localRoot) {
             const tx = await this.provider.fetchTxInfo(state.input.txHash);

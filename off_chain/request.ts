@@ -1,16 +1,17 @@
 import { deserializeDatum, UTxO } from '@meshsdk/core';
 import { fromHex, OutputRef } from './lib';
+import { Change } from './trie';
 
-export type Request = {
+export type RequestCore = {
     tokenId: string;
-    key: string;
-    value: string;
-    operation: string;
+    change: Change;
     owner: string;
+};
+export type Request = RequestCore & {
     ref: OutputRef;
 };
 
-export function parseRequestCbor(cbor: string) {
+export function parseRequestCbor(cbor: string): RequestCore | undefined {
     try {
         const datum = deserializeDatum(cbor);
         const stateDatum = datum.fields[0];
@@ -22,7 +23,12 @@ export function parseRequestCbor(cbor: string) {
         const value = fromHex(stateDatum.fields[3].fields[0].bytes);
         const key = fromHex(stateDatum.fields[2].bytes);
         const owner = stateDatum.fields[1].bytes;
-        return { policyId, assetName, key, value, operation: opname, owner };
+        const change: Change = {
+            key,
+            value,
+            operation: opname
+        };
+        return { tokenId: policyId + assetName, change, owner };
     } catch (error) {
         return undefined;
     }
@@ -37,15 +43,16 @@ export function parseRequest(utxo: UTxO) {
 
 export function selectUTxOsRequests(
     utxos: UTxO[],
-    tokenId: string
+    tokenIdWanted: string
 ): { requests: UTxO[] } {
     var requests: UTxO[] = [];
 
     for (const utxo of utxos) {
         const request = parseRequest(utxo);
+
         if (!request) continue;
-        const { policyId, assetName, value } = request;
-        if (policyId + assetName !== tokenId) continue;
+        const { tokenId } = request;
+        if (tokenIdWanted !== tokenId) continue;
         requests.push(utxo);
     }
     return { requests };
@@ -54,14 +61,10 @@ export function selectUTxOsRequests(
 export function findRequests(utxos: UTxO[]): Request[] {
     const requests: Request[] = [];
     for (const utxo of utxos) {
-        const request = parseRequest(utxo);
-        if (request) {
+        const requestCore = parseRequest(utxo);
+        if (requestCore) {
             requests.push({
-                tokenId: request.policyId + request.assetName,
-                key: request.key,
-                value: request.value,
-                operation: request.operation,
-                owner: request.owner,
+                ...requestCore,
                 ref: {
                     txHash: utxo.input.txHash,
                     outputIndex: utxo.input.outputIndex

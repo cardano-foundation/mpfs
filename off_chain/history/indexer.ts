@@ -1,42 +1,35 @@
 import WebSocket from 'ws';
 import { parseStateDatumCbor } from '../token';
 import { parseRequestCbor } from '../request';
-import { rootHex, toHex } from '../lib';
+import { rootHex, toHex, tokenIdParts } from '../lib';
 import { Level } from 'level';
-import { TrieManager } from '../trie';
+import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 
 function mkOutputRefId(txId: string, index: number): string {
     return `${txId}#${index}`;
 }
 
-type Request = {
+type DBRequest = {
     assetName: string;
-    key: string;
-    value: string;
-    operation: 'insert' | 'delete';
+    change: Change;
 };
 
 // Managing requests
 class RequestManager {
-    private db: Level<string, Request>;
+    private db: Level<string, DBRequest>;
 
     constructor(dbPath: string) {
-        this.db = new Level<string, Request>(dbPath, { valueEncoding: 'json' });
+        this.db = new Level<string, DBRequest>(dbPath, {
+            valueEncoding: 'json'
+        });
     }
 
-    async get(outputRef: string): Promise<Request | null> {
-        try {
-            return await this.db.get(outputRef);
-        } catch (error) {
-            if (error.code === 'LEVEL_NOT_FOUND') {
-                return null;
-            }
-            throw error;
-        }
+    async get(outputRef: string): Promise<DBRequest | null> {
+        return await this.db.get(outputRef);
     }
 
-    async put(outputRef: string, request: Request): Promise<void> {
+    async put(outputRef: string, request: DBRequest): Promise<void> {
         await this.db.put(outputRef, request);
     }
 }
@@ -46,6 +39,7 @@ class Process {
     private tries: TrieManager;
     private address: string;
     private policyId: string;
+    private lock = new Mutex();
 
     constructor(
         requests: RequestManager,
@@ -62,57 +56,63 @@ class Process {
         return this.tries;
     }
     async process(tx: any): Promise<void> {
-        tx.outputs.forEach(async (output, index) => {
+        await tx.outputs.forEach(async (output, index) => {
             if (output.address !== this.address) {
                 return; // skip outputs not to the caging script address
             }
-            const assetName = output.value[this.policyId];
-            if (assetName) {
+            const asset = output.value[this.policyId];
+            if (asset) {
+                const assetName = Object.keys(asset)[0];
+
                 const state = parseStateDatumCbor(output.datum);
+
                 if (state) {
-                    await this.processTokenUpdate(state, tx);
+                    const release = await this.lock.acquire(); // TODO granularize lock
+                    const trie = await this.tries.trie(assetName);
+                    await this.processTokenUpdate(trie, tx);
+
+                    const localRoot = rootHex(trie.root());
+                    release();
+                    // Assert that roots are the same
+                    if (localRoot !== state.root) {
+                        throw new Error(
+                            `Root mismatch for asset ${assetName}:
+                            expected ${state.root}, got ${localRoot}`
+                        );
+                    }
                     return;
                 }
                 return; // skip outputs with no state datum and our policyId
             }
             const request = parseRequestCbor(output.datum);
-            if (request && request.policyId === this.policyId) {
-                await this.processRequest(request, tx, index);
+            if (!request) {
+                return; // skip outputs with no request datum
+            }
+
+            const { policyId: parsedPolicyId, assetName: parsedAssetName } =
+                tokenIdParts(request.tokenId);
+            if (parsedPolicyId === this.policyId) {
+                await this.processRequest(
+                    { assetName: parsedAssetName, change: request.change },
+                    tx,
+                    index
+                );
             }
         });
     }
-    private async processTokenUpdate(state, tx) {
-        tx.inputs.forEach(async input => {
+    private async processTokenUpdate(trie: SafeTrie, tx) {
+        for (const input of tx.inputs) {
             const ref = mkOutputRefId(input.transaction.id, input.index);
             const request = await this.requests.get(ref);
-            if (request) {
-                const trie = await this.tries.trie(request.assetName);
-                await trie.update(
-                    request.key,
-                    request.value,
-                    request.operation
-                );
-                const localRoot = rootHex(trie.coldRoot());
-
-                // Assert that roots are the same
-                if (localRoot !== state.root) {
-                    throw new Error(
-                        `Root mismatch for asset ${request.assetName}:
-                            expected ${state.root}, got ${localRoot}`
-                    );
-                }
+            if (!request) {
+                continue; // skip inputs with no request
             }
-        });
+            await trie.update(request.change);
+        }
     }
-    private async processRequest(request, tx, index) {
+    private async processRequest(request: DBRequest, tx, index) {
         const ref = mkOutputRefId(tx.id, index);
-        const value = {
-            assetName: request.assetName,
-            key: request.key,
-            value: request.value,
-            operation: request.operation
-        };
-        await this.requests.put(ref, value);
+        await this.requests.put(ref, request);
     }
 }
 
@@ -232,9 +232,10 @@ class Indexer {
                                     this.queryNetworkTip();
                                 }
                             });
-                            response.result.block.transactions.forEach(tx => {
-                                this.process.process(tx);
-                            });
+                            for (const tx of response.result.block
+                                .transactions) {
+                                await this.process.process(tx);
+                            }
                             this.queryNextBlock();
                             break;
                         case 'backward':

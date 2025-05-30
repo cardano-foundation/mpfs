@@ -3,10 +3,21 @@ import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import * as crypto from 'crypto';
 import fs from 'fs';
 import { Facts } from './facts/store';
+import { Mutex } from 'async-mutex';
+
 export type Change = {
-    type: 'insert' | 'delete';
+    operation: 'insert' | 'delete';
     key: string;
     value: string;
+};
+
+export const invertChange = (change: Change): Change => {
+    const { operation, key, value } = change;
+    return {
+        operation: operation === 'insert' ? 'delete' : 'insert',
+        key,
+        value
+    };
 };
 
 class PrivateTrie {
@@ -33,63 +44,47 @@ class PrivateTrie {
         await fs.promises.rm(this.path, { recursive: true });
     }
 }
-
 // An MPF that can roll back operations
 export class SafeTrie {
-    private cold_trie: PrivateTrie;
-    private hot_trie: PrivateTrie | undefined;
+    private privateTrie: PrivateTrie;
     // private hot_lock: boolean = false;
     private facts: Facts;
-    private base_temp_dir: string; // temporary directory for hot trie
+    private tempChanges: Change[] = [];
+    // private lock: Mutex = new Mutex();
 
-    // this is a hack because we cannot currently reuse a directory for the hot trie
-    private temporaryDir() {
-        const random = crypto.randomBytes(16).toString('hex');
-        const tempDir = `${this.base_temp_dir}/trie-${random}`;
-        return tempDir;
-    }
-
-    private constructor(cold_trie: PrivateTrie, temp: string, facts: Facts) {
-        this.base_temp_dir = temp;
-        this.cold_trie = cold_trie;
+    private constructor(trie: PrivateTrie, facts: Facts) {
+        this.privateTrie = trie;
         this.facts = facts;
-        this.hot_trie = undefined;
     }
     public static async create(path: string): Promise<SafeTrie> {
         const factsPath = path + '/facts';
         const triePath = path + '/trie';
-        const trieTempPath = path + '/trie-tmp';
-        const cold_trie = await PrivateTrie.create(triePath);
-        await fs.promises.mkdir(trieTempPath, { recursive: true });
+        const trie = await PrivateTrie.create(triePath);
         await fs.promises.mkdir(factsPath, { recursive: true });
         await fs.promises.mkdir(triePath, { recursive: true });
         const facts = new Facts(factsPath);
-        return new SafeTrie(cold_trie, trieTempPath, facts);
+        return new SafeTrie(trie, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
-        let safe = this.hot_trie ? this.hot_trie : this.cold_trie;
-        return safe?.trie.get(key);
-    }
-    private async hotTrie(): Promise<Trie> {
-        if (!this.hot_trie) {
-            const coldTriePath = this.cold_trie.path;
-            const tempDir = this.temporaryDir();
-            // Copy the cold trie to the temp directory
-            await fs.promises.mkdir(tempDir, { recursive: true });
-            await fs.promises.cp(coldTriePath, tempDir, { recursive: true });
-            this.hot_trie = await PrivateTrie.create(tempDir);
-        }
-        return this.hot_trie.trie;
+        return this.privateTrie?.trie.get(key);
     }
 
-    public async tryUpdate(key, value, operation): Promise<Proof> {
-        const hot = await this.hotTrie();
-        const proof = await updateTrie(hot, key, value, operation);
-        return proof;
+    public async temporaryUpdate(change: Change): Promise<Proof> {
+        this.tempChanges.push(change);
+        return await this.update(change);
     }
-    public async update(key: string, value: string, operation): Promise<void> {
-        await updateTrie(this.cold_trie.trie, key, value, operation);
-        switch (operation) {
+
+    public async rollback(): Promise<void> {
+        for (const change of this.tempChanges.reverse()) {
+            const inverted = invertChange(change);
+            await updateTrie(this.privateTrie.trie, inverted);
+        }
+        this.tempChanges = [];
+    }
+    public async update(change: Change): Promise<Proof> {
+        const { key, value, operation } = change;
+        const proof = await updateTrie(this.privateTrie.trie, change);
+        switch (change.operation) {
             case 'insert': {
                 await this.facts.set(key, value);
                 break;
@@ -102,30 +97,23 @@ export class SafeTrie {
                 throw new Error(`Unknown operation type: ${operation}`);
             }
         }
+        return proof;
     }
 
-    public hotRoot(): Buffer | undefined {
-        return this.hot_trie?.trie.hash;
-    }
-    public coldRoot(): Buffer {
-        return this.cold_trie.trie.hash;
+    public root(): Buffer {
+        return this.privateTrie.trie.hash;
     }
 
     public async close(): Promise<void> {
-        await this.cold_trie.close();
-        await fs.promises.rm(this.base_temp_dir, { recursive: true });
+        await this.privateTrie.close();
     }
     public async allFacts(): Promise<Record<string, string>> {
         return await this.facts.getAll();
     }
 }
 
-async function updateTrie(
-    trie: Trie,
-    key: string,
-    value: string,
-    operation: 'insert' | 'delete'
-): Promise<Proof> {
+async function updateTrie(trie: Trie, change: Change): Promise<Proof> {
+    const { key, value, operation } = change;
     const present = await trie.get(key);
     switch (operation) {
         case 'insert':
@@ -174,6 +162,7 @@ export const serializeProof = (proof: Proof): Data => {
 export class TrieManager {
     private tries: Record<string, SafeTrie> = {};
     private dbPath: string;
+    private lock: Mutex = new Mutex();
 
     constructor(dbPath: string) {
         this.dbPath = dbPath;
@@ -195,16 +184,21 @@ export class TrieManager {
         return new TrieManager(dbPath);
     }
     async trie(assetName: string): Promise<SafeTrie> {
-        if (!this.tries[assetName]) {
-            const dbpath = `${this.dbPath}/${assetName}`;
-            const trie = await SafeTrie.create(dbpath);
-            if (trie) {
-                this.tries[assetName] = trie;
-            } else {
-                throw new Error(
-                    `Failed to load or create trie for index: ${assetName}`
-                );
+        const release = await this.lock.acquire();
+        try {
+            if (!this.tries[assetName]) {
+                const dbpath = `${this.dbPath}/${assetName}`;
+                const trie = await SafeTrie.create(dbpath);
+                if (trie) {
+                    this.tries[assetName] = trie;
+                } else {
+                    throw new Error(
+                        `Failed to load or create trie for index: ${assetName}`
+                    );
+                }
             }
+        } finally {
+            release();
         }
         return this.tries[assetName];
     }
