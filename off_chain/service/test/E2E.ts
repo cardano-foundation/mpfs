@@ -20,7 +20,8 @@ import {
     canDeleteFacts,
     canBatchUpdate,
     insertCommutes,
-    deleteCommutes
+    deleteCommutes,
+    canUpdateATokenTwice
 } from './E2E/scenarios';
 import { catchFailure } from './E2E/lib';
 import { IncomingMessage, Server, ServerResponse } from 'http';
@@ -121,10 +122,11 @@ async function main() {
     await canInspectRequestsForAToken(runner);
     await canUpdateAToken(runner);
     await cannotUpdateAnotherUsersToken(runner);
+    await canUpdateATokenTwice(runner);
     await canDeleteFacts(runner);
-    // await canBatchUpdate(runner);
-    // await insertCommutes(runner);
-    // await deleteCommutes(runner);
+    await canBatchUpdate(runner);
+    await insertCommutes(runner);
+    await deleteCommutes(runner);
     await stopServices(servers);
     if (failures.length > 0) {
         console.log('Failures:');

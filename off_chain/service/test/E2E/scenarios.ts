@@ -80,7 +80,10 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
         const tks1 = await getTokens(charlie);
-        assertThrows(tks1.tokens.map(t => t.tokenId).includes(tk), 'Token not found');
+        assertThrows(
+            tks1.tokens.map(t => t.tokenId).includes(tk),
+            'Token not found'
+        );
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
         const tks2 = await getTokens(charlie);
@@ -149,7 +152,7 @@ const cannotUpdateATokenWithNoRequests = async ({
     const test = async () => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
-        await shouldFail(updateToken(charlie, tk, []));
+        await shouldFail(waitAndUpdate(log, charlie, tk, []));
         log('charlie failed to update the mpf token as expected');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
@@ -195,7 +198,8 @@ const canInspectRequestsForAToken = async ({
 
 const waitForSync = async (log, wallet, tk) => {
     while (true) {
-        const { ready, networkTip, indexerTip } = (await getTokens(wallet)).indexerStatus;
+        const { ready, networkTip, indexerTip } = (await getTokens(wallet))
+            .indexerStatus;
         if (ready) {
             break;
         }
@@ -235,6 +239,35 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
     await run(test, 'users can update a token');
 };
 
+export const canUpdateATokenTwice = async ({
+    run,
+    log,
+    wallets: { charlie, bob }
+}) => {
+    const test = async () => {
+        const tk = await createToken(charlie);
+        log('charlie created an mpf token');
+        const ref1 = await createRequest(bob, tk, 'a', 'a', 'insert');
+        log('bob created a request to insert a fact');
+        await waitAndUpdate(log, charlie, tk, [ref1]);
+        const ref2 = await createRequest(bob, tk, 'b', 'b', 'insert');
+        log('bob created a second request to insert a fact');
+        await waitAndUpdate(log, charlie, tk, [ref2]);
+        log('charlie updated the mpf token');
+        const factsCharlie = await getTokenFacts(charlie, tk);
+        assertThrows(factsCharlie['a'] === 'a', 'Token fact a is not a');
+        assertThrows(factsCharlie['b'] === 'b', 'Token fact b is not b');
+        log('charlie verified the token facts');
+        const factsBob = await getTokenFacts(bob, tk);
+        assertThrows(factsBob['a'] === 'a', 'Token fact a is not a');
+        assertThrows(factsBob['b'] === 'b', 'Token fact b is not b');
+        log('bob verified the token facts');
+
+        await deleteToken(charlie, tk);
+        log('charlie deleted the mpf token');
+    };
+    await run(test, 'users can update a token');
+};
 const cannotUpdateAnotherUsersToken = async ({
     run,
     log,
@@ -245,7 +278,7 @@ const cannotUpdateAnotherUsersToken = async ({
         log('charlie created an mpf token');
         const request = await createRequest(bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
-        await shouldFail(updateToken(bob, tk, [request]));
+        await shouldFail(waitAndUpdate(log, bob, tk, [request]));
         log('bob failed to update charlie token as expected');
         await deleteRequest(bob, request);
         log('bob retracted his request');
@@ -271,7 +304,7 @@ const canDeleteFacts = async ({
             'insert'
         );
         log('bob created a request to insert a fact');
-        await updateToken(charlie, tk, [bobRequest]);
+        await waitAndUpdate(log, charlie, tk, [bobRequest]);
         log('charlie updated the mpf token');
         const aliceRequest = await createRequest(
             alice,
@@ -281,7 +314,7 @@ const canDeleteFacts = async ({
             'delete'
         );
         log('alice created a request to delete a fact');
-        await updateToken(charlie, tk, [aliceRequest]);
+        await waitAndUpdate(log, charlie, tk, [aliceRequest]);
         const facts = await getTokenFacts(charlie, tk);
         assertThrows(facts['abc'] === undefined, 'Token fact is not deleted');
         log('charlie updated the mpf token');
@@ -347,7 +380,7 @@ const requestAndUpdate = async (
         log(`request created for ${key} = ${value}`);
         refs.push({ txHash, outputIndex });
     }
-    await updateToken(owner, tk, refs);
+    await waitAndUpdate(log, owner, tk, refs);
     const { root } = await getToken(owner, tk);
     return root;
 };
