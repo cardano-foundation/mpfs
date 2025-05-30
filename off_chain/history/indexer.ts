@@ -125,12 +125,13 @@ class Indexer {
     private networkTipQueried: boolean = false;
     private ready: boolean = false;
     private stop: Mutex;
+    private webSocketAddress: string;
 
     constructor(process: Process, address: string, name: string = 'Indexer') {
         this.process = process;
-        this.client = new WebSocket(address);
         this.name = name;
         this.stop = new Mutex();
+        this.webSocketAddress = address;
     }
 
     public static create(
@@ -193,10 +194,48 @@ class Indexer {
         this.rpc('nextBlock', {}, 'block');
     }
     async run(): Promise<void> {
-        this.client.on('open', () => {
-            this.queryFindIntersection(['origin']);
-            this.queryNetworkTip();
-        });
+        const maxRetries = 1000; // Maximum number of retries
+
+        const connectWebSocket = async () => {
+            return new Promise<void>((resolve, reject) => {
+                this.client = new WebSocket(this.webSocketAddress);
+                this.client.on('open', () => {
+                    console.log('WebSocket connection established.');
+                    resolve();
+                });
+
+                this.client.on('error', err => {
+                    console.error('WebSocket connection error:', err);
+                    reject(err);
+                });
+            });
+        };
+        let retries = 0;
+        for (; retries < maxRetries; retries++) {
+            try {
+                console.log(
+                    `Attempting to connect to WebSocket (${retries}/${maxRetries})...`
+                );
+                await connectWebSocket();
+                // Once connected, proceed with initialization
+                this.queryFindIntersection(['origin']);
+                this.queryNetworkTip();
+                break; // Exit the retry loop
+            } catch (err) {
+                console.log(
+                    `Retrying WebSocket connection (${retries}/${maxRetries})...`
+                );
+                this.client.close(); // Close the client to reset the connection
+                await new Promise(resolve =>
+                    setTimeout(resolve, 1000 * retries)
+                );
+            }
+        }
+        if (retries === maxRetries) {
+            throw new Error(
+                'Failed to connect to WebSocket after maximum retries'
+            );
+        }
 
         this.client.on('message', async msg => {
             const release = await this.stop.acquire();
