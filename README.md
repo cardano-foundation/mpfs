@@ -53,6 +53,8 @@ To run the service, you need to have [yaci](https://github.com/bloxbean/yaci-dev
 
 Start it with its store enabled (after going to nix via `nix develop`):
 
+
+
 ```bash
 yaci-cli up --enable-yaci-store
 ```
@@ -95,6 +97,18 @@ npx tsx service/main.ts --seed ./mnemonics.txt --provider blockfrost --blockfros
 
 ## Illustrative example
 
+ATM nix is not able to bring the node dependencies in scope, so you need to
+
+```bash
+cd off_chain
+```
+
+and manually install the dependencies:
+
+```bash
+npm install
+```
+
 To illustrate the example usage of the service, we will use a local cluster with `yaci`, so that we can
 easily create wallets and fund them.
 
@@ -107,18 +121,17 @@ First of all, start with `nix develop` in **five** separate terminals.
 Make sure you have **yaci** up in one terminal (`just run-yaci`). Then in the other three, representing
 `charlie`, `alice` and `bob`, respectively, we type the following:
 
+
+
 ```bash
-cd ./off_chain/
 npx tsx service/main.ts --seed ./mnemonics.txt --provider yaci --port 3000 --yaci-store-host http://localhost:8080 --yaci-admin-host http://localhost:10000 -g
 ```
 
 ```bash
-cd ./off_chain/
 npx tsx service/main.ts --seed ./mnemonics2.txt --provider yaci --port 3002 --yaci-store-host http://localhost:8080 --yaci-admin-host http://localhost:10000 -g
 ```
 
 ```bash
-cd ./off_chain/
 npx tsx service/main.ts --seed ./mnemonics3.txt --provider yaci --port 3004 --yaci-store-host http://localhost:8080 --yaci-admin-host http://localhost:10000 -g
 ```
 
@@ -199,7 +212,8 @@ In order to create a new MPF token that `charlie` controls, he can get his owner
 and use it in token minting.
 
 ```bash
-curl -s -X GET $charlie/wallet | head -1 | jq -r '.owner'
+owner=$(curl -s -X GET $charlie/wallet | jq -r '.owner')
+echo $owner
 ```
 
 ```json
@@ -209,19 +223,14 @@ be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d
 Now `charlie` can create a token under his control via:
 
 ```bash
-curl -s -X POST $charlie/token \
+tokenId=$(curl -s -X POST $charlie/token \
   -H "Content-Type: application/json" \
-  -d "$(curl -s -X GET $charlie/wallet | head -1 | jq '{"owner": .owner}')"
+  -d "{\"owner\": \"$owner\"}" | jq -r '.tokenId')
+echo $tokenId
 ```
 
 ```json
-{"tokenId":"07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824"}
-```
-
-As we are going to use this token id later, let's store it in a `tokenId` variable:
-
-```bash
-export tokenId='07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824'
+07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824
 ```
 
 That token id is unique inside the network and can be used to identify the token later.
@@ -387,10 +396,10 @@ The request is now retracted and we can see it with:
 ```
 
 Note that only `bob` (as request owner) was actually able to retract the request.
-If `bob` tries to retract the request that has not originated with him it is not successful:
+If `bob` tries to retract the request that was  not created by him, he will fail:
 
 ```bash
-$ curl -s -X DELETE $bob/request/2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d/0 | jq
+curl -s -X DELETE $bob/request/2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d/0 | jq
 ```
 
 ```bash
@@ -430,10 +439,10 @@ curl -s -X PUT $charlie/token/$tokenId \
 }
 ```
 
-The request is now applied to the token and anyone can see it:
+The request is now applied to the token and anyone can see the root has changed.
 
 ```bash
-curl -s -X GET $charlie/token/$tokenId | jq
+curl -s -X GET $alice/token/$tokenId | jq
 ```
 
 ```json
@@ -444,7 +453,73 @@ curl -s -X GET $charlie/token/$tokenId | jq
 }
 ```
 
-Notice that the requests are now empty and the root is updated.
+Note that the requests are now empty and the root is updated.
+
+But `charlie` can also retrieve the facts. Alice and Bob not yet.
+
+```bash
+facts=$(curl -s -X GET $charlie/token/$tokenId/facts)
+echo $facts
+```
+
+```json
+{"abd": "value2"}
+```
+
+## Deleting facts
+
+When a fact does not hold anymore, it can be deleted from the MPF token. Again it goes through the request process.
+
+
+```bash
+curl -s -X POST $alice/token/$tokenId/request \
+  -H "Content-Type: application/json" \
+  -d '{"operation": "delete", "key": "abd", "value" : "value2"}' | jq
+```
+
+```json
+{
+  "txHash": "4a0625ba16f1779cfa1490fe51c816e3a07cd6f5fa0befa073680e1f1e966bd2",
+  "outputIndex": 0
+}
+
+```
+
+Then `charlie` can apply the request to the token. It's always the token  owner responsible for applying the requests.
+
+```bash
+curl -s -X PUT $charlie/token/$tokenId \
+  -H "Content-Type: application/json" \
+  -d '{"requests": [{"txHash": "4a0625ba16f1779cfa1490fe51c816e3a07cd6f5fa0befa073680e1f1e966bd2", "outputIndex": 0}]}' | jq
+```
+
+```json
+{
+  "txHash": "b8fb8036ee94dd88fbdd90681852a6a6807406e602f6cd990d6ff76c4d84f2f7"
+}
+```
+
+Now the facts are empty and the root is empty as well:
+
+```bash
+curl -s -X GET $alice/token/$tokenId | jq
+```
+
+```json
+{
+  "owner": "42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403",
+  "root": "0000000000000000000000000000000000000000000000000000000000000000",
+  "requests": []
+}
+```
+
+```bash
+curl -s -X GET $charlie/token/$tokenId/facts | jq
+```
+
+```json
+{}
+```
 
 ## Deleting tokens
 
@@ -460,6 +535,7 @@ curl -s -X DELETE $charlie/token/$tokenId | jq
   "txHash": "c535a3f3c2762677951a80dc25903a74eb9f6ad9933925716321fe91359e612e"
 }
 ```
+
 
 ## Docker
 

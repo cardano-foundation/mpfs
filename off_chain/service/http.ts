@@ -189,6 +189,25 @@ function mkAPI(topup: TopUp | undefined, context) {
             });
         }
     });
+
+    app.get('/token/:tokenId/facts', async (req, res) => {
+        const { tokenId } = req.params;
+        try {
+            const facts = await withContext(
+                'tmp/facts',
+                'log',
+                context,
+                async context => await context.facts(tokenId)
+            );
+            res.json(facts);
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error fetching facts',
+                details: error.message
+            });
+        }
+    });
+
     return app;
 }
 

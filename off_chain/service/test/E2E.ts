@@ -75,7 +75,7 @@ async function main() {
 
     const alicePort = process.env.ALICE_PORT;
     const alice = await selectWallet(portsToServe, alicePort);
-    
+
     const servers = await runServices(
             portsToServe,
             provider,

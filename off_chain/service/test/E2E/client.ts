@@ -63,6 +63,11 @@ async function updateToken(
     return response.data.txHash;
 }
 
+async function getTokenFacts(host: string, tokenId: string) {
+    const response = await axios.get(`${host}/token/${tokenId}/facts`);
+    assertThrows(response.status === 200, 'Failed to get facts');
+    return response.data;
+}
 async function createRequest(
     host: string,
     tokenId: string,
@@ -104,5 +109,6 @@ export {
     createToken,
     getToken,
     deleteToken,
-    updateToken
+    updateToken,
+    getTokenFacts,
 };

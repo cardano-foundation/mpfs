@@ -6,6 +6,7 @@ import {
     deleteRequest,
     deleteToken,
     getToken,
+    getTokenFacts,
     getTokens,
     getWallet,
     updateToken
@@ -208,6 +209,8 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
         log('bob created a request to insert a fact');
         await updateToken(charlie, tk, [{ txHash, outputIndex }]);
         log('charlie updated the mpf token');
+        const facts = await getTokenFacts(charlie, tk);
+        assertThrows(facts['abc'] === 'value', 'Token fact is not value');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
     };
@@ -261,6 +264,8 @@ const canDeleteFacts = async ({
         );
         log('alice created a request to delete a fact');
         await updateToken(charlie, tk, [aliceRequest]);
+        const facts = await getTokenFacts(charlie, tk);
+        assertThrows(facts['abc'] === undefined, 'Token fact is not deleted');
         log('charlie updated the mpf token');
         const { root } = await getToken(charlie, tk);
         assertThrows(root === nullHash, 'Token root is not null');
@@ -296,6 +301,10 @@ const canBatchUpdate = async ({
         log('alice created a request to insert a fact');
         await updateToken(charlie, tk, [bobRequest, aliceRequest]);
         log('charlie updated the mpf token');
+        const facts = await getTokenFacts(charlie, tk);
+        assertThrows(facts['abc'] === 'value', 'Token fact abc is not value');
+        assertThrows(facts['abd'] === 'value', 'Token fact abd is not value');
+        log('charlie verified the token facts');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
     };
