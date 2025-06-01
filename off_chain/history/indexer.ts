@@ -103,7 +103,6 @@ class Process {
     private tries: TrieManager;
     private address: string;
     private policyId: string;
-    private lock = new Mutex();
 
     constructor(
         state: StateManager,
@@ -129,9 +128,12 @@ class Process {
                 }
             }
         }
-
-        // TODO use for loop instead of forEach to handle async properly
-        await tx.outputs.forEach(async (output, index) => {
+        for (let index = 0; index < tx.outputs.length; index++) {
+            const output: {
+                address: string;
+                value: Record<string, any>;
+                datum: any;
+            } = tx.outputs[index];
             if (output.address !== this.address) {
                 return; // skip outputs not to the caging script address
             }
@@ -142,7 +144,6 @@ class Process {
                 const tokenState = parseStateDatumCbor(output.datum);
 
                 if (tokenState) {
-                    const release = await this.lock.acquire(); // TODO granularize lock
                     const trie = await this.tries.trie(assetName);
                     await this.processTokenUpdate(
                         assetName,
@@ -152,7 +153,6 @@ class Process {
                     );
 
                     const localRoot = rootHex(trie.root());
-                    release();
                     // Assert that roots are the same
                     if (localRoot !== tokenState.root) {
                         throw new Error(
