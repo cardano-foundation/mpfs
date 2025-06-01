@@ -47,6 +47,9 @@ class StateManager {
         await this.db.put(key, value);
     }
 
+    async delete(key: string): Promise<void> {
+        await this.db.del(key);
+    }
     async getTokens() {
         const tokens: { assetName: string; state: TokenState }[] = [];
         for await (const [key, value] of this.db.iterator()) {
@@ -80,6 +83,17 @@ class Process {
         return this.tries;
     }
     async process(tx: any): Promise<void> {
+        const minted = tx.mint?.[this.policyId];
+        if (minted) {
+            for (const asset of Object.keys(minted)) {
+                if (minted[asset] == -1) {
+                    // This is a token end request, delete the token state
+                    await this.state.delete(asset);
+                }
+            }
+        }
+
+        // TODO use for loop instead of forEach to handle async properly
         await tx.outputs.forEach(async (output, index) => {
             if (output.address !== this.address) {
                 return; // skip outputs not to the caging script address
@@ -316,6 +330,7 @@ class Indexer {
                             });
                             for (const tx of response.result.block
                                 .transactions) {
+                                //console.log(JSON.stringify(tx, null, 2));
                                 await this.process.process(tx);
                             }
                             this.queryNextBlock();
