@@ -112,13 +112,13 @@ async function main() {
         wallets
     };
     console.log('- using HTTP API');
-    // await canAccessWallets(runner);
-    // await canRetrieveTokens(runner);
-    // await canCreateTokenAndDelete(runner);
-    // await cannotDeleteAnotherUsersToken(runner);
-    // await canRetractRequest(runner);
-    // await cannotRetractAnotherUsersRequest(runner);
-    // await cannotUpdateATokenWithNoRequests(runner);
+    await canAccessWallets(runner);
+    await canRetrieveTokens(runner);
+    await canCreateTokenAndDelete(runner);
+    await cannotDeleteAnotherUsersToken(runner);
+    await canRetractRequest(runner);
+    await cannotRetractAnotherUsersRequest(runner);
+    await cannotUpdateATokenWithNoRequests(runner);
     await canInspectRequestsForAToken(runner);
     await canUpdateAToken(runner);
     await cannotUpdateAnotherUsersToken(runner);

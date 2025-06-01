@@ -178,7 +178,16 @@ class Process {
                     index
                 );
             }
-        });
+        }
+    }
+    async processRetract(tx: any): Promise<void> {
+        const inputs = tx.inputs;
+        for (const input of inputs) {
+            const ref = mkOutputRefId(input.transaction.id, input.index);
+            if (await this.state.getRequest(ref)) {
+                this.state.delete(ref); // delete requests from inputs
+            }
+        }
     }
     private async processTokenUpdate(
         assetName: string,
@@ -375,6 +384,7 @@ class Indexer {
                                 .transactions) {
                                 //console.log(JSON.stringify(tx, null, 2));
                                 await this.process.process(tx);
+                                await this.process.processRetract(tx);
                             }
                             this.queryNextBlock();
                             break;
