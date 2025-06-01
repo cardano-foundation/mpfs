@@ -13,11 +13,8 @@ import { end } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
-import { findTokenIdRequests, findTokens } from '../token';
 import { TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
-import { Mutex } from 'async-mutex';
-import { read } from 'fs';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context): Function {
@@ -27,9 +24,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
             'log',
             context,
             async context => {
-                const utxos = await context.fetchUTxOs();
-                const tokens = findTokens(utxos);
-                return tokens;
+                return await context.fetchTokens();
             }
         );
         return f(tokens);
@@ -114,15 +109,18 @@ function mkAPI(topup: TopUp | undefined, context): Function {
             );
 
             if (!token) {
-                res.status(404).json({ error: 'Token not found' });
+                res.status(404).json({
+                    error: `GET token: Token ${tokenId} not found`
+                });
                 return;
             }
-            const utxos = await context.fetchUTxOs();
-            const tokenRequests = findTokenIdRequests(utxos, tokenId);
+            // const utxos = await context.fetchUTxOs();
+            // const tokenRequests = findTokenIdRequests(utxos, tokenId);
+            const indexerStatus = context.indexerStatus;
             res.json({
                 owner: token.owner,
-                root: token.root,
-                requests: tokenRequests
+                root: token.root
+                // requests: tokenRequests,
             });
         } catch (error) {
             res.status(500).json({

@@ -14,7 +14,7 @@ import { OutputLogger } from './logging';
 import { rootHex, tokenIdParts } from './lib';
 import { SafeTrie } from './trie';
 import blueprint from './plutus.json';
-import { tokenOfTokenId } from './token';
+import { tokenOfTokenId, TokenState } from './token';
 import { Indexer } from './history/indexer';
 
 export type Log = (key: string, value: any) => void;
@@ -89,6 +89,14 @@ export class Context {
 
     newTxBuilder(): MeshTxBuilder {
         return getTxBuilder(this.provider);
+    }
+
+    async fetchTokens(): Promise<{ tokenId: string; state: TokenState }[]> {
+        const tokens = await this.indexer.fetchTokens();
+        return tokens.map(({ assetName, state }) => ({
+            tokenId: this.cagingScript.policyId + assetName,
+            state
+        }));
     }
 
     async fetchUTxOs(): Promise<UTxO[]> {
