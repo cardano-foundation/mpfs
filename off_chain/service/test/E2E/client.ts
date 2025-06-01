@@ -1,7 +1,23 @@
 import axios from 'axios';
-import { OutputRef } from '../../../lib';
 import { assertThrows } from './lib';
-import { unmkOutputRefId } from '../../../history/indexer';
+import { mkOutputRefId, unmkOutputRefId } from '../../../history/indexer';
+
+type Log = (s: string) => void;
+
+const waitForSync = async (log: Log, wallet) => {
+    while (true) {
+        const { ready, networkTip, indexerTip } = (
+            await axios.get(`${wallet}/tokens`)
+        ).data.indexerStatus;
+        if (ready) {
+            break;
+        }
+        log(
+            `waiting 5s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
+        );
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+};
 
 async function getWallet(host: string) {
     const response = await axios.get(`${host}/wallet`);
@@ -24,7 +40,8 @@ async function walletTopup(host: string) {
     );
     return response.data;
 }
-async function getTokens(host: string) {
+async function getTokens(log: Log, host: string) {
+    await waitForSync(log, host);
     const response = await axios.get(`${host}/tokens`);
     assertThrows(response.status === 200, 'Failed to get tokens');
     return response.data;
@@ -37,13 +54,15 @@ async function createToken(host: string) {
     return response.data.tokenId;
 }
 
-async function getToken(host: string, tokenId: string) {
+async function getToken(log: Log, host: string, tokenId: string) {
+    await waitForSync(log, host);
     const response = await axios.get(`${host}/token/${tokenId}`);
     assertThrows(response.status === 200, 'Failed to get token');
     return response.data;
 }
 
-async function deleteToken(host: string, tokenId: string) {
+async function deleteToken(log: Log, host: string, tokenId: string) {
+    await waitForSync(log, host);
     const response = await axios.delete(`${host}/token/${tokenId}`);
     assertThrows(response.status === 200, 'Failed to delete token');
 
@@ -51,10 +70,16 @@ async function deleteToken(host: string, tokenId: string) {
 }
 
 async function updateToken(
+    log: (s: string) => void,
     host: string,
     tokenId: string,
-    requests: OutputRef[]
+    requestIds: string[]
 ) {
+    await waitForSync(log, host);
+    const requests = requestIds.map(r => {
+        const { txId, index } = unmkOutputRefId(r);
+        return { txHash: txId, outputIndex: index };
+    });
     const response = await axios.put(`${host}/token/${tokenId}`, { requests });
     assertThrows(response.status === 200, 'Failed to update token');
     assertThrows(
@@ -64,18 +89,21 @@ async function updateToken(
     return response.data.txHash;
 }
 
-async function getTokenFacts(host: string, tokenId: string) {
+async function getTokenFacts(log: Log, host: string, tokenId: string) {
+    await waitForSync(log, host);
     const response = await axios.get(`${host}/token/${tokenId}/facts`);
     assertThrows(response.status === 200, 'Failed to get facts');
     return response.data;
 }
 async function createRequest(
+    log,
     host: string,
     tokenId: string,
     key: string,
     value: string,
     op: 'insert' | 'delete'
 ) {
+    await waitForSync(log, host);
     const response = await axios.post(`${host}/token/${tokenId}/request`, {
         key,
         value,
@@ -86,10 +114,11 @@ async function createRequest(
         response.data.txHash.length === 64,
         'Transaction hash is not valid'
     );
-    return response.data;
+    return mkOutputRefId(response.data.txHash, response.data.outputIndex);
 }
 
-async function deleteRequest(host: string, outputRefId: string) {
+async function deleteRequest(log: Log, host: string, outputRefId: string) {
+    await waitForSync(log, host);
     const outputRef = unmkOutputRefId(outputRefId);
     const response = await axios.delete(
         `${host}/request/${outputRef.txId}/${outputRef.index}`
