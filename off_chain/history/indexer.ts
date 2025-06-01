@@ -46,6 +46,16 @@ class StateManager {
     async put(key: string, value: DBElement): Promise<void> {
         await this.db.put(key, value);
     }
+
+    async getTokens() {
+        const tokens: { assetName: string; state: TokenState }[] = [];
+        for await (const [key, value] of this.db.iterator()) {
+            if ('owner' in value) {
+                tokens.push({ assetName: key, state: value as TokenState });
+            }
+        }
+        return tokens;
+    }
 }
 
 class Process {
@@ -139,6 +149,9 @@ class Process {
         const ref = mkOutputRefId(tx.id, index);
         await this.state.put(ref, request);
     }
+    get stateManager(): StateManager {
+        return this.state;
+    }
 }
 
 class Indexer {
@@ -183,6 +196,11 @@ class Indexer {
             })
         );
     }
+
+    async fetchTokens(): Promise<{ assetName: string; state: TokenState }[]> {
+        return await this.process.stateManager.getTokens();
+    }
+
     close(): void {
         this.client.close();
     }
