@@ -79,6 +79,8 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
     const test = async () => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
+        waitForSync(log, charlie, tk);
+        log('charlie waited for the token to sync');
         const tks1 = await getTokens(charlie);
         assertThrows(
             tks1.tokens.map(t => t.tokenId).includes(tk),
@@ -86,6 +88,7 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
         );
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
+        waitForSync(log, charlie, tk);
         const tks2 = await getTokens(charlie);
         assertThrows(
             !tks2.tokens.map(t => t.tokenId).includes(tk),
@@ -168,10 +171,13 @@ const canInspectRequestsForAToken = async ({
     const test = async () => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
+        await waitForSync(log, bob, tk);
         await createRequest(bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
+        await waitForSync(log, bob, tk);
         const { owner, root, requests } = await getToken(bob, tk);
         const { owner: charlieSig } = await getWallet(charlie);
+
         assertThrows(owner === charlieSig, 'Token owner is not charlie');
         assertThrows(requests.length === 1, 'Requests are not one');
         assertThrows(requests[0].change.key === 'abc', 'Request key abc');
