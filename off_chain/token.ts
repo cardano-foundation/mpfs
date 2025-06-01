@@ -2,7 +2,12 @@ import { Asset, deserializeDatum, UTxO } from '@meshsdk/core';
 import { findRequests } from './request';
 import { selectUTxOWithToken } from './lib';
 
-export function parseStateDatumCbor(cbor: string) {
+export type TokenState = {
+    owner: string;
+    root: string;
+};
+
+export function parseStateDatumCbor(cbor: string): TokenState | undefined {
     try {
         const datum = deserializeDatum(cbor);
         const stateDatum = datum.fields[0];

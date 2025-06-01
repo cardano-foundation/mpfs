@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
-import { parseStateDatumCbor } from '../token';
+import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
-import { rootHex, toHex, tokenIdParts } from '../lib';
+import { assetName, rootHex, toHex, tokenIdParts } from '../lib';
 import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
@@ -15,39 +15,53 @@ type DBRequest = {
     change: Change;
 };
 
-// Managing requests
-class RequestManager {
-    private db: Level<string, DBRequest>;
+type DBElement = DBRequest | TokenState;
+
+class StateManager {
+    private db: Level<string, DBElement>;
 
     constructor(dbPath: string) {
-        this.db = new Level<string, DBRequest>(dbPath, {
+        this.db = new Level<string, DBElement>(dbPath, {
             valueEncoding: 'json'
         });
     }
 
-    async get(outputRef: string): Promise<DBRequest | null> {
-        return await this.db.get(outputRef);
+    async getRequest(outputRef: string): Promise<DBRequest | null> {
+        const result = await this.db.get(outputRef);
+
+        if (result && 'change' in result) {
+            return result as DBRequest;
+        }
+        return null; // Return null if the element is not a request
     }
 
-    async put(outputRef: string, request: DBRequest): Promise<void> {
-        await this.db.put(outputRef, request);
+    async getToken(assetName: string): Promise<TokenState | null> {
+        const result = await this.db.get(assetName);
+        if (result && 'owner' in result) {
+            return result as TokenState;
+        }
+        return null; // Return null if the element is not a token
+    }
+
+    async put(key: string, value: DBElement): Promise<void> {
+        await this.db.put(key, value);
     }
 }
 
 class Process {
-    private requests: RequestManager;
+    private state: StateManager;
     private tries: TrieManager;
     private address: string;
     private policyId: string;
     private lock = new Mutex();
 
     constructor(
-        requests: RequestManager,
+        state: StateManager,
         tries: TrieManager,
         address: string,
         policyId: string
     ) {
-        this.requests = requests;
+        this.state = state;
         this.tries = tries;
         this.address = address;
         this.policyId = policyId;
@@ -64,20 +78,25 @@ class Process {
             if (asset) {
                 const assetName = Object.keys(asset)[0];
 
-                const state = parseStateDatumCbor(output.datum);
+                const tokenState = parseStateDatumCbor(output.datum);
 
-                if (state) {
+                if (tokenState) {
                     const release = await this.lock.acquire(); // TODO granularize lock
                     const trie = await this.tries.trie(assetName);
-                    await this.processTokenUpdate(trie, tx);
+                    await this.processTokenUpdate(
+                        assetName,
+                        tokenState,
+                        trie,
+                        tx
+                    );
 
                     const localRoot = rootHex(trie.root());
                     release();
                     // Assert that roots are the same
-                    if (localRoot !== state.root) {
+                    if (localRoot !== tokenState.root) {
                         throw new Error(
                             `Root mismatch for asset ${assetName}:
-                            expected ${state.root}, got ${localRoot}`
+                            expected ${tokenState.root}, got ${localRoot}`
                         );
                     }
                     return;
@@ -100,19 +119,25 @@ class Process {
             }
         });
     }
-    private async processTokenUpdate(trie: SafeTrie, tx) {
+    private async processTokenUpdate(
+        assetName: string,
+        state: TokenState,
+        trie: SafeTrie,
+        tx
+    ) {
         for (const input of tx.inputs) {
             const ref = mkOutputRefId(input.transaction.id, input.index);
-            const request = await this.requests.get(ref);
+            const request = await this.state.getRequest(ref);
             if (!request) {
                 continue; // skip inputs with no request
             }
             await trie.update(request.change);
         }
+        await this.state.put(assetName, state);
     }
     private async processRequest(request: DBRequest, tx, index) {
         const ref = mkOutputRefId(tx.id, index);
-        await this.requests.put(ref, request);
+        await this.state.put(ref, request);
     }
 }
 
@@ -142,7 +167,7 @@ class Indexer {
         wsAddress: string,
         name: string = 'Indexer'
     ): Indexer {
-        const requests = new RequestManager(`${dbPath}/requests`);
+        const requests = new StateManager(`${dbPath}/state`);
         const process = new Process(requests, tries, address, policyId);
 
         return new Indexer(process, wsAddress, name);
@@ -287,4 +312,4 @@ class Indexer {
     }
 }
 
-export { RequestManager, TrieManager, Process, Indexer };
+export { StateManager, TrieManager, Process, Indexer };
