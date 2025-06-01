@@ -12,7 +12,7 @@ import {
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
 import { rootHex, tokenIdParts } from './lib';
-import { SafeTrie } from './trie';
+import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { tokenOfTokenId, TokenState } from './token';
 import { Indexer } from './history/indexer';
@@ -99,6 +99,12 @@ export class Context {
         }));
     }
 
+    async fetchRequests(
+        tokenId: string
+    ): Promise<{ outputRef: string; change: Change }[]> {
+        const { assetName } = tokenIdParts(tokenId);
+        return await this.indexer.fetchRequests(assetName);
+    }
     async fetchUTxOs(): Promise<UTxO[]> {
         return await fetchUTxOs(this.provider);
     }

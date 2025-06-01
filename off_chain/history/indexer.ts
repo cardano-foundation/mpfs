@@ -6,16 +6,36 @@ import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 
-function mkOutputRefId(txId: string, index: number): string {
+export function mkOutputRefId(txId: string, index: number): string {
     return `${txId}#${index}`;
 }
+export function unmkOutputRefId(refId: string): {
+    txId: string;
+    index: number;
+} {
+    const [txId, indexStr] = refId.split('#');
+    const index = parseInt(indexStr, 10);
+    if (isNaN(index)) {
+        throw new Error(`Invalid output reference: ${refId}`);
+    }
+    return { txId, index };
+}
 
-type DBRequest = {
+export type DBRequest = {
     assetName: string;
     change: Change;
 };
 
 type DBElement = DBRequest | TokenState;
+
+// Pattern matching can be done using a type guard:
+function isDBRequest(element: DBElement): element is DBRequest {
+    return 'change' in element && 'assetName' in element;
+}
+
+function isTokenState(element: DBElement): element is TokenState {
+    return 'owner' in element && 'root' in element;
+}
 
 class StateManager {
     private db: Level<string, DBElement>;
@@ -53,11 +73,28 @@ class StateManager {
     async getTokens() {
         const tokens: { assetName: string; state: TokenState }[] = [];
         for await (const [key, value] of this.db.iterator()) {
-            if ('owner' in value) {
+            if (isTokenState(value)) {
                 tokens.push({ assetName: key, state: value as TokenState });
             }
         }
         return tokens;
+    }
+    // Returns all requests, optionally filtered by assetName. The order of the
+    // requests is guaranteed to respect their outputRef order. So no need to
+    // sort them.
+    async getRequests(
+        assetName: string
+    ): Promise<{ outputRef: string; change: Change }[]> {
+        const requests: { outputRef: string; change: Change }[] = [];
+        for await (const [key, value] of this.db.iterator()) {
+            if (isDBRequest(value) && value.assetName === assetName) {
+                requests.push({
+                    outputRef: key,
+                    change: value.change
+                });
+            }
+        }
+        return requests;
     }
 }
 
@@ -213,6 +250,12 @@ class Indexer {
 
     async fetchTokens(): Promise<{ assetName: string; state: TokenState }[]> {
         return await this.process.stateManager.getTokens();
+    }
+
+    async fetchRequests(
+        assetName: string
+    ): Promise<{ outputRef: string; change: Change }[]> {
+        return await this.process.stateManager.getRequests(assetName);
     }
 
     close(): void {

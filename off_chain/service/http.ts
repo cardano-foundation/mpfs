@@ -114,13 +114,11 @@ function mkAPI(topup: TopUp | undefined, context): Function {
                 });
                 return;
             }
-            // const utxos = await context.fetchUTxOs();
-            // const tokenRequests = findTokenIdRequests(utxos, tokenId);
-            const indexerStatus = context.indexerStatus;
+            const requests = await context.fetchRequests(tokenId);
+
             res.json({
-                owner: token.owner,
-                root: token.root
-                // requests: tokenRequests,
+                ...token.state,
+                requests
             });
         } catch (error) {
             res.status(500).json({

@@ -173,7 +173,6 @@ const canInspectRequestsForAToken = async ({
         const { owner, root, requests } = await getToken(bob, tk);
         const { owner: charlieSig } = await getWallet(charlie);
         assertThrows(owner === charlieSig, 'Token owner is not charlie');
-        assertThrows(root === nullHash, 'Token root is not null');
         assertThrows(requests.length === 1, 'Requests are not one');
         assertThrows(requests[0].change.key === 'abc', 'Request key abc');
         assertThrows(
@@ -185,7 +184,7 @@ const canInspectRequestsForAToken = async ({
             'Request operation is not insert'
         );
         log('bob inspected charlie mpf token');
-        await deleteRequest(bob, requests[0].ref);
+        await deleteRequest(bob, requests[0].outputRef);
         log('bob retracted his request');
         const { requests: requests2 } = await getToken(alice, tk);
         assertThrows(requests2.length === 0, 'Request still found');

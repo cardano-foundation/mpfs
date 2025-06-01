@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { OutputRef } from '../../../lib';
 import { assertThrows } from './lib';
+import { unmkOutputRefId } from '../../../history/indexer';
 
 async function getWallet(host: string) {
     const response = await axios.get(`${host}/wallet`);
@@ -88,9 +89,10 @@ async function createRequest(
     return response.data;
 }
 
-async function deleteRequest(host: string, ref: OutputRef) {
+async function deleteRequest(host: string, outputRefId: string) {
+    const outputRef = unmkOutputRefId(outputRefId);
     const response = await axios.delete(
-        `${host}/request/${ref.txHash}/${ref.outputIndex}`
+        `${host}/request/${outputRef.txId}/${outputRef.index}`
     );
     assertThrows(response.status === 200, 'Failed to delete request');
     assertThrows(
