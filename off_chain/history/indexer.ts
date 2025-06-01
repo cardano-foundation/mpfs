@@ -1,10 +1,11 @@
 import WebSocket from 'ws';
 import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
-import { assetName, rootHex, toHex, tokenIdParts } from '../lib';
+import { assetName, OutputRef, rootHex, toHex, tokenIdParts } from '../lib';
 import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
+import { Output } from '@meshsdk/core';
 
 export function mkOutputRefId(txId: string, index: number): string {
     return `${txId}#${index}`;
@@ -26,15 +27,20 @@ export type DBRequest = {
     change: Change;
 };
 
-type DBElement = DBRequest | TokenState;
+export type DBTokenState = {
+    outputRef: OutputRef;
+    state: TokenState;
+};
+
+type DBElement = DBRequest | DBTokenState;
 
 // Pattern matching can be done using a type guard:
 function isDBRequest(element: DBElement): element is DBRequest {
     return 'change' in element && 'assetName' in element;
 }
 
-function isTokenState(element: DBElement): element is TokenState {
-    return 'owner' in element && 'root' in element;
+function isDBTokenState(element: DBElement): element is DBTokenState {
+    return 'state' in element && 'outputRef' in element;
 }
 
 class StateManager {
@@ -55,10 +61,10 @@ class StateManager {
         return null; // Return null if the element is not a request
     }
 
-    async getToken(assetName: string): Promise<TokenState | null> {
+    async getToken(assetName: string): Promise<DBTokenState | null> {
         const result = await this.db.get(assetName);
-        if (result && 'owner' in result) {
-            return result as TokenState;
+        if (isDBTokenState(result)) {
+            return result as DBTokenState;
         }
         return null; // Return null if the element is not a token
     }
@@ -71,10 +77,10 @@ class StateManager {
         await this.db.del(key);
     }
     async getTokens() {
-        const tokens: { assetName: string; state: TokenState }[] = [];
+        const tokens: { assetName: string; state: DBTokenState }[] = [];
         for await (const [key, value] of this.db.iterator()) {
-            if (isTokenState(value)) {
-                tokens.push({ assetName: key, state: value as TokenState });
+            if (isDBTokenState(value)) {
+                tokens.push({ assetName: key, state: value as DBTokenState });
             }
         }
         return tokens;
@@ -203,7 +209,10 @@ class Process {
             }
             await trie.update(request.change);
         }
-        await this.state.put(assetName, state);
+        await this.state.put(assetName, {
+            state,
+            outputRef: { txHash: tx.id, outputIndex: 0 }
+        });
     }
     private async processRequest(request: DBRequest, tx, index) {
         const ref = mkOutputRefId(tx.id, index);
@@ -257,8 +266,12 @@ class Indexer {
         );
     }
 
-    async fetchTokens(): Promise<{ assetName: string; state: TokenState }[]> {
+    async fetchTokens(): Promise<{ assetName: string; state: DBTokenState }[]> {
         return await this.process.stateManager.getTokens();
+    }
+
+    async fetchToken(assetName: string): Promise<DBTokenState | null> {
+        return await this.process.stateManager.getToken(assetName);
     }
 
     async fetchRequests(

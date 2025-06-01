@@ -15,7 +15,7 @@ import { rootHex, tokenIdParts } from './lib';
 import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { tokenOfTokenId, TokenState } from './token';
-import { Indexer } from './history/indexer';
+import { DBTokenState, Indexer } from './history/indexer';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;
@@ -93,10 +93,14 @@ export class Context {
 
     async fetchTokens(): Promise<{ tokenId: string; state: TokenState }[]> {
         const tokens = await this.indexer.fetchTokens();
-        return tokens.map(({ assetName, state }) => ({
+        return tokens.map(({ assetName, state: { state } }) => ({
             tokenId: this.cagingScript.policyId + assetName,
             state
         }));
+    }
+    async fetchToken(tokenId: string): Promise<DBTokenState | null> {
+        const { assetName } = tokenIdParts(tokenId);
+        return await this.indexer.fetchToken(assetName);
     }
 
     async fetchRequests(
@@ -105,6 +109,7 @@ export class Context {
         const { assetName } = tokenIdParts(tokenId);
         return await this.indexer.fetchRequests(assetName);
     }
+
     async fetchUTxOs(): Promise<UTxO[]> {
         return await fetchUTxOs(this.provider);
     }

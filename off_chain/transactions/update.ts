@@ -8,11 +8,9 @@ import {
 
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
-import { SafeTrie, serializeProof } from '../trie';
+import { serializeProof } from '../trie';
 import { nullHash, OutputRef, toHex, tokenIdParts } from '../lib';
-import { parseStateDatum, tokenOfTokenId } from '../token';
-import { parseRequest, selectUTxOsRequests } from '../request';
-import { Indexer } from '../history/indexer';
+import { unmkOutputRefId } from '../history/indexer';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -42,31 +40,27 @@ export async function update(
 
     const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
-    const cageUTxOs = await context.fetchUTxOs();
-    const { state } = tokenOfTokenId(cageUTxOs, tokenId);
-    const datum = parseStateDatum(state);
-    context.log('datum:', datum);
-
-    if (!datum) {
-        throw new Error(`State datum not found for tokenId: ${tokenId}`);
+    const dbState = await context.fetchToken(tokenId);
+    if (!dbState) {
+        throw new Error(`Token with ID ${tokenId} not found`);
     }
-
-    const { root } = datum;
-    context.log('root', root);
+    const { outputRef } = dbState;
 
     const stateOutputRef = mConStr1([
-        mOutputReference(state.input.txHash, state.input.outputIndex)
+        mOutputReference(outputRef.txHash, outputRef.outputIndex)
     ]);
-
-    const { requests: presents } = selectUTxOsRequests(cageUTxOs, tokenId);
-    const promoteds = presents.filter(present =>
+    const presents = await context.fetchRequests(tokenId);
+    const resolvedPresents = presents.map(present => ({
+        ...present,
+        resolvedRef: unmkOutputRefId(present.outputRef)
+    }));
+    const promoteds = resolvedPresents.filter(present =>
         requireds.some(
             required =>
-                present.input.txHash === required.txHash &&
-                present.input.outputIndex === required.outputIndex
+                present.resolvedRef.txId === required.txHash &&
+                present.resolvedRef.index === required.outputIndex
         )
     );
-    context.log('promoteds', promoteds);
 
     let proofs: Proof[] = [];
     let txHash: string;
@@ -74,12 +68,11 @@ export async function update(
     const { assetName } = tokenIdParts(tokenId);
     const releaseIndexer = await context.stopIndexer();
     const trie = await context.trie(assetName);
-    const oldRoot = trie.root();
     try {
         for (const promoted of promoteds) {
-            proofs.push(await addRequest(trie, promoted));
+            proofs.push(await trie.temporaryUpdate(promoted.change));
             tx.spendingPlutusScriptV3()
-                .txIn(promoted.input.txHash, promoted.input.outputIndex)
+                .txIn(promoted.resolvedRef.txId, promoted.resolvedRef.index)
                 .txInInlineDatumPresent()
                 .txInRedeemerValue(stateOutputRef, 'Mesh', guessingRequestCost)
                 .txInScript(cageCbor);
@@ -90,12 +83,10 @@ export async function update(
         const root = trie.root();
         const newRoot = root ? toHex(root) : nullHash;
         const newStateDatum = mConStr1([mConStr0([signerHash, newRoot])]);
-        context.log('newStateDatum', newStateDatum);
         const jsonProofs: Data[] = proofs.map(serializeProof);
-
         tx.selectUtxosFrom(utxos) // select the remaining UTXOs
             .spendingPlutusScriptV3()
-            .txIn(state.input.txHash, state.input.outputIndex)
+            .txIn(outputRef.txHash, outputRef.outputIndex)
             .txInInlineDatumPresent()
             .txInRedeemerValue(mConStr2([jsonProofs]), 'Mesh', guessingLowCost)
             .txInScript(cageCbor)
@@ -126,13 +117,4 @@ export async function update(
 
     await releaseIndexer();
     return txHash;
-}
-
-async function addRequest(trie: SafeTrie, request: any): Promise<Proof> {
-    const parsed = parseRequest(request);
-    if (!parsed) {
-        throw new Error('Invalid request');
-    }
-    const { change } = parsed;
-    return await trie.temporaryUpdate(change);
 }
