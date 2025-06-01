@@ -80,12 +80,12 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
         const tk = await createToken(charlie);
         log('charlie created an mpf token');
         const tks1 = await getTokens(charlie);
-        assertThrows(tks1.map(t => t.tokenId).includes(tk), 'Token not found');
+        assertThrows(tks1.tokens.map(t => t.tokenId).includes(tk), 'Token not found');
         await deleteToken(charlie, tk);
         log('charlie deleted the mpf token');
         const tks2 = await getTokens(charlie);
         assertThrows(
-            !tks2.map(t => t.tokenId).include(tk),
+            !tks2.tokens.map(t => t.tokenId).includes(tk),
             'Token still found'
         );
     };
