@@ -80,8 +80,7 @@ async function updateToken(
 ) {
     await waitForSync(log, host);
     const requests = requestIds.map(r => {
-        const { txId, index } = unmkOutputRefId(r);
-        return { txHash: txId, outputIndex: index };
+        return unmkOutputRefId(r);
     });
     const response = await axios.put(`${host}/token/${tokenId}`, { requests });
     assertThrows(response.status === 200, 'Failed to update token');
@@ -124,7 +123,7 @@ async function deleteRequest(log: Log, host: string, outputRefId: string) {
     await waitForSync(log, host);
     const outputRef = unmkOutputRefId(outputRefId);
     const response = await axios.delete(
-        `${host}/request/${outputRef.txId}/${outputRef.index}`
+        `${host}/request/${outputRef.txHash}/${outputRef.outputIndex}`
     );
     assertThrows(response.status === 200, 'Failed to delete request');
     assertThrows(

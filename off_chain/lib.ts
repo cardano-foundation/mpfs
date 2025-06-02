@@ -6,12 +6,16 @@ export type OutputRef = {
     outputIndex: number;
 };
 
+export function outputRefEqual(a: OutputRef, b: OutputRef): boolean {
+    return a.txHash === b.txHash && a.outputIndex === b.outputIndex;
+}
+
 // this must match the aiken code
 export function assetName(outputRef: OutputRef) {
-    const { txHash, outputIndex: index } = outputRef;
+    const { txHash, outputIndex: outputIndex } = outputRef;
     const transaction_id_bytes = Buffer.from(txHash, 'hex');
     const outputIndexBytes = Buffer.alloc(2);
-    outputIndexBytes.writeUInt16BE(index, 0);
+    outputIndexBytes.writeUInt16BE(outputIndex, 0);
     const bytes = Buffer.concat([transaction_id_bytes, outputIndexBytes]);
     return createHash('sha256').update(bytes).digest().toString('hex');
 }

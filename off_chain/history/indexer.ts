@@ -6,19 +6,16 @@ import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 
-export function mkOutputRefId(txId: string, index: number): string {
-    return `${txId}#${index}`;
+export function mkOutputRefId(txHash: string, outputIndex: number): string {
+    return `${txHash}#${outputIndex}`;
 }
-export function unmkOutputRefId(refId: string): {
-    txId: string;
-    index: number;
-} {
-    const [txId, indexStr] = refId.split('#');
-    const index = parseInt(indexStr, 10);
-    if (isNaN(index)) {
+export function unmkOutputRefId(refId: string): OutputRef {
+    const [txHash, indexStr] = refId.split('#');
+    const outputIndex = parseInt(indexStr, 10);
+    if (isNaN(outputIndex)) {
         throw new Error(`Invalid output reference: ${refId}`);
     }
-    return { txId, index };
+    return { txHash, outputIndex };
 }
 
 export type DBRequest = {
@@ -141,12 +138,16 @@ class Process {
                 }
             }
         }
-        for (let index = 0; index < tx.outputs.length; index++) {
+        for (
+            let outputIndex = 0;
+            outputIndex < tx.outputs.length;
+            outputIndex++
+        ) {
             const output: {
                 address: string;
                 value: Record<string, any>;
                 datum: any;
-            } = tx.outputs[index];
+            } = tx.outputs[outputIndex];
             if (output.address !== this.address) {
                 return; // skip outputs not to the caging script address
             }
@@ -189,7 +190,7 @@ class Process {
                     owner: request.owner
                 },
                 tx,
-                index
+                outputIndex
             );
         }
     }

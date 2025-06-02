@@ -9,7 +9,7 @@ import {
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { serializeProof } from '../trie';
-import { nullHash, OutputRef, toHex } from '../lib';
+import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
 import { unmkOutputRefId } from '../history/indexer';
 
 const guessingLowCost = {
@@ -49,10 +49,8 @@ export async function update(
         resolvedRef: unmkOutputRefId(present.outputRef)
     }));
     const promoteds = resolvedPresents.filter(present =>
-        requireds.some(
-            required =>
-                present.resolvedRef.txId === required.txHash &&
-                present.resolvedRef.index === required.outputIndex
+        requireds.some(required =>
+            outputRefEqual(present.resolvedRef, required)
         )
     );
 
@@ -67,7 +65,10 @@ export async function update(
         for (const promoted of promoteds) {
             proofs.push(await trie.temporaryUpdate(promoted.change));
             tx.spendingPlutusScriptV3()
-                .txIn(promoted.resolvedRef.txId, promoted.resolvedRef.index)
+                .txIn(
+                    promoted.resolvedRef.txHash,
+                    promoted.resolvedRef.outputIndex
+                )
                 .txInInlineDatumPresent()
                 .txInRedeemerValue(stateOutputRef, 'Mesh', guessingRequestCost)
                 .txInScript(cageCbor);

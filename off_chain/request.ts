@@ -64,10 +64,7 @@ export function findRequests(utxos: UTxO[]): Request[] {
         if (requestCore) {
             requests.push({
                 ...requestCore,
-                ref: {
-                    txHash: utxo.input.txHash,
-                    outputIndex: utxo.input.outputIndex
-                }
+                ref: utxo.input
             });
         }
     }

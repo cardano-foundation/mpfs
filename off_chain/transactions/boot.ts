@@ -12,10 +12,7 @@ export async function boot(context: Context) {
             `No UTxO found. Please fund the wallet ${walletAddress}`
         );
     }
-    const uniqueness: OutputRef = {
-        txHash: firstUTxO.input.txHash,
-        outputIndex: firstUTxO.input.outputIndex
-    };
+    const uniqueness: OutputRef = firstUTxO.input;
     const uniquenessP = mConStr0([uniqueness.txHash, uniqueness.outputIndex]);
 
     const asset = assetName(uniqueness);
@@ -31,7 +28,7 @@ export async function boot(context: Context) {
 
     const tx = context.newTxBuilder();
     await tx
-        .txIn(firstUTxO.input.txHash, firstUTxO.input.outputIndex)
+        .txIn(uniqueness.txHash, uniqueness.outputIndex)
         .mintPlutusScriptV3()
         .mint('1', mintPolicyId, asset)
         .mintingScript(cageCbor)
