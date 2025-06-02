@@ -20,11 +20,22 @@ export async function setup(port: number) {
                 words: mnemonic.split(' ')
             }
         });
+    const yaciStorePort = process.env.YACI_STORE_PORT;
+    const yaciStorePortNumber = yaciStorePort
+        ? parseInt(yaciStorePort, 10)
+        : 8080;
+    const yaciAdminPort = process.env.YACI_ADMIN_PORT;
+    const yaciAdminPortNumber = yaciAdminPort
+        ? parseInt(yaciAdminPort, 10)
+        : 10000;
     const ctxProvider = yaciProvider(
-        'http://localhost:8080',
-        'http://localhost:10000'
+        `http://localhost:${yaciStorePortNumber}`,
+        `http://localhost:${yaciAdminPortNumber}`
     );
-    const ogmios = 'http://localhost:1337';
+    const ogmiosPort = process.env.OGMIOS_PORT;
+    const ogmiosPortNumber = ogmiosPort ? parseInt(ogmiosPort, 10) : 1337;
+
+    const ogmios = `http://localhost:${ogmiosPortNumber}`;
     const wallet = mkWallet(ctxProvider.provider);
     const tries = await TrieManager.create(tmpDir);
 

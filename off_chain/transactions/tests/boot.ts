@@ -1,29 +1,24 @@
-import { withContext } from '../../context';
-import { findTokens } from '../../token';
 import { boot } from '../boot';
-import { setup } from './fixtures';
+import { end } from '../end';
+import { setup, sync } from './fixtures';
 
-const context = await setup(3000);
-const tokenId = await withContext(
-    'tmp/boot',
-    'log',
-    context,
-    async context => await boot(context)
-);
-console.log(tokenId);
+const { context, close } = await setup(3000);
 
-const tokens = await withContext(
-    'tmp/tokens',
-    'log',
-    context,
-    async context => {
-        const utxos = await context.fetchUTxOs();
-        findTokens(utxos);
-    }
-);
-console.log('tokens', tokens);
-const token = tokens.find(token => token.tokenId === tokenId);
+const tokenId = await boot(context);
+
+await sync(context);
+const token = await context.fetchToken(tokenId);
+
 if (!token) {
     throw new Error(`Token not found: ${tokenId}`);
 }
-console.log('token', token);
+
+try {
+    await sync(context);
+    await end(context, tokenId);
+} catch (error) {
+    console.error(`Error ending token: ${error.message}. Not failing the test`);
+}
+
+console.log('- a token was successfully created');
+await close();

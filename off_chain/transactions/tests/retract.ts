@@ -1,40 +1,30 @@
-import { withContext } from '../../context';
+import { mkOutputRefId } from '../../history/indexer';
 import { boot } from '../boot';
 import { end } from '../end';
 import { request } from '../request';
 import { retract } from '../retract';
-import { setup } from './fixtures';
+import { setup, sync as sync } from './fixtures';
 
-const context = await setup(3000);
-const tokenId = await withContext(
-    'tmp/boot',
-    'log',
-    context,
-    async context => await boot(context)
-);
-console.log('boot, token-id', tokenId);
+const { context, close } = await setup(3000);
+const tokenId = await boot(context);
 
-const reqUTxO = await withContext(
-    'tmp/request',
-    'log',
-    context,
-    async context => await request(context, tokenId, 'key', 'value', 'insert')
-);
-console.log('request, utxo', reqUTxO);
+await sync(context);
+const req = await request(context, tokenId, 'key', 'value', 'insert');
+const reqId = mkOutputRefId(req.txHash, req.outputIndex); // Momentarily hack, c39315f
 
-const txHashRetract = await withContext(
-    'tmp/retract',
-    'log',
-    context,
-    async context => await retract(context, reqUTxO)
-);
+await sync(context);
+await retract(context, req);
 
-console.log('retract, tx-hash', txHashRetract);
+await sync(context);
+const reqs = await context.fetchRequests(tokenId);
+if (reqs.some(req => req.outputRef === reqId)) {
+    throw new Error(
+        `Request ID ${reqId} still found in requests after retraction`
+    );
+}
 
-const txHash = await withContext(
-    'tmp/end',
-    'log',
-    context,
-    async context => await end(context, tokenId)
-);
-console.log('end, tx-hash', txHash);
+await sync(context);
+await end(context, tokenId);
+
+console.log('- a request was successfully retracted');
+await close();
