@@ -46,16 +46,40 @@ run-docker-E2E-tests:
     sleep 10 # wait for yaci
     rm -rf tmp
     npx tsx service/test/E2E.ts
-
+wait_for_service service_name port:
+    #!/usr/bin/env bash
+    until curl -s "http://localhost:{{port}}" > /dev/null; do
+        echo "Waiting for {{service_name}} to be up on port {{port}}..."
+        sleep 1
+    done
 run-bare-E2E-tests:
     #!/usr/bin/env bash
-    # just build-on-chain
-    # just build-off-chain
+
+    just wait_for_service "yaci-store" 8080
+    just wait_for_service "yaci-admin" 10000
+    just wait_for_service "ogmios" 1337
     cd off_chain
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     export OGMIOS_PORT=1337
     npx tsx service/test/E2E.ts
+
+run-integration-tests:
+    #!/usr/bin/env bash
+
+    just wait_for_service "yaci-store" 8080
+    just wait_for_service "yaci-admin" 10000
+    just wait_for_service "ogmios" 1337
+
+    cd off_chain
+    export YACI_STORE_PORT=8080
+    export YACI_ADMIN_PORT=10000
+    export OGMIOS_PORT=1337
+    npx tsx transactions/tests/boot.ts
+    npx tsx transactions/tests/end.ts
+    npx tsx transactions/tests/request.ts
+    npx tsx transactions/tests/retract.ts
+    npx tsx transactions/tests/update.ts
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash
