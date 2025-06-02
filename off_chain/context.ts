@@ -14,7 +14,7 @@ import { OutputLogger } from './logging';
 import { rootHex, tokenIdParts } from './lib';
 import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
-import { tokenOfTokenId, TokenState } from './token';
+import { TokenState } from './token';
 import { DBTokenState, Indexer } from './history/indexer';
 
 export type Log = (key: string, value: any) => void;
@@ -143,21 +143,15 @@ export class Context {
     async facts(tokenId: string): Promise<Record<string, string>> {
         const { assetName } = tokenIdParts(tokenId);
         const utxos = await fetchUTxOs(this.provider);
-        const { state, token } = tokenOfTokenId(utxos, tokenId);
-        if (!state) {
+        const dbState = await this.fetchToken(tokenId);
+        if (!dbState) {
             throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
         }
+        const { state } = dbState;
         const trie = await this.indexer.tries.trie(assetName);
 
         const localRoot = rootHex(trie.root());
 
-        if (token.root !== localRoot) {
-            const tx = await this.provider.fetchTxInfo(state.input.txHash);
-            console.log('tx', tx);
-            throw new Error(
-                `Root mismatch for tokenId ${tokenId}: expected ${token.root}, got ${localRoot}`
-            );
-        }
         const facts = await trie.allFacts();
         return facts;
     }
