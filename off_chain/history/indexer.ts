@@ -23,6 +23,7 @@ export function unmkOutputRefId(refId: string): {
 }
 
 export type DBRequest = {
+    owner: string;
     assetName: string;
     change: Change;
 };
@@ -89,15 +90,19 @@ class StateManager {
     // requests is guaranteed to respect their outputRef order. So no need to
     // sort them.
     async getRequests(
-        assetName: string
-    ): Promise<{ outputRef: string; change: Change }[]> {
-        const requests: { outputRef: string; change: Change }[] = [];
+        assetName: string | null
+    ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
+        const requests: { outputRef: string; change: Change; owner: string }[] =
+            [];
         for await (const [key, value] of this.db.iterator()) {
-            if (isDBRequest(value) && value.assetName === assetName) {
-                requests.push({
-                    outputRef: key,
-                    change: value.change
-                });
+            if (isDBRequest(value)) {
+                if (!assetName || value.assetName === assetName) {
+                    requests.push({
+                        outputRef: key,
+                        change: value.change,
+                        owner: value.owner
+                    });
+                }
             }
         }
         return requests;
@@ -179,7 +184,11 @@ class Process {
                 tokenIdParts(request.tokenId);
             if (parsedPolicyId === this.policyId) {
                 await this.processRequest(
-                    { assetName: parsedAssetName, change: request.change },
+                    {
+                        assetName: parsedAssetName,
+                        change: request.change,
+                        owner: request.owner
+                    },
                     tx,
                     index
                 );
@@ -275,8 +284,8 @@ class Indexer {
     }
 
     async fetchRequests(
-        assetName: string
-    ): Promise<{ outputRef: string; change: Change }[]> {
+        assetName: string | null = null
+    ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
         return await this.process.stateManager.getRequests(assetName);
     }
 

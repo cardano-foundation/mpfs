@@ -1,7 +1,7 @@
-import { mConStr3, Output } from '@meshsdk/core';
+import { mConStr3 } from '@meshsdk/core';
 import { Context } from '../context';
 import { OutputRef } from '../lib';
-import { findRequests } from '../request';
+import { mkOutputRefId } from '../history/indexer';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -15,13 +15,12 @@ export async function retract(
     const { walletAddress, collateral, signerHash } = await context.wallet();
 
     const { cbor: cageCbor } = context.cagingScript;
-    const cageUTxOs = await context.fetchUTxOs();
-    const requests = findRequests(cageUTxOs);
-    const request = requests.find(
-        request =>
-            request.ref.txHash === requestOutputRef.txHash &&
-            request.ref.outputIndex === requestOutputRef.outputIndex
+    const requests = await context.fetchRequests(null);
+    const ouputRefId = mkOutputRefId(
+        requestOutputRef.txHash,
+        requestOutputRef.outputIndex
     );
+    const request = requests.find(request => request.outputRef === ouputRefId);
     if (!request) {
         throw new Error('Request not found');
     }
@@ -34,7 +33,7 @@ export async function retract(
 
     const tx = context.newTxBuilder(); // Initialize the transaction builder
     tx.spendingPlutusScriptV3()
-        .txIn(request.ref.txHash, request.ref.outputIndex)
+        .txIn(requestOutputRef.txHash, requestOutputRef.outputIndex)
         .txInInlineDatumPresent()
         .txInRedeemerValue(mConStr3([]), 'Mesh', guessingLowCost)
         .txInScript(cageCbor);

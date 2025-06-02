@@ -104,9 +104,9 @@ export class Context {
     }
 
     async fetchRequests(
-        tokenId: string
-    ): Promise<{ outputRef: string; change: Change }[]> {
-        const { assetName } = tokenIdParts(tokenId);
+        tokenId: string | null
+    ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
+        const assetName = tokenId ? tokenIdParts(tokenId).assetName : null;
         return await this.indexer.fetchRequests(assetName);
     }
 
