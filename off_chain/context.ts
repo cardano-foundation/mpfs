@@ -101,8 +101,7 @@ export class Context {
     async fetchRequests(
         tokenId: string | null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        const assetName = tokenId ? tokenIdParts(tokenId).assetName : null;
-        return await this.indexer.fetchRequests(assetName);
+        return await this.indexer.fetchRequests(tokenId);
     }
 
     async signTx(tx: MeshTxBuilder): Promise<string> {

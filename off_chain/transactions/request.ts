@@ -1,6 +1,6 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from '../context';
-import { OutputRef, tokenIdParts } from '../lib';
+import { OutputRef } from '../lib';
 
 export async function request(
     context: Context,
@@ -14,14 +14,14 @@ export async function request(
     }
     context.log('token-id', tokenId);
 
-    const { policyId, assetName } = tokenIdParts(tokenId);
     const { walletAddress, utxos, signerHash } = await context.wallet();
     if (!utxos.length) {
         throw new Error(
             `No UTxO found. Please fund the wallet ${walletAddress}`
         );
     }
-    const tokenIdDatum = mConStr0([policyId, assetName]);
+    const { policyId } = context.cagingScript;
+    const tokenIdDatum = mConStr0([policyId, tokenId]);
     context.log('token-id-datum', tokenIdDatum);
     let operation;
     switch (op) {
