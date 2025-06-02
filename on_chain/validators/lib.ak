@@ -6,11 +6,10 @@ use cardano/assets.{AssetName, PolicyId, Value, from_asset, policies, tokens}
 use cardano/transaction.{Input, Output, OutputReference}
 
 pub type TokenId {
-  policyId: PolicyId,
   assetName: AssetName,
 }
 
-pub fn quantity(value: Value, TokenId { policyId, assetName }) -> Option<Int> {
+pub fn quantity(policyId : PolicyId, value: Value, TokenId { assetName }) -> Option<Int> {
   get(tokens(value, policyId), assetName)
 }
 
@@ -21,7 +20,7 @@ pub fn assetName(ref: OutputReference) -> Hash<Sha2_256, OutputReference> {
   sha2_256(bytes)
 }
 
-pub fn valueFromToken(TokenId { policyId, assetName }: TokenId) -> Value {
+pub fn valueFromToken(policyId : PolicyId , TokenId { assetName }: TokenId) -> Value {
   from_asset(policyId, assetName, 1)
 }
 
@@ -33,7 +32,7 @@ pub fn tokenFromValue(value: Value) -> Option<TokenId> {
       when keys(tokens) is {
         [assetName] ->
           when get(tokens, assetName) is {
-            Some(_) -> Some(TokenId { policyId, assetName })
+            Some(_) -> Some(TokenId { assetName })
             _ -> None
           }
         _ -> None

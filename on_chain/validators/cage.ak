@@ -190,12 +190,12 @@ fn validRootUpdate(
 pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
   let Mint { asset, owner } = minting
   let Transaction { outputs, mint, inputs, .. } = tx
-  let tokenId = TokenId { policyId, assetName: assetName(asset) }
+  let tokenId = TokenId { assetName: assetName(asset) }
   // Source of uniqueness for the asset name
   expect is_some(find_input(inputs, asset))
   // Mint only one token-id
   expect
-    when quantity(mint, tokenId) is {
+    when quantity(policyId, mint, tokenId) is {
       Some(quantity) -> quantity == 1
       None -> False
     }
@@ -224,9 +224,9 @@ const testStateRef =
 const testRequestRef =
   OutputReference { transaction_id: "2234567890abcdef", output_index: 254 }
 
-const testToken = TokenId { policyId: "policy_id", assetName: "asset_name" }
+const testToken = TokenId { assetName: "asset_name" }
 
-const testValue = valueFromToken(testToken)
+const testValue = valueFromToken("policy_id", testToken)
 
 const state = State { owner: "owner", root: root(mpf.empty) }
 
@@ -301,11 +301,11 @@ test canCage() {
 const reference =
   OutputReference { transaction_id: "1234567890abcdef", output_index: 255 }
 
-const token = TokenId { policyId: "policy_id", assetName: assetName(reference) }
+const token = TokenId { assetName: assetName(reference) }
 
 const minting = Mint { asset: reference, owner: "public_key" }
 
-const minted_value = valueFromToken(token)
+const minted_value = valueFromToken("policy_id", token)
 
 const output_address = address.from_script("policy_id")
 
@@ -334,7 +334,7 @@ const consumed_utxo =
 test canMint() {
   mpfCage.mint(
     Minting(minting),
-    token.policyId,
+    "policy_id",
     Transaction {
       ..transaction.placeholder,
       outputs: [minted],
