@@ -11,7 +11,7 @@ import {
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import { rootHex, tokenIdParts } from './lib';
+import { tokenIdParts } from './lib';
 import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { TokenState } from './token';
@@ -106,10 +106,6 @@ export class Context {
         return await this.indexer.fetchRequests(assetName);
     }
 
-    async fetchUTxOs(): Promise<UTxO[]> {
-        return await fetchUTxOs(this.provider);
-    }
-
     async signTx(tx: MeshTxBuilder): Promise<string> {
         const unsignedTx = tx.txHex;
         this.log('tx-hex', unsignedTx);
@@ -142,15 +138,8 @@ export class Context {
 
     async facts(tokenId: string): Promise<Record<string, string>> {
         const { assetName } = tokenIdParts(tokenId);
-        const utxos = await fetchUTxOs(this.provider);
-        const dbState = await this.fetchToken(tokenId);
-        if (!dbState) {
-            throw new Error(`State UTxO not found for tokenId: ${tokenId}`);
-        }
-        const { state } = dbState;
-        const trie = await this.indexer.tries.trie(assetName);
 
-        const localRoot = rootHex(trie.root());
+        const trie = await this.indexer.tries.trie(assetName);
 
         const facts = await trie.allFacts();
         return facts;
@@ -185,21 +174,6 @@ export async function withContext(
     }
 }
 
-const outputReferenceOrdering = (a, b) => {
-    if (a.input.txHash < b.input.txHash) {
-        return -1;
-    }
-    if (a.input.txHash > b.input.txHash) {
-        return 1;
-    }
-    return a.input.outputIndex - b.input.outputIndex;
-};
-
-export async function fetchAddressUTxOs(provider: Provider, address: string) {
-    return (await provider.fetchAddressUTxOs(address)).sort(
-        outputReferenceOrdering
-    );
-}
 
 export function getCagingScript() {
     const cbor = applyParamsToScript(
@@ -221,12 +195,6 @@ export function getCagingScript() {
     return caging;
 }
 
-async function fetchUTxOs(provider: Provider): Promise<UTxO[]> {
-    const caging = getCagingScript();
-    const utxos = await provider.fetchAddressUTxOs(caging.address);
-    return utxos.sort(outputReferenceOrdering);
-}
-
 export async function newContext(
     indexer: Indexer,
     ctxProvider: ContextProvider,
@@ -234,14 +202,6 @@ export async function newContext(
     progress?: Progress
 ): Promise<Context> {
     const provider = ctxProvider.provider;
-    const logger = new OutputLogger();
-    const log = (key: string, value: any) => {
-        logger.log(key, value);
-    };
-    const logs = () => logger.getLogs();
-    const deleteLogs = () => logger.deleteLogs();
-
-    const newTxBuilder = () => getTxBuilder(provider);
 
     // run the indexer
     return new Context(provider, wallet, indexer, progress);
@@ -312,11 +272,6 @@ export async function getWalletInfoForTx(
         signerHash
     };
     return walletInfo;
-}
-function builtinByteString(
-    cageScriptHash: string
-): object | import('@meshsdk/common').Data {
-    throw new Error('Function not implemented.');
 }
 
 async function onTxConfirmedPromise(

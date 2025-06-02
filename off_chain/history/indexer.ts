@@ -1,11 +1,10 @@
 import WebSocket from 'ws';
 import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
-import { assetName, OutputRef, rootHex, toHex, tokenIdParts } from '../lib';
+import { OutputRef, rootHex, tokenIdParts } from '../lib';
 import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { Output } from '@meshsdk/core';
 
 export function mkOutputRefId(txId: string, index: number): string {
     return `${txId}#${index}`;
