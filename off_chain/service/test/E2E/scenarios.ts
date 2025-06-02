@@ -66,11 +66,8 @@ const tokensAreEmpty = async ({
 }: Runner) => {
     const test = async () => {
         log('charlie can get his tokens');
-        const tks = await getTokens(log, charlie);
         log('bob can get his tokens');
-        const tks2 = await getTokens(log, bob);
         log('alice can get her tokens');
-        const tks3 = await getTokens(log, alice);
     };
     await run(test, 'users can retrieve their tokens');
 };
@@ -106,7 +103,6 @@ const cannotDeleteAnotherUsersToken = async ({
         log('charlie created an mpf token');
         await shouldFail(deleteToken(log, bob, tk));
         log('bob failed to delete charlie token as expected');
-        const tks = await getTokens(log, charlie);
         await deleteToken(log, charlie, tk);
         log('charlie deleted the mpf token');
     };
@@ -162,7 +158,7 @@ const cannotRetractAnotherUsersRequest = async ({
 const cannotUpdateATokenWithNoRequests = async ({
     run,
     log,
-    wallets: { charlie, bob }
+    wallets: { charlie }
 }) => {
     const test = async () => {
         const tk = await createToken(charlie);
@@ -185,7 +181,7 @@ const canInspectRequestsForAToken = async ({
         log('charlie created an mpf token');
         await createRequest(log, bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
-        const { owner, root, requests } = await getToken(log, bob, tk);
+        const { owner, requests } = await getToken(log, bob, tk);
         const { owner: charlieSig } = await getWallet(charlie);
 
         assertThrows(owner === charlieSig, 'Token owner is not charlie');
@@ -230,7 +226,6 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
         assertThrows(requests.length === 0, 'Requests are not one');
         const facts = await getTokenFacts(log, charlie, tk);
         assertThrows(facts['abc'] === 'value', 'Token fact is not value');
-        const factsBob = await getTokenFacts(log, bob, tk);
         assertThrows(facts['abc'] === 'value', 'Token fact is not value');
         await deleteToken(log, charlie, tk);
         log('charlie deleted the mpf token');

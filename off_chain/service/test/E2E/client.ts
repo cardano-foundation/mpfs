@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { assertThrows } from './lib';
-import { mkOutputRefId, unmkOutputRefId } from '../../../history/indexer';
 
 type Log = (s: string) => void;
 
@@ -19,7 +18,7 @@ const waitForSync = async (log: Log, wallet) => {
             }s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
         );
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay = Math.min(delay * 2, 10000); 
+        delay = Math.min(delay * 2, 10000);
     }
 };
 
@@ -79,10 +78,10 @@ async function updateToken(
     requestIds: string[]
 ) {
     await waitForSync(log, host);
-    const requests = requestIds.map(r => {
-        return unmkOutputRefId(r);
+
+    const response = await axios.put(`${host}/token/${tokenId}`, {
+        requestIds
     });
-    const response = await axios.put(`${host}/token/${tokenId}`, { requests });
     assertThrows(response.status === 200, 'Failed to update token');
     assertThrows(
         response.data.txHash.length === 64,
@@ -112,22 +111,12 @@ async function createRequest(
         operation: op
     });
     assertThrows(response.status === 200, 'Failed to create request');
-    assertThrows(
-        response.data.txHash.length === 64,
-        'Transaction hash is not valid'
-    );
-    return mkOutputRefId({
-        txHash: response.data.txHash,
-        outputIndex: response.data.outputIndex
-    });
+    return response.data;
 }
 
 async function deleteRequest(log: Log, host: string, outputRefId: string) {
     await waitForSync(log, host);
-    const outputRef = unmkOutputRefId(outputRefId);
-    const response = await axios.delete(
-        `${host}/request/${outputRef.txHash}/${outputRef.outputIndex}`
-    );
+    const response = await axios.delete(`${host}/request/${outputRefId}`);
     assertThrows(response.status === 200, 'Failed to delete request');
     assertThrows(
         response.data.txHash.length === 64,

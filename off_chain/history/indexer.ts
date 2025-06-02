@@ -7,10 +7,10 @@ import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 
 export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
-    return `${txHash}#${outputIndex}`;
+    return `${txHash}-${outputIndex}`;
 }
 export function unmkOutputRefId(refId: string): OutputRef {
-    const [txHash, indexStr] = refId.split('#');
+    const [txHash, indexStr] = refId.split('-');
     const outputIndex = parseInt(indexStr, 10);
     if (isNaN(outputIndex)) {
         throw new Error(`Invalid output reference: ${refId}`);

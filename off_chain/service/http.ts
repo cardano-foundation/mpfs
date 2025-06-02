@@ -14,7 +14,7 @@ import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { TrieManager } from '../trie';
-import { Indexer } from '../history/indexer';
+import { Indexer, mkOutputRefId, unmkOutputRefId } from '../history/indexer';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context): Function {
@@ -115,7 +115,6 @@ function mkAPI(topup: TopUp | undefined, context): Function {
                 return;
             }
             const requests = await context.fetchRequests(tokenId);
-
             res.json({
                 ...token.state,
                 requests
@@ -129,13 +128,14 @@ function mkAPI(topup: TopUp | undefined, context): Function {
     });
     app.put('/token/:tokenId', async (req, res) => {
         const { tokenId } = req.params;
-        const { requests } = req.body;
+        const { requestIds } = req.body;
+        const refs = requestIds.map(unmkOutputRefId);
         try {
             const tx = await withContext(
                 'tmp/update',
                 'log',
                 context,
-                async context => await update(context, tokenId, requests)
+                async context => await update(context, tokenId, refs)
             );
             res.json({ txHash: tx });
         } catch (error) {
@@ -174,8 +174,16 @@ function mkAPI(topup: TopUp | undefined, context): Function {
                 'tmp/request',
                 'log',
                 context,
-                async context =>
-                    request(context, tokenId, key, value, operation)
+                async context => {
+                    const ref = await request(
+                        context,
+                        tokenId,
+                        key,
+                        value,
+                        operation
+                    );
+                    return mkOutputRefId(ref);
+                }
             );
             res.json(ref);
         } catch (error) {
@@ -186,9 +194,9 @@ function mkAPI(topup: TopUp | undefined, context): Function {
         }
     });
 
-    app.delete('/request/:txHash/:outputIndexS', async (req, res) => {
-        const { txHash, outputIndexS } = req.params;
-        const outputIndex = parseInt(outputIndexS, 10);
+    app.delete('/request/:refId/', async (req, res) => {
+        const { refId } = req.params;
+        const { txHash, outputIndex } = unmkOutputRefId(refId);
         try {
             const tx = await withContext(
                 'tmp/retract',
