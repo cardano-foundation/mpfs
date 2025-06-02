@@ -346,7 +346,6 @@ class Indexer {
             return new Promise<void>((resolve, reject) => {
                 this.client = new WebSocket(this.webSocketAddress);
                 this.client.on('open', () => {
-                    console.log('WebSocket connection established.');
                     resolve();
                 });
 
@@ -359,18 +358,12 @@ class Indexer {
         let retries = 0;
         for (; retries < maxRetries; retries++) {
             try {
-                console.log(
-                    `Attempting to connect to WebSocket (${retries}/${maxRetries})...`
-                );
                 await connectWebSocket();
                 // Once connected, proceed with initialization
                 this.queryFindIntersection(['origin']);
                 this.queryNetworkTip();
                 break; // Exit the retry loop
             } catch (err) {
-                console.log(
-                    `Retrying WebSocket connection (${retries}/${maxRetries})...`
-                );
                 this.client.close(); // Close the client to reset the connection
                 await new Promise(resolve =>
                     setTimeout(resolve, 1000 * retries)
