@@ -5,6 +5,7 @@ import { mkOutputRefId, unmkOutputRefId } from '../../../history/indexer';
 type Log = (s: string) => void;
 
 const waitForSync = async (log: Log, wallet) => {
+    let delay = 50; // Start with 1 second delay
     while (true) {
         const { ready, networkTip, indexerTip } = (
             await axios.get(`${wallet}/tokens`)
@@ -13,9 +14,12 @@ const waitForSync = async (log: Log, wallet) => {
             break;
         }
         log(
-            `waiting 5s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
+            `waiting ${
+                delay / 1000
+            }s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
         );
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay = Math.min(delay * 2, 10000); 
     }
 };
 
