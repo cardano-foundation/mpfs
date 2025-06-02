@@ -199,6 +199,7 @@ class Process {
         const inputs = tx.inputs;
         for (const input of inputs) {
             const ref = mkOutputRefId(input.transaction.id, input.index);
+
             if (await this.state.getRequest(ref)) {
                 this.state.delete(ref); // delete requests from inputs
             }
@@ -240,6 +241,7 @@ class Indexer {
     private networkTip: number | null = null;
     private networkTipQueried: boolean = false;
     private ready: boolean = false;
+    private checkingReadiness: boolean = false;
     private stop: Mutex;
     private webSocketAddress: string;
 
@@ -292,17 +294,24 @@ class Indexer {
     close(): void {
         this.client.close();
     }
-    get isReady(): boolean {
-        return this.ready;
+    async getSync(): Promise<{
+        ready: boolean;
+        networkTip: number | null;
+        indexerTip: number | null;
+    }> {
+        this.checkingReadiness = true;
+        this.queryNetworkTip();
+        while (this.checkingReadiness) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        return {
+            ready: this.ready,
+            networkTip: this.networkTip,
+            indexerTip: this.indexerTip
+        };
     }
     get tries(): TrieManager {
         return this.process.trieManager;
-    }
-    get networkTipSlot(): number | null {
-        return this.networkTip;
-    }
-    get indexerTipSlot(): number | null {
-        return this.indexerTip;
     }
     async pause() {
         return await this.stop.acquire();
@@ -386,6 +395,7 @@ class Indexer {
                     this.queryNextBlock();
                     break;
                 case 'tip':
+                    this.checkingReadiness = false;
                     this.networkTip = response.result.slot;
                     this.networkTipQueried = false;
                     this.withTips((networkTip, indexerTip) => {

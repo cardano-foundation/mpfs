@@ -27,12 +27,6 @@ export async function update(
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
-    if (context.indexerStatus.ready === false) {
-        throw new Error(
-            'Indexer is not ready. Please wait for the indexer to be ready.'
-        );
-    }
-
     context.log('token-id', tokenId);
 
     const { utxos, walletAddress, collateral, signerHash } =

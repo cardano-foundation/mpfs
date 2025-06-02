@@ -52,12 +52,8 @@ export class Context {
     async stopIndexer(): Promise<any> {
         return await this.indexer.pause();
     }
-    get indexerStatus() {
-        return {
-            ready: this.indexer.isReady,
-            networkTip: this.indexer.networkTipSlot,
-            indexerTip: this.indexer.indexerTipSlot
-        };
+    async indexerStatus() {
+        return await this.indexer.getSync();
     }
     log(key: string, value: any): void {
         this.logger.log(key, value);
