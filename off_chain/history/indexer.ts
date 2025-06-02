@@ -324,6 +324,12 @@ class Indexer {
     private queryNextBlock(): void {
         this.rpc('nextBlock', {}, 'block');
     }
+    async closeConnection(): Promise<void> {
+        if (this.client) {
+            this.client.close();
+        }
+        this.client = null;
+    }
     async run(): Promise<void> {
         const maxRetries = 1000; // Maximum number of retries
 
