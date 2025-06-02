@@ -1,4 +1,4 @@
-import { deserializeDatum, UTxO } from '@meshsdk/core';
+import { UTxO } from '@meshsdk/core';
 import { createHash } from 'crypto';
 
 export type OutputRef = {
@@ -16,9 +16,9 @@ export function assetName(outputRef: OutputRef) {
     return createHash('sha256').update(bytes).digest().toString('hex');
 }
 
-export function tokenIdParts(tokenId: string) {
-    const policyId = tokenId.slice(0, 56);
-    const assetName = tokenId.slice(56);
+export function unitParts(unit: string) {
+    const policyId = unit.slice(0, 56);
+    const assetName = unit.slice(56);
     return { policyId, assetName };
 }
 

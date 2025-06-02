@@ -88,8 +88,8 @@ export class Context {
 
     async fetchTokens(): Promise<{ tokenId: string; state: TokenState }[]> {
         const tokens = await this.indexer.fetchTokens();
-        return tokens.map(({ assetName, state: { state } }) => ({
-            tokenId: assetName,
+        return tokens.map(({ tokenId, state: { state } }) => ({
+            tokenId,
             state
         }));
     }
@@ -120,8 +120,8 @@ export class Context {
         await this.provider.evaluateTx(txHex);
     }
 
-    async trie(assetName: string): Promise<SafeTrie> {
-        return await this.indexer.tries.trie(assetName);
+    async trie(tokenId: string): Promise<SafeTrie> {
+        return await this.indexer.tries.trie(tokenId);
     }
 
     async waitSettlement(txHash: string): Promise<string> {

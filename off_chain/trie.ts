@@ -183,23 +183,23 @@ export class TrieManager {
         }
         return new TrieManager(dbPath);
     }
-    async trie(assetName: string): Promise<SafeTrie> {
+    async trie(tokenId: string): Promise<SafeTrie> {
         const release = await this.lock.acquire();
         try {
-            if (!this.tries[assetName]) {
-                const dbpath = `${this.dbPath}/${assetName}`;
+            if (!this.tries[tokenId]) {
+                const dbpath = `${this.dbPath}/${tokenId}`;
                 const trie = await SafeTrie.create(dbpath);
                 if (trie) {
-                    this.tries[assetName] = trie;
+                    this.tries[tokenId] = trie;
                 } else {
                     throw new Error(
-                        `Failed to load or create trie for index: ${assetName}`
+                        `Failed to load or create trie for index: ${tokenId}`
                     );
                 }
             }
         } finally {
             release();
         }
-        return this.tries[assetName];
+        return this.tries[tokenId];
     }
 }

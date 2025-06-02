@@ -5,7 +5,6 @@ import { setup, sync } from './fixtures';
 const { context, close } = await setup(3000);
 
 const tokenId = await boot(context);
-
 await sync(context);
 await end(context, tokenId);
 

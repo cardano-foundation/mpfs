@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
-import { OutputRef, rootHex, tokenIdParts } from '../lib';
+import { OutputRef, rootHex, unitParts } from '../lib';
 import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
@@ -23,7 +23,7 @@ export function unmkOutputRefId(refId: string): {
 
 export type DBRequest = {
     owner: string;
-    assetName: string;
+    tokenId: string;
     change: Change;
 };
 
@@ -36,7 +36,7 @@ type DBElement = DBRequest | DBTokenState;
 
 // Pattern matching can be done using a type guard:
 function isDBRequest(element: DBElement): element is DBRequest {
-    return 'change' in element && 'assetName' in element;
+    return 'change' in element && 'tokenId' in element;
 }
 
 function isDBTokenState(element: DBElement): element is DBTokenState {
@@ -61,6 +61,8 @@ class StateManager {
         return null; // Return null if the element is not a request
     }
 
+    async getToken(tokenId: string): Promise<DBTokenState | null> {
+        const result = await this.db.get(tokenId);
         if (!result) {
             return null; // Return null if the token does not exist
         }
@@ -78,25 +80,25 @@ class StateManager {
         await this.db.del(key);
     }
     async getTokens() {
-        const tokens: { assetName: string; state: DBTokenState }[] = [];
+        const tokens: { tokenId: string; state: DBTokenState }[] = [];
         for await (const [key, value] of this.db.iterator()) {
             if (isDBTokenState(value)) {
-                tokens.push({ assetName: key, state: value as DBTokenState });
+                tokens.push({ tokenId: key, state: value as DBTokenState });
             }
         }
         return tokens;
     }
-    // Returns all requests, optionally filtered by assetName. The order of the
+    // Returns all requests, optionally filtered by tokenId. The order of the
     // requests is guaranteed to respect their outputRef order. So no need to
     // sort them.
     async getRequests(
-        assetName: string | null
+        tokenId: string | null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
         const requests: { outputRef: string; change: Change; owner: string }[] =
             [];
         for await (const [key, value] of this.db.iterator()) {
             if (isDBRequest(value)) {
-                if (!assetName || value.assetName === assetName) {
+                if (!tokenId || value.tokenId === tokenId) {
                     requests.push({
                         outputRef: key,
                         change: value.change,
@@ -150,14 +152,14 @@ class Process {
             }
             const asset = output.value[this.policyId];
             if (asset) {
-                const assetName = Object.keys(asset)[0];
+                const tokenId = Object.keys(asset)[0];
 
                 const tokenState = parseStateDatumCbor(output.datum);
 
                 if (tokenState) {
-                    const trie = await this.tries.trie(assetName);
+                    const trie = await this.tries.trie(tokenId);
                     await this.processTokenUpdate(
-                        assetName,
+                        tokenId,
                         tokenState,
                         trie,
                         tx
@@ -167,7 +169,7 @@ class Process {
                     // Assert that roots are the same
                     if (localRoot !== tokenState.root) {
                         throw new Error(
-                            `Root mismatch for asset ${assetName}:
+                            `Root mismatch for asset ${tokenId}:
                             expected ${tokenState.root}, got ${localRoot}`
                         );
                     }
@@ -180,12 +182,12 @@ class Process {
                 return; // skip outputs with no request datum
             }
 
-            const { policyId: parsedPolicyId, assetName: parsedAssetName } =
-                tokenIdParts(request.tokenId);
+            const { policyId: parsedPolicyId, assetName: parsedTokenId } =
+                unitParts(request.tokenId);
             if (parsedPolicyId === this.policyId) {
                 await this.processRequest(
                     {
-                        assetName: parsedAssetName,
+                        tokenId: parsedTokenId,
                         change: request.change,
                         owner: request.owner
                     },
@@ -206,7 +208,7 @@ class Process {
         }
     }
     private async processTokenUpdate(
-        assetName: string,
+        tokenId: string,
         state: TokenState,
         trie: SafeTrie,
         tx
@@ -219,7 +221,7 @@ class Process {
             }
             await trie.update(request.change);
         }
-        await this.state.put(assetName, {
+        await this.state.put(tokenId, {
             state,
             outputRef: { txHash: tx.id, outputIndex: 0 }
         });
@@ -277,18 +279,18 @@ class Indexer {
         );
     }
 
-    async fetchTokens(): Promise<{ assetName: string; state: DBTokenState }[]> {
+    async fetchTokens(): Promise<{ tokenId: string; state: DBTokenState }[]> {
         return await this.process.stateManager.getTokens();
     }
 
-    async fetchToken(assetName: string): Promise<DBTokenState | null> {
-        return await this.process.stateManager.getToken(assetName);
+    async fetchToken(tokenId: string): Promise<DBTokenState | null> {
+        return await this.process.stateManager.getToken(tokenId);
     }
 
     async fetchRequests(
-        assetName: string | null = null
+        tokenId: string | null = null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        return await this.process.stateManager.getRequests(assetName);
+        return await this.process.stateManager.getRequests(tokenId);
     }
 
     close(): void {
