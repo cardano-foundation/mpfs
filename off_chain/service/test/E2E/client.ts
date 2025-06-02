@@ -50,7 +50,6 @@ async function getTokens(log: Log, host: string) {
 async function createToken(host: string) {
     const response = await axios.post(`${host}/token`);
     assertThrows(response.status === 200, 'Failed to create token');
-    assertThrows(response.data.tokenId.length === 120, 'Token ID is not valid');
     return response.data.tokenId;
 }
 

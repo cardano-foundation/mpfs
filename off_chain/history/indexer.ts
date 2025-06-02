@@ -61,8 +61,9 @@ class StateManager {
         return null; // Return null if the element is not a request
     }
 
-    async getToken(assetName: string): Promise<DBTokenState | null> {
-        const result = await this.db.get(assetName);
+        if (!result) {
+            return null; // Return null if the token does not exist
+        }
         if (isDBTokenState(result)) {
             return result as DBTokenState;
         }

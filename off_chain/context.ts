@@ -11,7 +11,6 @@ import {
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import { tokenIdParts } from './lib';
 import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { TokenState } from './token';
@@ -90,7 +89,7 @@ export class Context {
     async fetchTokens(): Promise<{ tokenId: string; state: TokenState }[]> {
         const tokens = await this.indexer.fetchTokens();
         return tokens.map(({ assetName, state: { state } }) => ({
-            tokenId: this.cagingScript.policyId + assetName,
+            tokenId: assetName,
             state
         }));
     }
