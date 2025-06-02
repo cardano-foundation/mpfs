@@ -1,7 +1,6 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from '../context';
 import { tokenIdParts } from '../lib';
-import { tokenOfTokenId } from '../token';
 
 export async function end(context: Context, tokenId: string) {
     context.log('token-id', tokenId);
@@ -14,20 +13,18 @@ export async function end(context: Context, tokenId: string) {
     const { utxos, walletAddress, collateral, signerHash } =
         await context.wallet();
 
-    const cageUTxOs = await context.fetchUTxOs();
-    const {
-        address: cageAddress,
-        cbor: cageCbor,
-        scriptHash: cageScriptHash
-    } = context.cagingScript;
+    const { cbor: cageCbor } = context.cagingScript;
 
-    const { state: token } = tokenOfTokenId(cageUTxOs, tokenId);
+    const dbState = await context.fetchToken(tokenId);
+    if (!dbState) {
+        throw new Error(`Token with ID ${tokenId} not found`);
+    }
+    const { outputRef } = dbState;
 
-    context.log('token', token);
     const tx = context.newTxBuilder();
     await tx
         .spendingPlutusScriptV3()
-        .txIn(token.input.txHash, token.input.outputIndex)
+        .txIn(outputRef.txHash, outputRef.outputIndex)
         .spendingReferenceTxInInlineDatumPresent()
         .spendingReferenceTxInRedeemerValue(mConStr0([]))
         .txInScript(cageCbor)
