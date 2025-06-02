@@ -135,12 +135,8 @@ export class Context {
     }
 
     async facts(tokenId: string): Promise<Record<string, string>> {
-        const { assetName } = tokenIdParts(tokenId);
-
-        const trie = await this.indexer.tries.trie(assetName);
-
-        const facts = await trie.allFacts();
-        return facts;
+        const trie = await this.indexer.tries.trie(tokenId);
+        return await trie.allFacts();
     }
 }
 
@@ -171,7 +167,6 @@ export async function withContext(
         throw error;
     }
 }
-
 
 export function getCagingScript() {
     const cbor = applyParamsToScript(

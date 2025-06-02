@@ -9,7 +9,7 @@ import {
 import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { serializeProof } from '../trie';
-import { nullHash, OutputRef, toHex, tokenIdParts } from '../lib';
+import { nullHash, OutputRef, toHex } from '../lib';
 import { unmkOutputRefId } from '../history/indexer';
 
 const guessingLowCost = {
@@ -59,9 +59,10 @@ export async function update(
     let proofs: Proof[] = [];
     let txHash: string;
     const tx = context.newTxBuilder();
-    const { assetName } = tokenIdParts(tokenId);
     const releaseIndexer = await context.stopIndexer();
-    const trie = await context.trie(assetName);
+    const trie = await context.trie(tokenId);
+    const { policyId } = context.cagingScript;
+    const unit = policyId + tokenId;
     try {
         for (const promoted of promoteds) {
             proofs.push(await trie.temporaryUpdate(promoted.change));
@@ -84,7 +85,7 @@ export async function update(
             .txInInlineDatumPresent()
             .txInRedeemerValue(mConStr2([jsonProofs]), 'Mesh', guessingLowCost)
             .txInScript(cageCbor)
-            .txOut(cageAddress, [{ unit: tokenId, quantity: '1' }])
+            .txOut(cageAddress, [{ unit, quantity: '1' }])
             .txOutInlineDatumValue(newStateDatum, 'Mesh');
         tx.requiredSignerHash(signerHash)
             .changeAddress(walletAddress)
