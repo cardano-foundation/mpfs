@@ -217,7 +217,7 @@ echo $owner
 ```
 
 ```json
-be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d
+42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403
 ```
 
 Now `charlie` can create a token under his control via:
@@ -229,8 +229,8 @@ tokenId=$(curl -s -X POST $charlie/token \
 echo $tokenId
 ```
 
-```json
-07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824
+```
+5d32fe6ee4ec1326bf14ebbc67dd566e03d4bd04881c463107485398d9901196
 ```
 
 That token id is unique inside the network and can be used to identify the token later.
@@ -242,13 +242,22 @@ curl -s -X GET $alice/tokens | jq
 ```
 
 ```json
-[
-  {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "owner": "be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d",
-    "root": "0000000000000000000000000000000000000000000000000000000000000000"
+{
+  "tokens": [
+    {
+      "tokenId": "5d32fe6ee4ec1326bf14ebbc67dd566e03d4bd04881c463107485398d9901196",
+      "state": {
+        "owner": "42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403",
+        "root": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "indexerStatus": {
+    "ready": true,
+    "networkTip": 846,
+    "indexerTip": 846
   }
-]
+}
 ```
 
 Take notice that the root is empty, meaning no facts are inside.
@@ -275,16 +284,14 @@ Anyone can create a request to update a token. For example,
 let `bob` create a request to update the token we created before.
 
 ```bash
-curl -s -X POST $bob/token/$tokenId/request \
+reqBob=$(curl -s -X POST $bob/token/$tokenId/request \
   -H "Content-Type: application/json" \
-  -d '{"operation": "insert","key": "abc","value": "value1"}' | jq
+  -d '{"operation": "insert","key": "abc","value": "value1"}' | jq -r)
+echo $reqBob
 ```
 
-```json
-{
-  "txHash": "1037d25b412c7bedda2e29f417d2a2bfce3fbe84db26b3600cc2ff53e60723f5",
-  "outputIndex": 0
-}
+```
+ac8b76b77b7c189213b1fea58b3d365bb5bde0d9987c0be79c52c494b3e79f36-0
 ```
 
 > The current API uses the wallet owner as the owner of the request. This is not validated by the contract, but it could be a requirement for the token owner to accept the request. I.E. the owner could be programmed to accept specific semantics (key modifications) request only by the specified owners and that would require the token owner to sign the request like we do here.
@@ -298,32 +305,38 @@ curl -s -X GET $alice/token/$tokenId | jq '.requests'
 ```json
 [
   {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "key": "abc",
-    "value": "value1",
-    "operation": "insert",
-    "owner": "a08a2febc48d613727c1e8c11b7f7d1d4128b80dde34afd7f393e732",
-    "ref": {
-      "txHash": "1037d25b412c7bedda2e29f417d2a2bfce3fbe84db26b3600cc2ff53e60723f5",
-      "outputIndex": 0
-    }
+    "outputRef": "ac8b76b77b7c189213b1fea58b3d365bb5bde0d9987c0be79c52c494b3e79f36-0",
+    "change": {
+      "key": "abc",
+      "value": "value1",
+      "operation": "insert"
+    },
+    "owner": "3db404e05ce862b4c8286341f78eae59a1f9f710c5a2d3afe32df7bd"
   }
 ]
+```
+
+Notice that the owner of the request is `bob`, which is the wallet that created the request.
+
+```bash
+curl -s -X GET $bob/wallet | jq -r '.owner'
+```
+
+```
+3db404e05ce862b4c8286341f78eae59a1f9f710c5a2d3afe32df7bd
 ```
 
 Let's add a request from `alice` to insert another value:
 
 ```bash
-curl -s -X POST $alice/token/$tokenId/request \
+reqAlice=$(curl -s -X POST $alice/token/$tokenId/request \
   -H "Content-Type: application/json" \
-  -d '{ "operation": "insert", "key": "abd", "value": "value2"}' | jq
+  -d '{"operation": "insert","key": "abd","value": "value2"}' | jq -r)
+echo $reqAlice
 ```
 
-```json
-{
-  "txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d",
-  "outputIndex": 0
-}
+```
+91c86a67b93007231b17789831d39ec0a2b0fd69c9e029fdf8246f1635a86bc4-0
 ```
 
 The request is now in the caging address, and anyone can see it with:
@@ -335,26 +348,22 @@ curl -s -X GET $bob/token/$tokenId | jq '.requests'
 ```json
 [
   {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "key": "abc",
-    "value": "value1",
-    "operation": "insert",
-    "owner": "a08a2febc48d613727c1e8c11b7f7d1d4128b80dde34afd7f393e732",
-    "ref": {
-      "txHash": "1037d25b412c7bedda2e29f417d2a2bfce3fbe84db26b3600cc2ff53e60723f5",
-      "outputIndex": 0
-    }
+    "outputRef": "91c86a67b93007231b17789831d39ec0a2b0fd69c9e029fdf8246f1635a86bc4-0",
+    "change": {
+      "key": "abd",
+      "value": "value2",
+      "operation": "insert"
+    },
+    "owner": "97c5d79444e0dca4cfbb561c561630fd1f1cea75e4938e006177a1ed"
   },
   {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "key": "abd",
-    "value": "value2",
-    "operation": "insert",
-    "owner": "fa9bf2e2edacf7038735d1ea4482e842d2c33e0e65b59273c228b10f",
-    "ref": {
-      "txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d",
-      "outputIndex": 0
-    }
+    "outputRef": "ac8b76b77b7c189213b1fea58b3d365bb5bde0d9987c0be79c52c494b3e79f36-0",
+    "change": {
+      "key": "abc",
+      "value": "value1",
+      "operation": "insert"
+    },
+    "owner": "3db404e05ce862b4c8286341f78eae59a1f9f710c5a2d3afe32df7bd"
   }
 ]
 ```
@@ -364,7 +373,7 @@ Note that the request is not applied to the token yet, and it can be retracted b
 Let `bob` retract his request with:
 
 ```bash
-$ curl -s -X DELETE $bob/request/1037d25b412c7bedda2e29f417d2a2bfce3fbe84db26b3600cc2ff53e60723f5/0 | jq
+curl -s -X DELETE $bob/request/$bobReq | jq
 ```
 
 ```json
@@ -376,21 +385,19 @@ $ curl -s -X DELETE $bob/request/1037d25b412c7bedda2e29f417d2a2bfce3fbe84db26b36
 The request is now retracted and we can see it with:
 
 ```bash
- curl -s -X GET $charlie/token/$tokenId | jq '.requests'
+curl -s -X GET $charlie/token/$tokenId | jq '.requests'
 ```
 
 ```json
 [
   {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "key": "abd",
-    "value": "value2",
-    "operation": "insert",
-    "owner": "fa9bf2e2edacf7038735d1ea4482e842d2c33e0e65b59273c228b10f",
-    "ref": {
-      "txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d",
-      "outputIndex": 0
-    }
+    "outputRef": "91c86a67b93007231b17789831d39ec0a2b0fd69c9e029fdf8246f1635a86bc4-0",
+    "change": {
+      "key": "abd",
+      "value": "value2",
+      "operation": "insert"
+    },
+    "owner": "97c5d79444e0dca4cfbb561c561630fd1f1cea75e4938e006177a1ed"
   }
 ]
 ```
@@ -399,43 +406,28 @@ Note that only `bob` (as request owner) was actually able to retract the request
 If `bob` tries to retract the request that was  not created by him, he will fail:
 
 ```bash
-curl -s -X DELETE $bob/request/2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d/0 | jq
-```
-
-```bash
- curl -s -X GET $charlie/token/$tokenId | jq '.requests'
+curl -s -X DELETE $bob/request/$aliceReq | jq
 ```
 
 ```json
-[
-  {
-    "tokenId": "07787355a72191e2ff52d2802b0e28855c24fab16499163c4b5fb3815e7297ab686898bbfb6b712bc78bfb2062d2e5f84bd587411624911210617824",
-    "key": "abd",
-    "value": "value2",
-    "operation": "insert",
-    "owner": "fa9bf2e2edacf7038735d1ea4482e842d2c33e0e65b59273c228b10f",
-    "ref": {
-      "txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d",
-      "outputIndex": 0
-    }
-  }
-]
+{
+  "error": "Error retracting",
+  "details": "Request owner does not match signer"
+}
 ```
-
 
 Now `charlie` who is the owner of the token can apply the request(s) to the token.
 
 > ATM batching is possible but very primitive, do not batch more than 4 requests.
 
 ```bash
-curl -s -X PUT $charlie/token/$tokenId \
-  -H "Content-Type: application/json" \
-  -d '{"requests": [{"txHash": "2f1571c88dd2b44eead4eb687771af7e0c859acfd7eb949d2f25a8ef9146f88d","outputIndex": 0}]}' | jq
+curl -s -X PUT $charlie/token/$tokenId  \
+    -H "Content-Type: application/json" \
+    -d "{\"requestIds\":[\"$reqAlice\"]}" | jq
 ```
 
 ```json
-{
-  "txHash": "b8fb8036ee94dd88fbdd90681852a6a6807406e602f6cd990d6ff76c4d84f2f7"
+{ "txHash": "b82b1109930a9ec710f07e2ac5eca779115d20ec113933a029a3d7ce9be0cc5e"
 }
 ```
 
@@ -447,19 +439,19 @@ curl -s -X GET $alice/token/$tokenId | jq
 
 ```json
 {
-  "owner": "be6322a13a2c06b96f62d6ceb506a14c09f95c5ac272ec2a81ece39d",
+  "owner": "42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403",
   "root": "62e32748610361630d6e3078f741ba931e13b1f2d53e5cde79e543e80a61ce6e",
   "requests": []
 }
+
 ```
 
 Note that the requests are now empty and the root is updated.
 
-But `charlie` can also retrieve the facts. Alice and Bob not yet.
+But anyone can also retrieve the facts.
 
 ```bash
-facts=$(curl -s -X GET $charlie/token/$tokenId/facts)
-echo $facts
+curl -s -X GET $bob/token/$tokenId/facts
 ```
 
 ```json
@@ -472,17 +464,13 @@ When a fact does not hold anymore, it can be deleted from the MPF token. Again i
 
 
 ```bash
-curl -s -X POST $alice/token/$tokenId/request \
+delReq=$(curl -s -X POST $bob/token/$tokenId/request \
   -H "Content-Type: application/json" \
-  -d '{"operation": "delete", "key": "abd", "value" : "value2"}' | jq
+  -d '{"operation": "delete", "key": "abd", "value" : "value2"}' | jq -r)
 ```
 
-```json
-{
-  "txHash": "4a0625ba16f1779cfa1490fe51c816e3a07cd6f5fa0befa073680e1f1e966bd2",
-  "outputIndex": 0
-}
-
+```
+b2cc05799bf26ae8770ef7ba767819f85c5f383eb66688d34657994438eb291c-0
 ```
 
 Then `charlie` can apply the request to the token. It's always the token  owner responsible for applying the requests.
@@ -490,7 +478,7 @@ Then `charlie` can apply the request to the token. It's always the token  owner 
 ```bash
 curl -s -X PUT $charlie/token/$tokenId \
   -H "Content-Type: application/json" \
-  -d '{"requests": [{"txHash": "4a0625ba16f1779cfa1490fe51c816e3a07cd6f5fa0befa073680e1f1e966bd2", "outputIndex": 0}]}' | jq
+  -d "{\"requestIds\":[\"$delReq\"]}" | jq
 ```
 
 ```json
@@ -549,17 +537,27 @@ docker build -f docker/Dockerfile -t mpf-service .
 There is a docker-compose file that will run the service with yaci
 
 ```bash
-docker compose -f docker/docker-compose.yaml up -d
+
 ```
 
-You will have port 3000 and 3001 as users
+You will have port 3000 and 3002 and 3004 as users. Be careful to stop yaci before running the docker compose.
+
+All of the above applies to the docker compose as well.
 
 ```bash
-curl -s -X GET http://localhost:3000/tokens | jq
+curl -s -X GET $charlie/tokens | jq
 ```
 
+
 ```json
-[]
+{
+  "tokens": [],
+  "indexerStatus": {
+    "ready": true,
+    "networkTip": 645,
+    "indexerTip": 645
+  }
+}
 ```
 
 Shut down the docker compose with:

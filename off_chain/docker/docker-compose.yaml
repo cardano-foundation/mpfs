@@ -49,7 +49,7 @@ services:
     <<: *mpfs-common
     container_name: mpfs-bob
     ports:
-      - "${BOB_PORT:-3001}:3000"
+      - "${BOB_PORT:-3002}:3000"
     volumes:
       - mpfs-bob-data:/data
 
@@ -58,7 +58,7 @@ services:
     container_name: mpfs-alice
 
     ports:
-      - "${ALICE_PORT:-3002}:3000"
+      - "${ALICE_PORT:-3004}:3000"
     volumes:
       - mpfs-alice-data:/data
 
