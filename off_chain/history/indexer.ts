@@ -182,19 +182,15 @@ class Process {
                 return; // skip outputs with no request datum
             }
 
-            const { policyId: parsedPolicyId, assetName: parsedTokenId } =
-                unitParts(request.tokenId);
-            if (parsedPolicyId === this.policyId) {
-                await this.processRequest(
-                    {
-                        tokenId: parsedTokenId,
-                        change: request.change,
-                        owner: request.owner
-                    },
-                    tx,
-                    index
-                );
-            }
+            await this.processRequest(
+                {
+                    tokenId: request.tokenId,
+                    change: request.change,
+                    owner: request.owner
+                },
+                tx,
+                index
+            );
         }
     }
     async processRetract(tx: any): Promise<void> {

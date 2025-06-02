@@ -21,7 +21,7 @@ export async function request(
         );
     }
     const { policyId } = context.cagingScript;
-    const tokenIdDatum = mConStr0([policyId, tokenId]);
+    const tokenIdDatum = mConStr0([tokenId]);
     context.log('token-id-datum', tokenIdDatum);
     let operation;
     switch (op) {

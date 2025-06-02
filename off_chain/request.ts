@@ -16,8 +16,7 @@ export function parseRequestCbor(cbor: string): RequestCore | undefined {
         const datum = deserializeDatum(cbor);
         const stateDatum = datum.fields[0];
         const tokenIdP = stateDatum.fields[0];
-        const policyId = tokenIdP.fields[0].bytes;
-        const assetName = tokenIdP.fields[1].bytes;
+        const tokenId = tokenIdP.fields[0].bytes;
         const op = stateDatum.fields[3].constructor as number;
         const opname = op == 0 ? 'insert' : 'delete';
         const value = fromHex(stateDatum.fields[3].fields[0].bytes);
@@ -28,7 +27,7 @@ export function parseRequestCbor(cbor: string): RequestCore | undefined {
             value,
             operation: opname
         };
-        return { tokenId: policyId + assetName, change, owner };
+        return { tokenId, change, owner };
     } catch (error) {
         return undefined;
     }
