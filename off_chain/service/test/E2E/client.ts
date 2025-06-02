@@ -116,7 +116,10 @@ async function createRequest(
         response.data.txHash.length === 64,
         'Transaction hash is not valid'
     );
-    return mkOutputRefId(response.data.txHash, response.data.outputIndex);
+    return mkOutputRefId({
+        txHash: response.data.txHash,
+        outputIndex: response.data.outputIndex
+    });
 }
 
 async function deleteRequest(log: Log, host: string, outputRefId: string) {

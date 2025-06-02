@@ -6,7 +6,7 @@ import { Level } from 'level';
 import { Change, SafeTrie, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 
-export function mkOutputRefId(txHash: string, outputIndex: number): string {
+export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
     return `${txHash}#${outputIndex}`;
 }
 export function unmkOutputRefId(refId: string): OutputRef {
@@ -194,11 +194,16 @@ class Process {
             );
         }
     }
+    private inputToOutputRef(input: any): string {
+        return mkOutputRefId({
+            txHash: input.transaction.id,
+            outputIndex: input.index
+        });
+    }
     async processRetract(tx: any): Promise<void> {
         const inputs = tx.inputs;
         for (const input of inputs) {
-            const ref = mkOutputRefId(input.transaction.id, input.index);
-
+            const ref = this.inputToOutputRef(input);
             if (await this.state.getRequest(ref)) {
                 this.state.delete(ref); // delete requests from inputs
             }
@@ -211,7 +216,7 @@ class Process {
         tx
     ) {
         for (const input of tx.inputs) {
-            const ref = mkOutputRefId(input.transaction.id, input.index);
+            const ref = this.inputToOutputRef(input);
             const request = await this.state.getRequest(ref);
             if (!request) {
                 continue; // skip inputs with no request
@@ -223,8 +228,11 @@ class Process {
             outputRef: { txHash: tx.id, outputIndex: 0 }
         });
     }
-    private async processRequest(request: DBRequest, tx, index) {
-        const ref = mkOutputRefId(tx.id, index);
+    private async processRequest(request: DBRequest, tx, outputIndex) {
+        const ref = mkOutputRefId({
+            txHash: tx.id,
+            outputIndex
+        });
         await this.state.put(ref, request);
     }
     get stateManager(): StateManager {

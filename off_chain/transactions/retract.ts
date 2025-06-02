@@ -16,10 +16,7 @@ export async function retract(
 
     const { cbor: cageCbor } = context.cagingScript;
     const requests = await context.fetchRequests(null);
-    const ouputRefId = mkOutputRefId(
-        requestOutputRef.txHash,
-        requestOutputRef.outputIndex
-    );
+    const ouputRefId = mkOutputRefId(requestOutputRef);
     const request = requests.find(request => request.outputRef === ouputRefId);
     if (!request) {
         throw new Error('Request not found');

@@ -10,7 +10,7 @@ const tokenId = await boot(context);
 
 await sync(context);
 const ref = await request(context, tokenId, 'key', 'value', 'insert');
-const refId = mkOutputRefId(ref.txHash, ref.outputIndex); // Momentarily hack, c39315f
+const refId = mkOutputRefId(ref); // Momentarily hack, c39315f
 
 await sync(context);
 const requests = await context.fetchRequests(tokenId);
