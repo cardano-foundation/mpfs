@@ -27,8 +27,7 @@ export async function boot(context: Context) {
         policyId: mintPolicyId
     } = context.cagingScript;
 
-    const tokenId = mintPolicyId + asset;
-    context.log('token-id', tokenId);
+    const unit = mintPolicyId + asset;
 
     const tx = context.newTxBuilder();
     await tx
@@ -37,7 +36,7 @@ export async function boot(context: Context) {
         .mint('1', mintPolicyId, asset)
         .mintingScript(cageCbor)
         .mintRedeemerValue(mConStr0([mConStr0([uniquenessP, signerHash])]))
-        .txOut(cageAddress, [{ unit: tokenId, quantity: '1' }])
+        .txOut(cageAddress, [{ unit, quantity: '1' }])
         .txOutInlineDatumValue(mConStr1([mConStr0([signerHash, nullHash])]))
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
@@ -48,5 +47,5 @@ export async function boot(context: Context) {
     context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     context.log('block', block);
-    return tokenId;
+    return asset;
 }

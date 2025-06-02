@@ -1,26 +1,19 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from '../context';
-import { tokenIdParts } from '../lib';
 
 export async function end(context: Context, tokenId: string) {
     context.log('token-id', tokenId);
 
-    const { policyId, assetName } = tokenIdParts(tokenId);
-    context.log('asset-name', assetName);
-
-    context.log('policy-id', policyId);
-
     const { utxos, walletAddress, collateral, signerHash } =
         await context.wallet();
 
-    const { cbor: cageCbor } = context.cagingScript;
+    const { cbor: cageCbor, policyId } = context.cagingScript;
 
     const dbState = await context.fetchToken(tokenId);
     if (!dbState) {
         throw new Error(`Token with ID ${tokenId} not found`);
     }
     const { outputRef } = dbState;
-
     const tx = context.newTxBuilder();
     await tx
         .spendingPlutusScriptV3()
@@ -29,7 +22,7 @@ export async function end(context: Context, tokenId: string) {
         .spendingReferenceTxInRedeemerValue(mConStr0([]))
         .txInScript(cageCbor)
         .mintPlutusScriptV3()
-        .mint('-1', policyId, assetName)
+        .mint('-1', policyId, tokenId)
         .mintRedeemerValue(mConStr1([]))
         .mintingScript(cageCbor)
         .changeAddress(walletAddress) // send change back to the wallet address
@@ -43,7 +36,7 @@ export async function end(context: Context, tokenId: string) {
     context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     context.log('block', block);
-    const trie = await context.trie(assetName);
+    const trie = await context.trie(tokenId);
     await trie.close();
     return txHash;
 }

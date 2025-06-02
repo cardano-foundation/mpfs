@@ -95,8 +95,7 @@ export class Context {
         }));
     }
     async fetchToken(tokenId: string): Promise<DBTokenState | null> {
-        const { assetName } = tokenIdParts(tokenId);
-        return await this.indexer.fetchToken(assetName);
+        return await this.indexer.fetchToken(tokenId);
     }
 
     async fetchRequests(
