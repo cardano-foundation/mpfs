@@ -30,7 +30,7 @@ export class Process {
             for (const asset of Object.keys(minted)) {
                 if (minted[asset] == -1) {
                     // This is a token end request, delete the token state
-                    await this.state.delete(asset);
+                    await this.state.deleteToken(asset);
                 }
             }
         }
@@ -101,7 +101,7 @@ export class Process {
         for (const input of inputs) {
             const ref = this.inputToOutputRef(input);
             if (await this.state.getRequest(ref)) {
-                this.state.delete(ref); // delete requests from inputs
+                this.state.deleteRequest(ref); // delete requests from inputs
             }
         }
     }
@@ -119,7 +119,7 @@ export class Process {
             }
             await trie.update(request.change);
         }
-        await this.state.put(tokenId, {
+        await this.state.putToken(tokenId, {
             state,
             outputRef: { txHash: tx.id, outputIndex: 0 }
         });
@@ -129,7 +129,7 @@ export class Process {
             txHash: tx.id,
             outputIndex
         });
-        await this.state.put(ref, request);
+        await this.state.putRequest(ref, request);
     }
     get stateManager(): StateManager {
         return this.state;

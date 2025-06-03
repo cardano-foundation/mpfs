@@ -1,10 +1,7 @@
 import WebSocket from 'ws';
-import { parseStateDatumCbor, TokenState } from '../token';
-import { OutputRef, rootHex, unitParts } from '../lib';
-import { Level } from 'level';
-import { Change, SafeTrie, TrieManager } from '../trie';
+import { Change, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { DBRequest, DBTokenState, mkOutputRefId, StateManager } from './store';
+import { DBTokenState, StateManager } from './store';
 import { Process } from './process';
 
 class Indexer {
@@ -34,7 +31,10 @@ class Indexer {
         wsAddress: string,
         name: string = 'Indexer'
     ): Indexer {
-        const requests = new StateManager(`${dbPath}/state`);
+        const requests = new StateManager(
+            `${dbPath}/tokens`,
+            `${dbPath}/requests`
+        );
         const process = new Process(requests, tries, address, policyId);
 
         return new Indexer(process, wsAddress, name);

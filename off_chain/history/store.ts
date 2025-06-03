@@ -26,79 +26,75 @@ export type DBTokenState = {
     state: TokenState;
 };
 
-type DBElement = DBRequest | DBTokenState;
-
-// Pattern matching can be done using a type guard:
-function isDBRequest(element: DBElement): element is DBRequest {
-    return 'change' in element && 'tokenId' in element;
-}
-
-function isDBTokenState(element: DBElement): element is DBTokenState {
-    return 'state' in element && 'outputRef' in element;
-}
-
 export class StateManager {
-    private db: Level<string, DBElement>;
+    private tokenStore: Level<string, DBTokenState>;
+    private requestStore: Level<string, DBRequest>;
 
-    constructor(dbPath: string) {
-        this.db = new Level<string, DBElement>(dbPath, {
+    constructor(tokenDbPath: string, requestDbPath: string) {
+        this.tokenStore = new Level<string, DBTokenState>(tokenDbPath, {
+            valueEncoding: 'json'
+        });
+        this.requestStore = new Level<string, DBRequest>(requestDbPath, {
             valueEncoding: 'json'
         });
     }
 
     async getRequest(outputRef: string): Promise<DBRequest | null> {
-        const result = await this.db.get(outputRef);
-
-        if (result && 'change' in result) {
-            return result as DBRequest;
+        try {
+            const result = await this.requestStore.get(outputRef);
+            return result || null;
+        } catch (error) {
+            if (error.notFound) return null;
+            throw error;
         }
-        return null; // Return null if the element is not a request
     }
 
     async getToken(tokenId: string): Promise<DBTokenState | null> {
-        const result = await this.db.get(tokenId);
-        if (!result) {
-            return null; // Return null if the token does not exist
+        try {
+            const result = await this.tokenStore.get(tokenId);
+            return result || null;
+        } catch (error) {
+            if (error.notFound) return null;
+            throw error;
         }
-        if (isDBTokenState(result)) {
-            return result as DBTokenState;
-        }
-        return null; // Return null if the element is not a token
     }
 
-    async put(key: string, value: DBElement): Promise<void> {
-        await this.db.put(key, value);
+    async putToken(tokenId: string, value: DBTokenState): Promise<void> {
+        await this.tokenStore.put(tokenId, value);
     }
 
-    async delete(key: string): Promise<void> {
-        await this.db.del(key);
+    async putRequest(outputRef: string, value: DBRequest): Promise<void> {
+        await this.requestStore.put(outputRef, value);
     }
-    async getTokens() {
+
+    async deleteToken(tokenId: string): Promise<void> {
+        await this.tokenStore.del(tokenId);
+    }
+
+    async deleteRequest(outputRef: string): Promise<void> {
+        await this.requestStore.del(outputRef);
+    }
+
+    async getTokens(): Promise<{ tokenId: string; state: DBTokenState }[]> {
         const tokens: { tokenId: string; state: DBTokenState }[] = [];
-        for await (const [key, value] of this.db.iterator()) {
-            if (isDBTokenState(value)) {
-                tokens.push({ tokenId: key, state: value as DBTokenState });
-            }
+        for await (const [key, value] of this.tokenStore.iterator()) {
+            tokens.push({ tokenId: key, state: value });
         }
         return tokens;
     }
-    // Returns all requests, optionally filtered by tokenId. The order of the
-    // requests is guaranteed to respect their outputRef order. So no need to
-    // sort them.
+
     async getRequests(
         tokenId: string | null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
         const requests: { outputRef: string; change: Change; owner: string }[] =
             [];
-        for await (const [key, value] of this.db.iterator()) {
-            if (isDBRequest(value)) {
-                if (!tokenId || value.tokenId === tokenId) {
-                    requests.push({
-                        outputRef: key,
-                        change: value.change,
-                        owner: value.owner
-                    });
-                }
+        for await (const [key, value] of this.requestStore.iterator()) {
+            if (!tokenId || value.tokenId === tokenId) {
+                requests.push({
+                    outputRef: key,
+                    change: value.change,
+                    owner: value.owner
+                });
             }
         }
         return requests;
