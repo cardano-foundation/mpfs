@@ -10,7 +10,7 @@ import { Context } from '../context';
 import { Proof } from '@aiken-lang/merkle-patricia-forestry';
 import { serializeProof } from '../trie';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
-import { unmkOutputRefId } from '../history/indexer';
+import { unmkOutputRefId } from '../history/store';
 
 const guessingLowCost = {
     mem: 1_000_000,

@@ -1,7 +1,7 @@
 import { mConStr3 } from '@meshsdk/core';
 import { Context } from '../context';
 import { OutputRef } from '../lib';
-import { mkOutputRefId } from '../history/indexer';
+import { mkOutputRefId } from '../history/store';
 
 const guessingLowCost = {
     mem: 1_000_000,

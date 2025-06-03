@@ -14,7 +14,8 @@ import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { TrieManager } from '../trie';
-import { Indexer, mkOutputRefId, unmkOutputRefId } from '../history/indexer';
+import { Indexer } from '../history/indexer';
+import { unmkOutputRefId, mkOutputRefId } from '../history/store';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context): Function {

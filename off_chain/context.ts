@@ -14,7 +14,8 @@ import { OutputLogger } from './logging';
 import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { TokenState } from './token';
-import { DBTokenState, Indexer } from './history/indexer';
+import { Indexer } from './history/indexer';
+import { DBTokenState } from './history/store';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;

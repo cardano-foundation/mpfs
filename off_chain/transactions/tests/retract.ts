@@ -1,4 +1,4 @@
-import { mkOutputRefId } from '../../history/indexer';
+import { mkOutputRefId } from '../../history/store';
 import { boot } from '../boot';
 import { end } from '../end';
 import { request } from '../request';
