@@ -18,10 +18,10 @@ import { Indexer } from '../history/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../history/store';
 
 // API Endpoints
-function mkAPI(topup: TopUp | undefined, context): Function {
+function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
     async function withTokens(f: (tokens: any[]) => any): Promise<any> {
         const tokens = await withContext(
-            'tmp/tokens',
+            `${tmp}/logs/tokens`,
             'log',
             context,
             async context => {
@@ -37,7 +37,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
 
     app.get('/wallet', async (req, res) => {
         const wallet = await withContext(
-            'tmp/wallet',
+            `${tmp}/logs/wallet`,
             'log',
             context,
             async context => {
@@ -70,7 +70,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
     app.post('/token', async (req, res) => {
         try {
             const tokenId = await withContext(
-                'tmp/boot',
+                `${tmp}/logs/boot`,
                 'log',
                 context,
                 async context => await boot(context)
@@ -133,7 +133,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
         const refs = requestIds.map(unmkOutputRefId);
         try {
             const tx = await withContext(
-                'tmp/update',
+                `${tmp}/logs/update`,
                 'log',
                 context,
                 async context => await update(context, tokenId, refs)
@@ -151,7 +151,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
         const { tokenId } = req.params;
         try {
             const tx = await withContext(
-                'tmp/end',
+                `${tmp}/logs/end`,
                 'log',
                 context,
                 async context => await end(context, tokenId)
@@ -172,7 +172,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
 
         try {
             const ref = await withContext(
-                'tmp/request',
+                `${tmp}/logs/request`,
                 'log',
                 context,
                 async context => {
@@ -200,7 +200,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
         const { txHash, outputIndex } = unmkOutputRefId(refId);
         try {
             const tx = await withContext(
-                'tmp/retract',
+                `${tmp}/logs/retract`,
                 'log',
                 context,
                 async context => await retract(context, { txHash, outputIndex })
@@ -218,7 +218,7 @@ function mkAPI(topup: TopUp | undefined, context): Function {
         const { tokenId } = req.params;
         try {
             const facts = await withContext(
-                'tmp/facts',
+                `${tmp}/logs/facts`,
                 'log',
                 context,
                 async context => await context.facts(tokenId)
@@ -246,6 +246,7 @@ export type Name = {
 };
 
 export async function runServices(
+    logsPath: string,
     dbPath: string,
     names: Name[],
     ctxProvider: ContextProvider,
@@ -274,7 +275,7 @@ export async function runServices(
             });
 
             const context = await newContext(indexer, ctxProvider, wallet);
-            const app = mkAPI(ctxProvider.topup, context);
+            const app = mkAPI(logsPath, ctxProvider.topup, context);
 
             const server = await new Promise<Server>((resolve, reject) => {
                 const srv = app.listen(port, () => {

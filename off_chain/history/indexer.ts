@@ -31,9 +31,7 @@ class Indexer {
         wsAddress: string,
         name: string = 'Indexer'
     ): Indexer {
-        const requests = new StateManager(
-            `${dbPath}/state`,
-        );
+        const requests = new StateManager(`${dbPath}/state`);
         const process = new Process(requests, tries, address, policyId);
 
         return new Indexer(process, wsAddress, name);

@@ -60,6 +60,11 @@ async function setup() {
                 describe: 'Path to the database directory',
                 default: 'tmp'
             })
+            .option('logs-path', {
+                type: 'string',
+                describe: 'Path to the logs directory',
+                default: 'tmp'
+            })
             .check(argv => {
                 if (
                     argv.provider === 'blockfrost' &&
@@ -130,7 +135,8 @@ async function setup() {
             ctxProvider,
             mkWallet,
             ogmios: argv['ogmios-host'],
-            database: argv['database-path']
+            database: argv['database-path'],
+            logs: argv['logs-path']
         };
     } catch (error) {
         console.error('Error in setup:', error.message);
@@ -139,9 +145,10 @@ async function setup() {
 }
 
 async function main() {
-    const { portNumber, ctxProvider, mkWallet, ogmios, database } =
+    const { portNumber, ctxProvider, mkWallet, ogmios, database, logs } =
         await setup();
     servers = await runServices(
+        logs,
         database,
         [{ name: 'main', port: portNumber }],
         ctxProvider,

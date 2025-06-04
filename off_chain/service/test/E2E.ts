@@ -1,7 +1,7 @@
 import { validatePort } from '../../lib';
 import { Name, runServices, stopServices } from '../http';
 import getPort from 'get-port';
-import { ContextProvider, Provider, yaciProvider } from '../../context';
+import { Provider, yaciProvider } from '../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from './E2E/client';
 import {
@@ -87,6 +87,7 @@ async function main() {
     const alice = await selectWallet(namesToServe, alicePort, 'ALICE_PORT');
 
     const servers = await runServices(
+        'tmp',
         'tmp',
         namesToServe,
         provider,
