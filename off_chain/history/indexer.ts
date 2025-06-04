@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { Change, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { DBTokenState, StateManager } from './store';
+import { DBTokenState, RollbackKey, StateChange, StateManager } from './store';
 import { Process } from './process';
 
 class Indexer {
@@ -33,7 +33,8 @@ class Indexer {
     ): Indexer {
         const requests = new StateManager(
             `${dbPath}/tokens`,
-            `${dbPath}/requests`
+            `${dbPath}/requests`,
+            `${dbPath}/rollback`
         );
         const process = new Process(requests, tries, address, policyId);
 
@@ -49,6 +50,14 @@ class Indexer {
                 id
             })
         );
+    }
+
+    async splitRollbacks(slot: number): Promise<StateChange[]> {
+        return await this.process.stateManager.splitRollbacks(slot);
+    }
+
+    async removeRollbacksBefore(rollbackKey: RollbackKey): Promise<void> {
+        await this.process.stateManager.removeRollbacksBefore(rollbackKey);
     }
 
     async fetchTokens(): Promise<{ tokenId: string; state: DBTokenState }[]> {
@@ -188,8 +197,10 @@ class Indexer {
                             for (const tx of response.result.block
                                 .transactions) {
                                 //console.log(JSON.stringify(tx, null, 2));
-                                await this.process.process(tx);
-                                await this.process.processRetract(tx);
+                                const changes = await this.process.process(
+                                    response.result.block.slot,
+                                    tx
+                                );
                             }
                             this.queryNextBlock();
                             break;

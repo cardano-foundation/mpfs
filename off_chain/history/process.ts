@@ -1,8 +1,8 @@
-import { parseStateDatumCbor, TokenState } from '../token';
+import { parseStateDatumCbor } from '../token';
 import { parseRequestCbor } from '../request';
 import { rootHex } from '../lib';
-import { SafeTrie, TrieManager } from '../trie';
-import { DBRequest, mkOutputRefId, StateManager } from './store';
+import { TrieManager } from '../trie';
+import { mkOutputRefId, StateManager } from './store';
 
 export class Process {
     private state: StateManager;
@@ -24,13 +24,13 @@ export class Process {
     get trieManager(): TrieManager {
         return this.tries;
     }
-    async process(tx: any): Promise<void> {
+    async process(slotNumber: number, tx: any): Promise<void> {
         const minted = tx.mint?.[this.policyId];
         if (minted) {
             for (const asset of Object.keys(minted)) {
                 if (minted[asset] == -1) {
                     // This is a token end request, delete the token state
-                    await this.state.deleteToken(asset);
+                    await this.state.deleteToken(slotNumber, asset);
                 }
             }
         }
@@ -45,7 +45,7 @@ export class Process {
                 datum: any;
             } = tx.outputs[outputIndex];
             if (output.address !== this.address) {
-                return; // skip outputs not to the caging script address
+                break; // skip outputs not to the caging script address
             }
             const asset = output.value[this.policyId];
             if (asset) {
@@ -55,12 +55,22 @@ export class Process {
 
                 if (tokenState) {
                     const trie = await this.tries.trie(tokenId);
-                    await this.processTokenUpdate(
-                        tokenId,
-                        tokenState,
-                        trie,
-                        tx
-                    );
+                    for (const input of tx.inputs) {
+                        const ref = this.inputToOutputRef(input);
+                        const request = await this.state.getRequest(ref);
+                        if (!request) {
+                            continue; // skip inputs with no request
+                        }
+                        await trie.update(request.change);
+                        await this.state.storeRollbackChange(
+                            slotNumber,
+                            request.change
+                        );
+                    }
+                    await this.state.putToken(slotNumber, tokenId, {
+                        state: tokenState,
+                        outputRef: { txHash: tx.id, outputIndex: 0 }
+                    });
 
                     const localRoot = rootHex(trie.root());
                     // Assert that roots are the same
@@ -70,24 +80,31 @@ export class Process {
                             expected ${tokenState.root}, got ${localRoot}`
                         );
                     }
-                    return;
+                    break;
                 }
-                return; // skip outputs with no state datum and our policyId
+                break; // skip outputs with no state datum and our policyId
             }
             const request = parseRequestCbor(output.datum);
             if (!request) {
-                return; // skip outputs with no request datum
+                break; // skip outputs with no request datum
             }
-
-            await this.processRequest(
-                {
-                    tokenId: request.tokenId,
-                    change: request.change,
-                    owner: request.owner
-                },
-                tx,
+            const dbRequest = {
+                tokenId: request.tokenId,
+                change: request.change,
+                owner: request.owner
+            };
+            const ref = mkOutputRefId({
+                txHash: tx.id,
                 outputIndex
-            );
+            });
+            await this.state.putRequest(slotNumber, ref, dbRequest);
+        }
+        const inputs = tx.inputs;
+        for (const input of inputs) {
+            const ref = this.inputToOutputRef(input);
+            if (await this.state.getRequest(ref)) {
+                this.state.deleteRequest(slotNumber, ref); // delete requests from inputs
+            }
         }
     }
     private inputToOutputRef(input: any): string {
@@ -95,41 +112,6 @@ export class Process {
             txHash: input.transaction.id,
             outputIndex: input.index
         });
-    }
-    async processRetract(tx: any): Promise<void> {
-        const inputs = tx.inputs;
-        for (const input of inputs) {
-            const ref = this.inputToOutputRef(input);
-            if (await this.state.getRequest(ref)) {
-                this.state.deleteRequest(ref); // delete requests from inputs
-            }
-        }
-    }
-    private async processTokenUpdate(
-        tokenId: string,
-        state: TokenState,
-        trie: SafeTrie,
-        tx
-    ) {
-        for (const input of tx.inputs) {
-            const ref = this.inputToOutputRef(input);
-            const request = await this.state.getRequest(ref);
-            if (!request) {
-                continue; // skip inputs with no request
-            }
-            await trie.update(request.change);
-        }
-        await this.state.putToken(tokenId, {
-            state,
-            outputRef: { txHash: tx.id, outputIndex: 0 }
-        });
-    }
-    private async processRequest(request: DBRequest, tx, outputIndex) {
-        const ref = mkOutputRefId({
-            txHash: tx.id,
-            outputIndex
-        });
-        await this.state.putRequest(ref, request);
     }
     get stateManager(): StateManager {
         return this.state;
