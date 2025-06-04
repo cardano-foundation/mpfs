@@ -47,8 +47,18 @@ export class StateManager {
     private stateStore: Level<string, any>;
     private tokenStore: AbstractSublevel<any, any, string, DBTokenState>;
     private requestStore: AbstractSublevel<any, any, string, DBRequest>;
-    private rollbackStore: AbstractSublevel<any, any, Buffer, RollbackValue>;
-    private checkpointStore: AbstractSublevel<any, any, Buffer, BlockHash>;
+    private rollbackStore: AbstractSublevel<
+        any,
+        any,
+        Buffer<ArrayBufferLike>,
+        RollbackValue
+    >;
+    private checkpointStore: AbstractSublevel<
+        any,
+        any,
+        Buffer<ArrayBufferLike>,
+        BlockHash
+    >;
     private checkpointsCount: number = 0;
     private readonly checkpointsSize: number;
 
@@ -63,10 +73,12 @@ export class StateManager {
             valueEncoding: 'json'
         });
         this.rollbackStore = this.stateStore.sublevel('rollback', {
-            valueEncoding: 'json'
+            valueEncoding: 'json',
+            keyEncoding: 'binary'
         });
         this.checkpointStore = this.stateStore.sublevel('checkpoints', {
-            valueEncoding: 'json'
+            valueEncoding: 'json',
+            keyEncoding: 'binary'
         });
         this.checkpointsSize = checkpointsSize;
     }
