@@ -87,7 +87,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
 
     app.get('/tokens', async (req, res) => {
         try {
-            const indexerStatus = await context.indexerStatus();
+            const indexerStatus = await context.indexer.getSync();
             const tokens = await withTokens(tokens => tokens);
             res.json({
                 tokens,

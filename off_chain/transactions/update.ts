@@ -57,7 +57,7 @@ export async function update(
     let proofs: Proof[] = [];
     let txHash: string;
     const tx = context.newTxBuilder();
-    const releaseIndexer = await context.stopIndexer();
+    const releaseIndexer = await context.indexer.pause();
     const trie = await context.trie(tokenId);
     const { policyId } = context.cagingScript;
     const unit = policyId + tokenId;

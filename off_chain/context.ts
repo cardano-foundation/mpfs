@@ -34,7 +34,7 @@ export class Context {
     private logger: OutputLogger;
     private provider: Provider;
     private walletInstance: MeshWallet;
-    private indexer: Indexer;
+    indexer: Indexer;
     private progress?: Progress;
 
     constructor(
@@ -49,12 +49,7 @@ export class Context {
         this.indexer = indexer;
         this.progress = progress;
     }
-    async stopIndexer(): Promise<any> {
-        return await this.indexer.pause();
-    }
-    async indexerStatus() {
-        return await this.indexer.getSync();
-    }
+
     log(key: string, value: any): void {
         this.logger.log(key, value);
     }

@@ -62,7 +62,7 @@ export async function setup(port: number) {
     return { context, close: async () => indexer.closeConnection() };
 }
 export async function sync(context) {
-    while (!(await context.indexerStatus())) {
+    while (!(await context.indexer.getSync())) {
         console.log('Waiting for indexer to be ready...');
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
