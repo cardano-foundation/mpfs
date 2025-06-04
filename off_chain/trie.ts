@@ -1,6 +1,5 @@
 import { Proof, Store, Trie } from '@aiken-lang/merkle-patricia-forestry';
 import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
-import * as crypto from 'crypto';
 import fs from 'fs';
 import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
@@ -165,7 +164,7 @@ export class TrieManager {
     private lock: Mutex = new Mutex();
 
     constructor(dbPath: string) {
-        this.dbPath = dbPath;
+        this.dbPath = `${dbPath}/tries`;
     }
     public static async create(dbPath: string): Promise<TrieManager> {
         if (!fs.existsSync(dbPath)) {
