@@ -32,9 +32,7 @@ class Indexer {
         name: string = 'Indexer'
     ): Indexer {
         const requests = new StateManager(
-            `${dbPath}/tokens`,
-            `${dbPath}/requests`,
-            `${dbPath}/rollback`
+            `${dbPath}/state`,
         );
         const process = new Process(requests, tries, address, policyId);
 

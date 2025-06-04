@@ -2,6 +2,7 @@ import { TokenState } from '../token';
 import { OutputRef } from '../lib';
 import { Level } from 'level';
 import { Change, invertChange } from '../trie';
+import { AbstractSublevel } from 'abstract-level';
 
 export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
     return `${txHash}-${outputIndex}`;
@@ -43,27 +44,29 @@ export type Rollback = {
 };
 
 export class StateManager {
-    private tokenStore: Level<string, DBTokenState>;
-    private requestStore: Level<string, DBRequest>;
-    private rollbackStore: Level<RollbackKey, RollbackValue>;
+    private stateStore: Level<string, any>;
+    private tokenStore: AbstractSublevel<any, any, string, DBTokenState>;
+    private requestStore: AbstractSublevel<any, any, string, DBRequest>;
+    private rollbackStore: AbstractSublevel<
+        any,
+        any,
+        RollbackKey,
+        RollbackValue
+    >;
 
-    constructor(
-        tokenDbPath: string,
-        requestDbPath: string,
-        rollbackDbPath: string
-    ) {
-        this.tokenStore = new Level<string, DBTokenState>(tokenDbPath, {
+    constructor(dbPath: string) {
+        this.stateStore = new Level(dbPath, {
             valueEncoding: 'json'
         });
-        this.requestStore = new Level<string, DBRequest>(requestDbPath, {
+        this.tokenStore = this.stateStore.sublevel('tokens', {
             valueEncoding: 'json'
         });
-        this.rollbackStore = new Level<RollbackKey, RollbackValue>(
-            rollbackDbPath,
-            {
-                valueEncoding: 'json'
-            }
-        );
+        this.requestStore = this.stateStore.sublevel('requests', {
+            valueEncoding: 'json'
+        });
+        this.rollbackStore = this.stateStore.sublevel('rollback', {
+            valueEncoding: 'json'
+        });
     }
 
     async getRequest(outputRef: string): Promise<DBRequest | null> {
