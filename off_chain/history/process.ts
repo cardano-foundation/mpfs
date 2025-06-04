@@ -2,7 +2,8 @@ import { parseStateDatumCbor } from '../token';
 import { parseRequestCbor } from '../request';
 import { rootHex } from '../lib';
 import { TrieManager } from '../trie';
-import { mkOutputRefId, RollbackKey, StateManager } from './store';
+import { mkOutputRefId, StateManager } from './store';
+import { RollbackKey } from './store/rollbackkey';
 
 export class Process {
     private state: StateManager;

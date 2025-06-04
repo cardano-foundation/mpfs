@@ -3,6 +3,7 @@ import { OutputRef } from '../lib';
 import { Level } from 'level';
 import { Change, invertChange } from '../trie';
 import { AbstractSublevel } from 'abstract-level';
+import { RollbackKey } from './store/rollbackkey';
 
 export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
     return `${txHash}-${outputIndex}`;
@@ -26,31 +27,6 @@ export type DBTokenState = {
     outputRef: OutputRef;
     state: TokenState;
 };
-
-export class RollbackKey extends Number {
-    constructor(value: number) {
-        super(value);
-        this.valueOf = () => value;
-    }
-    get value(): number {
-        return this.valueOf();
-    }
-    get key(): Buffer {
-        const buffer = Buffer.alloc(8);
-        buffer.writeBigUInt64LE(BigInt(this.valueOf()));
-        return buffer;
-    }
-    static fromKey(buffer: Buffer): RollbackKey {
-        if (buffer.length !== 8) {
-            throw new Error('Buffer must be 8 bytes long');
-        }
-        const value = buffer.readBigUInt64LE();
-        return new RollbackKey(Number(value));
-    }
-    static get zero(): RollbackKey {
-        return new RollbackKey(0);
-    }
-}
 
 export type StateChange =
     | { type: 'AddRequest'; outputRef: string; request: DBRequest }
