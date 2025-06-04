@@ -50,7 +50,8 @@ async function getTokens(log: Log, host: string) {
     return response.data;
 }
 
-async function createToken(host: string) {
+async function createToken(log, host: string) {
+    await waitForSync(log, host);
     const response = await axios.post(`${host}/token`);
     assertThrows(response.status === 200, 'Failed to create token');
     return response.data.tokenId;

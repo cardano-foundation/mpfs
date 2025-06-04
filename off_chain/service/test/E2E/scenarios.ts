@@ -74,10 +74,11 @@ const tokensAreEmpty = async ({
 
 const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         log('charlie waited for the token to sync');
         const tks1 = await getTokens(log, charlie);
+        console.log('checkpoints', tks1.checkpoints);
         assertThrows(
             tks1.tokens.map(t => t.tokenId).includes(tk),
             'Token not found'
@@ -99,7 +100,7 @@ const cannotDeleteAnotherUsersToken = async ({
     wallets: { charlie, bob }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         await shouldFail(deleteToken(log, bob, tk));
         log('bob failed to delete charlie token as expected');
@@ -111,7 +112,7 @@ const cannotDeleteAnotherUsersToken = async ({
 
 const canRetractRequest = async ({ run, log, wallets: { charlie, bob } }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const request = await createRequest(
             log,
@@ -136,7 +137,7 @@ const cannotRetractAnotherUsersRequest = async ({
     wallets: { charlie, bob }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const request = await createRequest(
             log,
@@ -161,7 +162,7 @@ const cannotUpdateATokenWithNoRequests = async ({
     wallets: { charlie }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         await shouldFail(updateToken(log, charlie, tk, []));
         log('charlie failed to update the mpf token as expected');
@@ -177,7 +178,7 @@ const canInspectRequestsForAToken = async ({
     wallets: { charlie, bob, alice }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         await createRequest(log, bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
@@ -209,7 +210,7 @@ const canInspectRequestsForAToken = async ({
 
 const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const request = await createRequest(
             log,
@@ -239,7 +240,7 @@ export const canUpdateATokenTwice = async ({
     wallets: { charlie, bob }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const ref1 = await createRequest(log, bob, tk, 'a', 'a', 'insert');
         log('bob created a request to insert a fact');
@@ -268,7 +269,7 @@ const cannotUpdateAnotherUsersToken = async ({
     wallets: { charlie, bob }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const request = await createRequest(
             log,
@@ -295,7 +296,7 @@ const canDeleteFacts = async ({
     wallets: { charlie, bob, alice }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const bobRequest = await createRequest(
             log,
@@ -335,7 +336,7 @@ const canBatchUpdate = async ({
     wallets: { charlie, bob, alice }
 }) => {
     const test = async () => {
-        const tk = await createToken(charlie);
+        const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
         const bobRequest = await createRequest(
             log,
@@ -390,7 +391,7 @@ const insertCommutes = async ({
     wallets: { charlie, bob, alice }
 }) => {
     const test = async () => {
-        const tk = await createToken(bob);
+        const tk = await createToken(log, bob);
         log('bob created an mpf token');
         await requestAndUpdate(log, bob, tk, [
             { author: charlie, key: 'a', value: 'value1', op: 'insert' }
@@ -426,7 +427,7 @@ const deleteCommutes = async ({
     wallets: { charlie, bob, alice }
 }) => {
     const test = async () => {
-        const tk = await createToken(bob);
+        const tk = await createToken(log, bob);
         log('bob created an mpf token');
         await requestAndUpdate(log, bob, tk, [
             { author: charlie, key: 'a', value: 'value1', op: 'insert' },
