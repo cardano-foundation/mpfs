@@ -64,6 +64,10 @@ run-bare-E2E-tests:
     export OGMIOS_PORT=1337
     npx tsx service/test/E2E.ts
 
+run-unit-tests:
+    #!/usr/bin/env bash
+    cd off_chain
+    npx vitest run --reporter verbose
 run-integration-tests:
     #!/usr/bin/env bash
 
