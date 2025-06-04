@@ -15,12 +15,19 @@ class Indexer {
     private checkingReadiness: boolean = false;
     private stop: Mutex;
     private webSocketAddress: string;
+    private state: StateManager;
 
-    constructor(process: Process, address: string, name: string = 'Indexer') {
+    constructor(
+        process: Process,
+        address: string,
+        name: string = 'Indexer',
+        state
+    ) {
         this.process = process;
         this.name = name;
         this.stop = new Mutex();
         this.webSocketAddress = address;
+        this.state = state;
     }
 
     public static create(
@@ -32,10 +39,9 @@ class Indexer {
         name: string = 'Indexer',
         checkpointsSize: number = 10
     ): Indexer {
-        const requests = new StateManager(`${dbPath}/state`, checkpointsSize);
-        const process = new Process(requests, tries, address, policyId);
-
-        return new Indexer(process, wsAddress, name);
+        const state = new StateManager(`${dbPath}/state`, checkpointsSize);
+        const process = new Process(state, tries, address, policyId);
+        return new Indexer(process, wsAddress, name, state);
     }
 
     private rpc(method: string, params: any, id: any): void {
