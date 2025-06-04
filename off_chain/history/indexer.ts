@@ -29,9 +29,10 @@ class Indexer {
         address: string,
         policyId: string,
         wsAddress: string,
-        name: string = 'Indexer'
+        name: string = 'Indexer',
+        checkpointsSize: number = 10
     ): Indexer {
-        const requests = new StateManager(`${dbPath}/state`);
+        const requests = new StateManager(`${dbPath}/state`, checkpointsSize);
         const process = new Process(requests, tries, address, policyId);
 
         return new Indexer(process, wsAddress, name);
@@ -48,7 +49,7 @@ class Indexer {
         );
     }
 
-    async splitRollbacks(slot: number): Promise<StateChange[]> {
+    async splitRollbacks(slot: RollbackKey): Promise<StateChange[]> {
         return await this.process.stateManager.splitRollbacks(slot);
     }
 
@@ -194,7 +195,7 @@ class Indexer {
                                 .transactions) {
                                 //console.log(JSON.stringify(tx, null, 2));
                                 const changes = await this.process.process(
-                                    response.result.block.slot,
+                                    new RollbackKey(response.result.block.slot),
                                     tx
                                 );
                             }

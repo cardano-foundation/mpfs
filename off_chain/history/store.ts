@@ -27,7 +27,30 @@ export type DBTokenState = {
     state: TokenState;
 };
 
-export type RollbackKey = number;
+export class RollbackKey extends Number {
+    constructor(value: number) {
+        super(value);
+        this.valueOf = () => value;
+    }
+    get value(): number {
+        return this.valueOf();
+    }
+    get key(): Buffer {
+        const buffer = Buffer.alloc(8);
+        buffer.writeBigUInt64LE(BigInt(this.valueOf()));
+        return buffer;
+    }
+    static fromKey(buffer: Buffer): RollbackKey {
+        if (buffer.length !== 8) {
+            throw new Error('Buffer must be 8 bytes long');
+        }
+        const value = buffer.readBigUInt64LE();
+        return new RollbackKey(Number(value));
+    }
+    static get zero(): RollbackKey {
+        return new RollbackKey(0);
+    }
+}
 
 export type StateChange =
     | { type: 'AddRequest'; outputRef: string; request: DBRequest }
@@ -43,18 +66,17 @@ export type Rollback = {
     changes: RollbackValue;
 };
 
+export type BlockHash = string;
 export class StateManager {
     private stateStore: Level<string, any>;
     private tokenStore: AbstractSublevel<any, any, string, DBTokenState>;
     private requestStore: AbstractSublevel<any, any, string, DBRequest>;
-    private rollbackStore: AbstractSublevel<
-        any,
-        any,
-        RollbackKey,
-        RollbackValue
-    >;
+    private rollbackStore: AbstractSublevel<any, any, Buffer, RollbackValue>;
+    private checkpointStore: AbstractSublevel<any, any, Buffer, BlockHash>;
+    private checkpointsCount: number = 0;
+    private readonly checkpointsSize: number;
 
-    constructor(dbPath: string) {
+    constructor(dbPath: string, checkpointsSize: number) {
         this.stateStore = new Level(dbPath, {
             valueEncoding: 'json'
         });
@@ -67,6 +89,10 @@ export class StateManager {
         this.rollbackStore = this.stateStore.sublevel('rollback', {
             valueEncoding: 'json'
         });
+        this.checkpointStore = this.stateStore.sublevel('checkpoints', {
+            valueEncoding: 'json'
+        });
+        this.checkpointsSize = checkpointsSize;
     }
 
     async getRequest(outputRef: string): Promise<DBRequest | null> {
@@ -78,16 +104,63 @@ export class StateManager {
             throw error;
         }
     }
+
+    async putCheckpoint(
+        rollbackKey: RollbackKey,
+        blockHash: BlockHash
+    ): Promise<void> {
+        await this.checkpointStore.put(rollbackKey.key, blockHash);
+        this.checkpointsCount++;
+        await this.decimateCheckpoints();
+    }
+
+    private async decimateCheckpoints(): Promise<void> {
+        if (this.checkpointsCount < 2 * this.checkpointsSize) {
+            return; // No need to decimate if we have fewer checkpoints than the size
+        }
+        for await (const [key] of this.checkpointStore.iterator()) {
+            const shouldDelete = Math.random() <= 0.5;
+            if (!shouldDelete) continue;
+            await this.checkpointStore.del(key);
+            this.checkpointsCount--;
+        }
+    }
+
+    async getCheckpoints(): Promise<
+        { key: RollbackKey; blockHash: BlockHash }[]
+    > {
+        const checkpoints: { key: RollbackKey; blockHash: BlockHash }[] = [];
+        for await (const [key, value] of this.checkpointStore.iterator()) {
+            checkpoints.push({
+                key: RollbackKey.fromKey(key),
+                blockHash: value
+            });
+        }
+        return checkpoints.reverse();
+    }
+
+    async initCheckpoints(last: RollbackKey): Promise<void> {
+        const iterator = this.checkpointStore.iterator({
+            gte: new RollbackKey(0).key,
+            lt: last.key
+        });
+        for await (const [key, value] of iterator) {
+            await this.checkpointStore.del(key);
+            this.checkpointsCount--;
+        }
+    }
+
     private async putRollbackValue(
         rollbackKey: RollbackKey,
         value: StateChange
     ): Promise<void> {
-        const existing = await this.rollbackStore.get(rollbackKey);
+        const key = rollbackKey.key;
+        const existing = await this.rollbackStore.get(key);
         if (!existing) {
-            await this.rollbackStore.put(rollbackKey, [value]);
+            await this.rollbackStore.put(key, [value]);
         } else {
             existing.push(value);
-            await this.rollbackStore.put(rollbackKey, existing);
+            await this.rollbackStore.put(key, existing);
         }
     }
     async getToken(tokenId: string): Promise<DBTokenState | null> {
@@ -178,18 +251,18 @@ export class StateManager {
 
     async removeRollbacksBefore(rollbackKey: RollbackKey): Promise<void> {
         const iterator = this.rollbackStore.iterator({
-            gte: 0,
-            lt: rollbackKey
+            gte: RollbackKey.zero.key,
+            lt: rollbackKey.key
         });
         for await (const [key] of iterator) {
             await this.rollbackStore.del(key);
         }
     }
 
-    async splitRollbacks(key: RollbackKey): Promise<StateChange[]> {
+    async splitRollbacks(splitKey: RollbackKey): Promise<StateChange[]> {
         const changes: StateChange[] = [];
         const iterator = this.rollbackStore.iterator({
-            gt: key
+            gt: splitKey.key
         });
         for await (const [key, value] of iterator) {
             await this.rollbackStore.del(key);

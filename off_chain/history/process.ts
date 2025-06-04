@@ -2,7 +2,7 @@ import { parseStateDatumCbor } from '../token';
 import { parseRequestCbor } from '../request';
 import { rootHex } from '../lib';
 import { TrieManager } from '../trie';
-import { mkOutputRefId, StateManager } from './store';
+import { mkOutputRefId, RollbackKey, StateManager } from './store';
 
 export class Process {
     private state: StateManager;
@@ -24,7 +24,7 @@ export class Process {
     get trieManager(): TrieManager {
         return this.tries;
     }
-    async process(slotNumber: number, tx: any): Promise<void> {
+    async process(slotNumber: RollbackKey, tx: any): Promise<void> {
         const minted = tx.mint?.[this.policyId];
         if (minted) {
             for (const asset of Object.keys(minted)) {
