@@ -1,8 +1,9 @@
 import WebSocket from 'ws';
 import { Change, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { DBTokenState, RollbackKey, StateChange, StateManager } from './store';
+import { DBTokenState, StateChange, StateManager } from './store';
 import { Process } from './process';
+import { RollbackKey } from './store/rollbackkey';
 
 class Indexer {
     private process: Process;
@@ -197,11 +198,18 @@ class Indexer {
                                     this.queryNetworkTip();
                                 }
                             });
+                            const slot = new RollbackKey(
+                                response.result.block.slot
+                            );
+                            await this.state.putCheckpoint({
+                                slot,
+                                blockHash: response.result.block.id
+                            });
                             for (const tx of response.result.block
                                 .transactions) {
                                 //console.log(JSON.stringify(tx, null, 2));
                                 const changes = await this.process.process(
-                                    new RollbackKey(response.result.block.slot),
+                                    slot,
                                     tx
                                 );
                             }

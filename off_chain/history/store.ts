@@ -42,6 +42,10 @@ export type Rollback = {
     changes: RollbackValue;
 };
 
+export type Checkpoint = {
+    slot: RollbackKey;
+    blockHash: string;
+};
 export type BlockHash = string;
 export class StateManager {
     private stateStore: Level<string, any>;
@@ -93,13 +97,16 @@ export class StateManager {
         }
     }
 
-    async putCheckpoint(
-        rollbackKey: RollbackKey,
-        blockHash: BlockHash
-    ): Promise<void> {
-        await this.checkpointStore.put(rollbackKey.key, blockHash);
+    async putCheckpoint(checkpoint: Checkpoint): Promise<void> {
+        await this.checkpointStore.put(
+            checkpoint.slot.key,
+            checkpoint.blockHash
+        );
         this.checkpointsCount++;
         await this.decimateCheckpoints();
+    }
+    async getCheckpoint(slot: RollbackKey): Promise<BlockHash | undefined> {
+        return await this.checkpointStore.get(slot.key);
     }
 
     private async decimateCheckpoints(): Promise<void> {
@@ -114,17 +121,15 @@ export class StateManager {
         }
     }
 
-    async getCheckpoints(): Promise<
-        { key: RollbackKey; blockHash: BlockHash }[]
-    > {
-        const checkpoints: { key: RollbackKey; blockHash: BlockHash }[] = [];
+    async getAllCheckpoints(): Promise<Checkpoint[]> {
+        const checkpoints: Checkpoint[] = [];
         for await (const [key, value] of this.checkpointStore.iterator()) {
             checkpoints.push({
-                key: RollbackKey.fromKey(key),
+                slot: RollbackKey.fromKey(key),
                 blockHash: value
             });
         }
-        return checkpoints.reverse();
+        return checkpoints;
     }
 
     async initCheckpoints(last: RollbackKey): Promise<void> {
