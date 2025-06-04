@@ -64,6 +64,7 @@ export class StateManager {
         BlockHash
     >;
     private checkpointsCount: number = 0;
+    private windowSize: number = 2160; // Default window size for checkpoints
     private readonly checkpointsSize: number | null;
 
     constructor(dbPath: string, checkpointsSize: number | null) {
@@ -103,22 +104,24 @@ export class StateManager {
             checkpoint.blockHash
         );
         this.checkpointsCount++;
-        await this.decimateCheckpoints();
+        await this.dropCheckpointsTail();
     }
     async getCheckpoint(slot: RollbackKey): Promise<BlockHash | undefined> {
         return await this.checkpointStore.get(slot.key);
     }
 
-    private async decimateCheckpoints(): Promise<void> {
+    private async dropCheckpointsTail(): Promise<void> {
         if (this.checkpointsSize === null) {
             return; // No decimation if checkpointsSize is not set
         }
         if (this.checkpointsCount < 2 * this.checkpointsSize) {
             return; // No need to decimate if we have fewer checkpoints than the size
         }
-        for await (const [key] of this.checkpointStore.iterator()) {
-            const shouldDelete = Math.random() <= 0.5;
-            if (!shouldDelete) continue;
+        const iterator = this.checkpointStore.iterator({
+            gte: RollbackKey.zero.key,
+            limit: this.checkpointsCount - this.checkpointsSize
+        });
+        for await (const [key] of iterator) {
             await this.checkpointStore.del(key);
             this.checkpointsCount--;
         }
@@ -133,17 +136,6 @@ export class StateManager {
             });
         }
         return checkpoints;
-    }
-
-    async initCheckpoints(last: RollbackKey): Promise<void> {
-        const iterator = this.checkpointStore.iterator({
-            gte: new RollbackKey(0).key,
-            lt: last.key
-        });
-        for await (const [key, value] of iterator) {
-            await this.checkpointStore.del(key);
-            this.checkpointsCount--;
-        }
     }
 
     private async putRollbackValue(
