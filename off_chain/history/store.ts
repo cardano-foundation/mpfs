@@ -64,9 +64,9 @@ export class StateManager {
         BlockHash
     >;
     private checkpointsCount: number = 0;
-    private readonly checkpointsSize: number;
+    private readonly checkpointsSize: number | null;
 
-    constructor(dbPath: string, checkpointsSize: number) {
+    constructor(dbPath: string, checkpointsSize: number | null) {
         this.stateStore = new Level(dbPath, {
             valueEncoding: 'json'
         });
@@ -110,6 +110,9 @@ export class StateManager {
     }
 
     private async decimateCheckpoints(): Promise<void> {
+        if (this.checkpointsSize === null) {
+            return; // No decimation if checkpointsSize is not set
+        }
         if (this.checkpointsCount < 2 * this.checkpointsSize) {
             return; // No need to decimate if we have fewer checkpoints than the size
         }
