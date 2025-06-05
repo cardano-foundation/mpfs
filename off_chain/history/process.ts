@@ -106,7 +106,7 @@ export class Process {
             }
         }
     }
-    private static inputToOutputRef(input: any): string {
+    static inputToOutputRef(input: any): string {
         return mkOutputRefId({
             txHash: input.transaction.id,
             outputIndex: input.index

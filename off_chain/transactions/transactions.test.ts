@@ -21,8 +21,18 @@ describe('Restarting the service', () => {
                 const tokenId = await boot(context1);
                 expect(tokenId).toBeDefined();
                 await sync(context1);
+                const rq1 = await request(
+                    context1,
+                    tokenId,
+                    'key1',
+                    'value1',
+                    'insert'
+                );
+                await update(context1, tokenId, [rq1]);
+                await sync(context1);
                 await end(context1, tokenId);
             });
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             await withContext(3000, tmpDir, mnemonics, async context2 => {
                 await sync(context2);
@@ -32,7 +42,7 @@ describe('Restarting the service', () => {
                 await end(context2, tokenId);
             });
         });
-    }, 30_000);
+    }, 60_000);
 });
 describe('Submitting transactions we', () => {
     it('can create and delete a token', async () => {

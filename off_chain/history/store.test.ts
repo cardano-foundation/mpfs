@@ -226,7 +226,7 @@ describe('StateManager', () => {
                     blockHash: 'blockhash123'
                 };
 
-                await stateManager.putCheckpoint(checkpoint);
+                await stateManager.putCheckpoint(checkpoint,[]);
                 const retrievedHash = await stateManager.getAllCheckpoints();
                 expect(retrievedHash).toContainEqual(checkpoint);
             });
@@ -245,7 +245,7 @@ describe('StateManager', () => {
                         );
 
                         for (const checkpoint of checkpoints) {
-                            await stateManager.putCheckpoint(checkpoint);
+                            await stateManager.putCheckpoint(checkpoint,[]);
                         }
 
                         const retrievedCheckpoints =
@@ -270,7 +270,7 @@ describe('StateManager', () => {
                         );
 
                         for (const checkpoint of checkpoints) {
-                            await stateManager.putCheckpoint(checkpoint);
+                            await stateManager.putCheckpoint(checkpoint,[]);
                         }
 
                         const retrievedCheckpoints =

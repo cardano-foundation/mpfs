@@ -47,6 +47,11 @@ export type Checkpoint = {
     blockHash: string;
 };
 export type BlockHash = string;
+
+export type CheckpointValue = {
+    blockHash: BlockHash;
+    consumedRefIds: string[];
+};
 export class StateManager {
     private stateStore: AbstractSublevel<any, any, string, any>;
     private tokenStore: AbstractSublevel<any, any, string, DBTokenState>;
@@ -61,7 +66,7 @@ export class StateManager {
         any,
         any,
         Buffer<ArrayBufferLike>,
-        BlockHash
+        CheckpointValue
     >;
     private checkpointsCount: number = 0;
     private windowSize: number = 2160; // Default window size for checkpoints
@@ -124,16 +129,20 @@ export class StateManager {
         }
     }
 
-    async putCheckpoint(checkpoint: Checkpoint): Promise<void> {
-        await this.checkpointStore.put(
-            checkpoint.slot.key,
-            checkpoint.blockHash
-        );
+    async putCheckpoint(
+        checkpoint: Checkpoint,
+        consumedRefIds: string[]
+    ): Promise<void> {
+        await this.checkpointStore.put(checkpoint.slot.key, {
+            blockHash: checkpoint.blockHash,
+            consumedRefIds
+        });
+
         this.checkpointsCount++;
         await this.dropCheckpointsTail();
     }
     async getCheckpoint(slot: RollbackKey): Promise<BlockHash | undefined> {
-        return await this.checkpointStore.get(slot.key);
+        return (await this.checkpointStore.get(slot.key))?.blockHash;
     }
 
     private async dropCheckpointsTail(): Promise<void> {
@@ -158,7 +167,7 @@ export class StateManager {
         for await (const [key, value] of this.checkpointStore.iterator()) {
             checkpoints.push({
                 slot: RollbackKey.fromKey(key),
-                blockHash: value
+                blockHash: value.blockHash
             });
         }
         return checkpoints;
@@ -294,5 +303,18 @@ export class StateManager {
             }
         }
         return requests;
+    }
+
+    async extractCheckpointsAfter(
+        cp: Checkpoint | null
+    ): Promise<CheckpointValue[]> {
+        const checkpoints: CheckpointValue[] = [];
+        const iterator = this.checkpointStore.iterator({
+            gt: cp?.slot.key || RollbackKey.zero.key
+        });
+        for await (const [key, value] of iterator) {
+            checkpoints.push(value);
+        }
+        return checkpoints;
     }
 }

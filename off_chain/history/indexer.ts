@@ -1,10 +1,11 @@
 import WebSocket from 'ws';
 import { Change, TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { DBTokenState, StateChange, StateManager } from './store';
+import { Checkpoint, DBTokenState, StateChange, StateManager } from './store';
 import { Process } from './process';
 import { RollbackKey } from './store/rollbackkey';
 import { Level } from 'level';
+import { samplePowerOfTwoPositions } from './store/intersection';
 
 class Indexer {
     private process: Process;
@@ -148,7 +149,14 @@ class Indexer {
             try {
                 await connectWebSocket();
                 // Once connected, proceed with initialization
-                this.queryFindIntersection(['origin']);
+                const checkpoints = await this.state.getAllCheckpoints();
+                const sampleCheckpoints = samplePowerOfTwoPositions(
+                    checkpoints.reverse()
+                );
+                const intersections = (
+                    sampleCheckpoints.map(convertCheckpoint) as any[]
+                ).concat(['origin']);
+                this.queryFindIntersection(intersections);
                 this.queryNetworkTip();
                 break; // Exit the retry loop
             } catch (err) {
@@ -207,10 +215,15 @@ class Indexer {
                             const slot = new RollbackKey(
                                 response.result.block.slot
                             );
-                            await this.state.putCheckpoint({
-                                slot,
-                                blockHash: response.result.block.id
-                            });
+                            await this.state.putCheckpoint(
+                                {
+                                    slot,
+                                    blockHash: response.result.block.id
+                                },
+                                response.result.block.transactions.flatMap(tx =>
+                                    tx.inputs.map(Process.inputToOutputRef)
+                                )
+                            );
                             for (const tx of response.result.block
                                 .transactions) {
                                 const changes = await this.process.process(
@@ -221,11 +234,17 @@ class Indexer {
                             this.queryNextBlock();
                             break;
                         case 'backward':
-                            console.log(
-                                `Received backward block: ${JSON.stringify(
-                                    response
-                                )}`
-                            );
+                            const checkpoints =
+                                await this.state.getAllCheckpoints();
+
+                            if (response.result.point === 'origin') {
+                                await this.rollback(null);
+                            } else {
+                                await this.rollback(
+                                    reconvertCheckpoint(response.result.point)
+                                );
+                            }
+
                             this.queryNextBlock();
                             break;
                     }
@@ -233,6 +252,41 @@ class Indexer {
             release();
         });
     }
+    async rollback(checkpoint: Checkpoint | null): Promise<void> {
+        // remove all checkpoints after this one
+
+        const requests = await this.state.extractCheckpointsAfter(checkpoint);
+
+        // // get out the rollbacks after this checkpoint
+        // const rollbacks = await this.state.extractRollbacksAfter(
+        //     checkpoint.slot
+        // );
+        // // and backapply them to the tries
+        // for (const rollback of rollbacks) {
+        //     await this.process.trieManager.applyRollback(rollback);
+        // }
+        // // prune the requests after this checkpoint
+        // for (const request of requests) {
+        //     await this.state.removeRequest(request.outputRef);
+        // }
+    }
 }
 
+type WsCheckpoint = {
+    slot: number;
+    id: string;
+};
+const convertCheckpoint = (checkpoint: Checkpoint): WsCheckpoint => {
+    return {
+        slot: checkpoint.slot.value,
+        id: checkpoint.blockHash
+    };
+};
+
+const reconvertCheckpoint = (wsCheckpoint: WsCheckpoint): Checkpoint => {
+    return {
+        slot: new RollbackKey(wsCheckpoint.slot),
+        blockHash: wsCheckpoint.id
+    };
+};
 export { StateManager, TrieManager, Process, Indexer };
