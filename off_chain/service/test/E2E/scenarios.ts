@@ -78,7 +78,6 @@ const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
         log('charlie created an mpf token');
         log('charlie waited for the token to sync');
         const tks1 = await getTokens(log, charlie);
-        console.log('checkpoints', tks1.checkpoints);
         assertThrows(
             tks1.tokens.map(t => t.tokenId).includes(tk),
             'Token not found'

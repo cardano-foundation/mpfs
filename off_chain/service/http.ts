@@ -235,7 +235,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
     return app;
 }
 
-type Service = {
+export type Service = {
     server: Server;
     indexer: Indexer;
 };

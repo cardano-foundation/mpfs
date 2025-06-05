@@ -24,7 +24,6 @@ import {
     canUpdateATokenTwice
 } from './E2E/scenarios';
 import { catchFailure } from './E2E/lib';
-import { IncomingMessage, Server, ServerResponse } from 'http';
 
 function newWallet(provider: Provider) {
     const seed = crypto.getRandomValues(new Uint32Array(4)).join('');
