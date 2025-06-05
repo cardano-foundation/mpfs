@@ -64,26 +64,10 @@ run-bare-E2E-tests:
     export OGMIOS_PORT=1337
     npx tsx service/test/E2E.ts
 
-run-unit-tests:
+run-tests:
     #!/usr/bin/env bash
     cd off_chain
     npx vitest run --reporter verbose
-run-integration-tests:
-    #!/usr/bin/env bash
-
-    just wait_for_service "yaci-store" 8080
-    just wait_for_service "yaci-admin" 10000
-    just wait_for_service "ogmios" 1337
-
-    cd off_chain
-    export YACI_STORE_PORT=8080
-    export YACI_ADMIN_PORT=10000
-    export OGMIOS_PORT=1337
-    npx tsx transactions/tests/boot.ts
-    npx tsx transactions/tests/end.ts
-    npx tsx transactions/tests/request.ts
-    npx tsx transactions/tests/retract.ts
-    npx tsx transactions/tests/update.ts
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash

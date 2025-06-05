@@ -151,14 +151,8 @@ export class StateManager {
             await this.rollbackStore.put(key, existing);
         }
     }
-    async getToken(tokenId: string): Promise<DBTokenState | null> {
-        try {
-            const result = await this.tokenStore.get(tokenId);
-            return result || null;
-        } catch (error) {
-            if (error.notFound) return null;
-            throw error;
-        }
+    async getToken(tokenId: string): Promise<DBTokenState | undefined> {
+        return await this.tokenStore.get(tokenId);
     }
 
     async putToken(

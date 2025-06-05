@@ -89,7 +89,7 @@ export class Context {
             state
         }));
     }
-    async fetchToken(tokenId: string): Promise<DBTokenState | null> {
+    async fetchToken(tokenId: string): Promise<DBTokenState | undefined> {
         return await this.indexer.fetchToken(tokenId);
     }
 

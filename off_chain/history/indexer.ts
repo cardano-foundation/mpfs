@@ -68,7 +68,7 @@ class Indexer {
         return await this.process.stateManager.getTokens();
     }
 
-    async fetchToken(tokenId: string): Promise<DBTokenState | null> {
+    async fetchToken(tokenId: string): Promise<DBTokenState | undefined> {
         return await this.process.stateManager.getToken(tokenId);
     }
 

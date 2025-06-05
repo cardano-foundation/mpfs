@@ -4,11 +4,9 @@ import { Checkpoint, StateManager } from './store';
 import { Level } from 'level';
 import { AbstractSublevel } from 'abstract-level';
 import { mkOutputRefId, unmkOutputRefId } from './store';
-import { rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import * as fc from 'fast-check';
 import { samplePowerOfTwoPositions } from './store/intersection';
+import { withTempDir } from '../test/lib';
 
 describe('level-db', () => {
     it('supports Buffer as keys', async () => {
@@ -318,15 +316,3 @@ describe('Power of 2 indices selection', () => {
         );
     });
 });
-
-function withTempDir(): { tmpDir: string; clean: () => void } {
-    const tmpDir = join(
-        tmpdir(),
-        `testdb-${Math.random().toString(36).substring(2, 15)}`
-    );
-    rmSync(tmpDir, { recursive: true, force: true }); // Ensure the directory is clean
-    return {
-        tmpDir,
-        clean: () => rmSync(tmpDir, { recursive: true, force: true })
-    };
-}
