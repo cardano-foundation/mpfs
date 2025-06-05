@@ -1,4 +1,3 @@
-import http, { get } from 'http';
 import readline from 'readline';
 import {
     createRequest,
@@ -8,13 +7,12 @@ import {
     getToken,
     getTokens,
     getWallet,
+    sync,
     updateToken,
     walletTopup
-} from './client';
+} from '../client';
 import fs from 'fs';
-import path from 'path';
 import chalk from 'chalk';
-import { OutputRef } from '../../../lib';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -39,7 +37,8 @@ const commands = [
     'retract-request',
     'create-insert-request',
     'create-delete-request',
-    'get-requests'
+    'get-requests',
+    'sync'
 ];
 
 const commandHistory: string[] = [];
@@ -85,21 +84,24 @@ const logJSON = (data: any) => {
     console.log(JSON.stringify(data, null, 2));
 };
 
-let host = 'http://localhost:3000';
+let host = 'http://localhost:3220';
 let token: string | undefined = undefined;
 
+const logConsole = (message: string) => {
+    console.log(chalk.green(message));
+};
 async function tokenRequests() {
     if (!token) {
         console.log('No token set. Please set a token first.');
         return;
     }
-    const tokenValue = await getToken(host, token);
+    const tokenValue = await getToken(logConsole, host, token);
     if (!tokenValue) {
         console.log('Token not found.');
         return;
     }
     const requests = tokenValue.requests.map((request: any) => {
-        return request.ref;
+        return request.outputRef;
     });
     return requests;
 }
@@ -107,11 +109,32 @@ async function tokenRequests() {
 const promptUser = () => {
     rl.question('> ', async command => {
         try {
-            const tokensResponse = await getTokens(host);
+            const tokensResponse = async () =>
+                await getTokens(logConsole, host, 0);
             const parts = command.split(' ');
             switch (parts[0]) {
                 case 'help':
                     console.log('Available commands:', commands.join(', '));
+                    commandHistory.push(command);
+                    break;
+                case 'sync':
+                    if (parts[1]) {
+                        const blocks = parseInt(parts[1]);
+                        if (isNaN(blocks) || blocks <= 0) {
+                            console.log(
+                                'Please provide a valid number of blocks.'
+                            );
+                        } else {
+                            console.log(`Syncing ${blocks} blocks...`);
+                            // Assuming sync is a function that takes host and seconds
+                            await sync(host, blocks);
+                            console.log(`Synced ${blocks} blocks.`);
+                        }
+                    } else {
+                        console.log(
+                            'Please provide the number of seconds to sync.'
+                        );
+                    }
                     commandHistory.push(command);
                     break;
                 case 'set-host':
@@ -134,11 +157,15 @@ const promptUser = () => {
                     commandHistory.push(command);
                     break;
                 case 'get-tokens':
-                    logColorfulJSON(tokensResponse);
+                    logColorfulJSON(await tokensResponse());
                     commandHistory.push(command);
                     break;
                 case 'create-token':
-                    const createTokenResponse = await createToken(host);
+                    const createTokenResponse = await createToken(
+                        logConsole,
+                        host,
+                        0
+                    );
                     token = createTokenResponse.tokenId;
                     logColorfulJSON(createTokenResponse);
                     commandHistory.push(command);
@@ -148,7 +175,12 @@ const promptUser = () => {
                         console.log('No token set. Please set a token first.');
                         break;
                     }
-                    const tokenResponse = await getToken(host, token);
+                    const tokenResponse = await getToken(
+                        logConsole,
+                        host,
+                        token,
+                        0
+                    );
                     logColorfulJSON(tokenResponse);
                     commandHistory.push(command);
                     break;
@@ -157,7 +189,12 @@ const promptUser = () => {
                         console.log('No token set. Please set a token first.');
                         break;
                     }
-                    const deleteTokenResponse = await deleteToken(host, token);
+                    const deleteTokenResponse = await deleteToken(
+                        logConsole,
+                        host,
+                        token,
+                        0
+                    );
                     logColorfulJSON(deleteTokenResponse);
                     commandHistory.push(command);
                     break;
@@ -167,9 +204,11 @@ const promptUser = () => {
                         break;
                     }
                     const updateTokenResponse = await updateToken(
+                        logConsole,
                         host,
                         token,
-                        await tokenRequests()
+                        await tokenRequests(),
+                        0
                     );
                     logColorfulJSON(updateTokenResponse);
                     commandHistory.push(command);
@@ -180,21 +219,23 @@ const promptUser = () => {
                         break;
                     }
                     if (parts[1]) {
-                        const key = parts[1].split(',');
+                        let value;
                         if (parts[2]) {
-                            const value = parts[2];
-                            const response = await createRequest(
-                                host,
-                                token,
-                                key,
-                                value,
-                                'insert'
-                            );
-                            logColorfulJSON(response);
-                            commandHistory.push(command);
+                            value = parts[2];
                         } else {
-                            console.log('Please provide a value.');
+                            value = '';
                         }
+                        const response = await createRequest(
+                            logConsole,
+                            host,
+                            token,
+                            parts[1],
+                            value,
+                            'insert',
+                            0
+                        );
+                        logColorfulJSON(response);
+                        commandHistory.push(command);
                     } else {
                         console.log('Please provide a key.');
                     }
@@ -209,11 +250,13 @@ const promptUser = () => {
                         if (parts[2]) {
                             const value = parts[2];
                             const response = await createRequest(
+                                logConsole,
                                 host,
                                 token,
-                                key,
+                                parts[1],
                                 value,
-                                'delete'
+                                'delete',
+                                0
                             );
                             logColorfulJSON(response);
                             commandHistory.push(command);
@@ -225,13 +268,21 @@ const promptUser = () => {
                     }
                     break;
                 case 'set-token':
-                    if (tokensResponse.length === 0) {
+                    if (parts[1]) {
+                        token = parts[1];
+                        console.log(`Token set to ${token}`);
+                        commandHistory.push(command);
+                        break;
+                    }
+                    const tokens = await tokensResponse();
+                    console.log(JSON.stringify(tokens, null, 2));
+                    if (tokens.tokens.length === 0) {
                         console.log('No tokens available.');
                         break;
                     }
 
                     console.log('Available tokens:');
-                    tokensResponse.forEach((token: any, index: number) => {
+                    tokens.tokens.forEach((token: any, index: number) => {
                         console.log(`${index}: ${token.tokenId}`);
                     });
 
@@ -246,7 +297,7 @@ const promptUser = () => {
                                     if (
                                         isNaN(tokenRef) ||
                                         tokenRef < 0 ||
-                                        tokenRef >= tokensResponse.length
+                                        tokenRef >= tokens.length
                                     ) {
                                         console.log('Invalid token reference.');
                                         resolve(undefined);
@@ -261,7 +312,7 @@ const promptUser = () => {
                     if (tokenRef === undefined) {
                         break;
                     }
-                    token = tokensResponse[tokenRef].tokenId;
+                    token = tokens.tokens[tokenRef].tokenId;
                     console.log(`Token set to ${token}`);
                     commandHistory.push(command);
                     break;
@@ -272,7 +323,6 @@ const promptUser = () => {
                     }
 
                     const requests = await tokenRequests();
-
                     if (requests.length === 0) {
                         console.log('No requests found.');
                         break;
@@ -319,7 +369,12 @@ const promptUser = () => {
                         break;
                     }
 
-                    const response = await deleteRequest(host, token!, request);
+                    const response = await deleteRequest(
+                        logConsole,
+                        host,
+                        request,
+                        0
+                    );
                     logColorfulJSON(response);
                     commandHistory.push(command);
                     break;

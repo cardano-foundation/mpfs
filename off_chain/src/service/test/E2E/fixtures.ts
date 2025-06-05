@@ -2,8 +2,8 @@ import { Name, withServices } from '../../http';
 import getPort from 'get-port';
 import { Provider, yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { walletTopup } from '../E2E/client';
-import { it, test } from 'vitest';
+import { walletTopup } from '../../client';
+import { it } from 'vitest';
 import { withTempDir } from '../../../test/lib';
 import { sleepMs, validatePort } from '../../../lib';
 

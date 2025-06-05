@@ -22,3 +22,4 @@ config/application.properties
 off_chain/node_modules/
 
 .direnv
+off_chain/mpfs-indexer.txt

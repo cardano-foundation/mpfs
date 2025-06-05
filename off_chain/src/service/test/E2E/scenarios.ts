@@ -9,7 +9,7 @@ import {
     getTokens,
     getWallet,
     updateToken
-} from './client';
+} from '../../client';
 import { Runner, Wallets } from './fixtures';
 import { assertThrows, shouldFail } from './lib';
 
