@@ -68,7 +68,7 @@ describe('Using transactions you', () => {
         await close();
     });
 
-    it('can create and delete a token successfully', async () => {
+    it('can create and delete a token', async () => {
         await sync(context);
 
         const tokenId = await boot(context);
@@ -83,7 +83,7 @@ describe('Using transactions you', () => {
         expect(tokenDeleted).toBeUndefined();
     }, 20000);
 
-    it('can create a request successfully', async () => {
+    it('can create a request', async () => {
         await sync(context);
         const tokenId = await boot(context);
 
@@ -102,7 +102,7 @@ describe('Using transactions you', () => {
         await end(context, tokenId);
     }, 60000);
 
-    it('can retract a request successfully', async () => {
+    it('can retract a request', async () => {
         await sync(context);
         const tokenId = await boot(context);
 
@@ -124,7 +124,7 @@ describe('Using transactions you', () => {
         await sync(context);
         await end(context, tokenId);
     }, 60000);
-    it('can update a token successfully', async () => {
+    it('can update a token', async () => {
         await sync(context);
         const tokenId = await boot(context);
 

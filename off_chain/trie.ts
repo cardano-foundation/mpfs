@@ -3,6 +3,7 @@ import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import fs from 'fs';
 import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
+import { Level } from 'level';
 
 export type Change = {
     operation: 'insert' | 'delete';
@@ -47,20 +48,21 @@ export class SafeTrie {
     // private hot_lock: boolean = false;
     private facts: Facts;
     private tempChanges: Change[] = [];
+    private db: Level<string, any>; // Top-level trie for safe operations
     // private lock: Mutex = new Mutex();
 
-    private constructor(trie: PrivateTrie, facts: Facts) {
+    private constructor(db, trie: PrivateTrie, facts: Facts) {
         this.privateTrie = trie;
         this.facts = facts;
+        this.db = db;
     }
     public static async create(path: string): Promise<SafeTrie> {
-        const factsPath = path + '/facts';
         const triePath = path + '/trie';
+        const db = new Level(path);
         const trie = await PrivateTrie.create(triePath);
-        await fs.promises.mkdir(factsPath, { recursive: true });
         await fs.promises.mkdir(triePath, { recursive: true });
-        const facts = await Facts.create(factsPath);
-        return new SafeTrie(trie, facts);
+        const facts = await Facts.create(db);
+        return new SafeTrie(db, trie, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
         return this.privateTrie?.trie.get(key);
@@ -104,6 +106,7 @@ export class SafeTrie {
     public async close(): Promise<void> {
         await this.privateTrie.close();
         await this.facts.close();
+        await this.db.close();
     }
     public async allFacts(): Promise<Record<string, string>> {
         return await this.facts.getAll();

@@ -1,17 +1,18 @@
+import { AbstractSublevel } from 'abstract-level';
 import { Level } from 'level'; // Import as a namespace
 
 export class Facts {
     private db: Level; // Explicitly use the default export
 
-    constructor(dbPath: string) {
-        this.db = new Level<string, string>(dbPath, { valueEncoding: 'json' }); // Correct instantiation
+    constructor(db) {
+        this.db = db;
     }
 
-    static async create(dbPath: string): Promise<Facts> {
-        if (!dbPath) {
-            throw new Error('Database path is required');
-        }
-        const facts = new Facts(dbPath);
+    static async create(
+        levelDb: AbstractSublevel<any, any, string, any>
+    ): Promise<Facts> {
+        const db = levelDb.sublevel('facts');
+        const facts = new Facts(db);
         await facts.db.open();
         return facts;
     }
