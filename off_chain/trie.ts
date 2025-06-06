@@ -18,8 +18,7 @@ export const invertChange = (change: Change): Change => {
         value
     };
 };
-
-class PrivateTrie {
+export class PrivateTrie {
     public trie: Trie;
     public path: string;
 
@@ -39,8 +38,7 @@ class PrivateTrie {
         return new PrivateTrie(path, trie);
     }
     public async close(): Promise<void> {
-        // we would like to close the store before deleting it
-        await fs.promises.rm(this.path, { recursive: true });
+        await this.trie.store.close();
     }
 }
 // An MPF that can roll back operations
@@ -61,7 +59,7 @@ export class SafeTrie {
         const trie = await PrivateTrie.create(triePath);
         await fs.promises.mkdir(factsPath, { recursive: true });
         await fs.promises.mkdir(triePath, { recursive: true });
-        const facts = new Facts(factsPath);
+        const facts = await Facts.create(factsPath);
         return new SafeTrie(trie, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
@@ -105,6 +103,7 @@ export class SafeTrie {
 
     public async close(): Promise<void> {
         await this.privateTrie.close();
+        await this.facts.close();
     }
     public async allFacts(): Promise<Record<string, string>> {
         return await this.facts.getAll();
@@ -164,9 +163,21 @@ export class TrieManager {
     private lock: Mutex = new Mutex();
 
     constructor(dbPath: string) {
-        this.dbPath = `${dbPath}/tries`;
+        this.dbPath = `${dbPath}`;
     }
-    public static async create(dbPath: string): Promise<TrieManager> {
+    get trieIds() {
+        return Object.keys(this.tries);
+    }
+    async close(): Promise<void> {
+        const release = await this.lock.acquire();
+        for (const [_tokenId, trie] of Object.entries(this.tries)) {
+            await trie.close();
+        }
+        this.tries = {};
+        release();
+    }
+    public static async create(dbPathRoot: string): Promise<TrieManager> {
+        const dbPath = `${dbPathRoot}/tries`;
         if (!fs.existsSync(dbPath)) {
             fs.mkdirSync(dbPath, { recursive: true });
         } else {
@@ -189,7 +200,7 @@ export class TrieManager {
                 const trie = await SafeTrie.create(filePath);
                 console.log(`Loaded trie from: ${filePath}`);
                 if (trie) {
-                    manager.ptries[file] = trie;
+                    manager.tries[file] = trie;
                 } else {
                     throw new Error(`Failed to load trie from: ${filePath}`);
                 }
