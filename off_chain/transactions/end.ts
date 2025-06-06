@@ -36,7 +36,5 @@ export async function end(context: Context, tokenId: string) {
     context.log('txHash', txHash);
     const block = await context.waitSettlement(txHash);
     context.log('block', block);
-    const trie = await context.trie(tokenId);
-    await trie.close();
     return txHash;
 }

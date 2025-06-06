@@ -1,7 +1,7 @@
-import { parseStateDatumCbor } from '../token';
+import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
 import { rootHex } from '../lib';
-import { TrieManager } from '../trie';
+import { SafeTrie, TrieManager } from '../trie';
 import { mkOutputRefId, StateManager } from './store';
 import { RollbackKey } from './store/rollbackkey';
 
@@ -52,23 +52,24 @@ export class Process {
             if (asset) {
                 const tokenId = Object.keys(asset)[0];
 
-                const tokenState = parseStateDatumCbor(output.datum);
-
-                if (tokenState) {
-                    const trie = await this.tries.trie(tokenId);
+                async function onTrie(
+                    state,
+                    trie: SafeTrie,
+                    tokenState: TokenState
+                ) {
                     for (const input of tx.inputs) {
-                        const ref = this.inputToOutputRef(input);
-                        const request = await this.state.getRequest(ref);
+                        const ref = Process.inputToOutputRef(input);
+                        const request = await state.getRequest(ref);
                         if (!request) {
                             continue; // skip inputs with no request
                         }
                         await trie.update(request.change);
-                        await this.state.storeRollbackChange(
+                        await state.storeRollbackChange(
                             slotNumber,
                             request.change
                         );
                     }
-                    await this.state.putToken(slotNumber, tokenId, {
+                    await state.putToken(slotNumber, tokenId, {
                         state: tokenState,
                         outputRef: { txHash: tx.id, outputIndex: 0 }
                     });
@@ -78,9 +79,15 @@ export class Process {
                     if (localRoot !== tokenState.root) {
                         throw new Error(
                             `Root mismatch for asset ${tokenId}:
-                            expected ${tokenState.root}, got ${localRoot}`
+                                expected ${tokenState.root}, got ${localRoot}`
                         );
                     }
+                }
+                const tokenState = parseStateDatumCbor(output.datum);
+                if (tokenState) {
+                    await this.tries.trie(tokenId, async trie => {
+                        await onTrie(this.state, trie, tokenState);
+                    });
                     break;
                 }
                 break; // skip outputs with no state datum and our policyId
@@ -102,13 +109,13 @@ export class Process {
         }
         const inputs = tx.inputs;
         for (const input of inputs) {
-            const ref = this.inputToOutputRef(input);
+            const ref = Process.inputToOutputRef(input);
             if (await this.state.getRequest(ref)) {
                 this.state.deleteRequest(slotNumber, ref); // delete requests from inputs
             }
         }
     }
-    private inputToOutputRef(input: any): string {
+    private static inputToOutputRef(input: any): string {
         return mkOutputRefId({
             txHash: input.transaction.id,
             outputIndex: input.index

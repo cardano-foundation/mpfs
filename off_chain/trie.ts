@@ -208,23 +208,29 @@ export class TrieManager {
         }
         return manager;
     }
-    async trie(tokenId: string): Promise<SafeTrie> {
+    async trie(
+        tokenId: string,
+        f: (trie: SafeTrie) => Promise<any>
+    ): Promise<void> {
         const release = await this.lock.acquire();
         try {
             if (!this.tries[tokenId]) {
                 const dbpath = `${this.dbPath}/${tokenId}`;
+
                 const trie = await SafeTrie.create(dbpath);
                 if (trie) {
                     this.tries[tokenId] = trie;
+                    await f(trie);
                 } else {
                     throw new Error(
                         `Failed to load or create trie for index: ${tokenId}`
                     );
                 }
+            } else {
+                await f(this.tries[tokenId]);
             }
         } finally {
             release();
         }
-        return this.tries[tokenId];
     }
 }

@@ -116,8 +116,11 @@ export class Context {
         await this.provider.evaluateTx(txHex);
     }
 
-    async trie(tokenId: string): Promise<SafeTrie> {
-        return await this.indexer.tries.trie(tokenId);
+    async trie(
+        tokenId: string,
+        f: (trie: SafeTrie) => Promise<any>
+    ): Promise<void> {
+        return await this.indexer.tries.trie(tokenId, f);
     }
 
     async waitSettlement(txHash: string): Promise<string> {
@@ -130,8 +133,11 @@ export class Context {
     }
 
     async facts(tokenId: string): Promise<Record<string, string>> {
-        const trie = await this.indexer.tries.trie(tokenId);
-        return await trie.allFacts();
+        let fs = {};
+        await this.trie(tokenId, async trie => {
+            fs = await trie.allFacts();
+        });
+        return fs;
     }
 }
 
