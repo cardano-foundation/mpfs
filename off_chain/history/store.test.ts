@@ -9,6 +9,26 @@ import { samplePowerOfTwoPositions } from './store/intersection';
 import { withTempDir } from '../test/lib';
 
 describe('level-db', () => {
+    it('supports reopening a database', async () => {
+        const { tmpDir, clean } = withTempDir();
+        try {
+            const db = new Level<string, string>(tmpDir, {
+                valueEncoding: 'utf8',
+                keyEncoding: 'utf8'
+            });
+            await db.put('key1', 'value1');
+            await db.close();
+            const reopenedDb = new Level<string, string>(tmpDir, {
+                valueEncoding: 'utf8',
+                keyEncoding: 'utf8'
+            });
+            const value = await reopenedDb.get('key1');
+            expect(value).toBe('value1');
+            await reopenedDb.close();
+        } finally {
+            clean(); // Cleanup tmpDir
+        }
+    });
     it('supports Buffer as keys', async () => {
         const { tmpDir, clean } = withTempDir();
         try {
@@ -267,6 +287,25 @@ describe('StateManager Class', () => {
             { numRuns: 10, verbose: true }
         );
     }, 30000);
+    it('supports reopening', async () => {
+        const { tmpDir, clean } = withTempDir();
+        try {
+            const checkpointsSize = 10;
+            const stateManager = new StateManager(tmpDir, checkpointsSize);
+
+            await stateManager.close();
+
+            // Reopen the StateManager
+            const reopenedStateManager = new StateManager(
+                tmpDir,
+                checkpointsSize
+            );
+
+            await reopenedStateManager.close();
+        } finally {
+            clean(); // Cleanup tmpDir
+        }
+    });
 });
 
 describe('Power of 2 indices selection', () => {
