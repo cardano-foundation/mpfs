@@ -78,9 +78,6 @@ class Indexer {
         return await this.process.stateManager.getRequests(tokenId);
     }
 
-    close(): void {
-        this.client.close();
-    }
     async getSync(): Promise<{
         ready: boolean;
         networkTip: number | null;
@@ -89,7 +86,7 @@ class Indexer {
         this.checkingReadiness = true;
         this.queryNetworkTip();
         while (this.checkingReadiness) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
         return {
             ready: this.ready,
@@ -120,11 +117,14 @@ class Indexer {
     private queryNextBlock(): void {
         this.rpc('nextBlock', {}, 'block');
     }
-    async closeConnection(): Promise<void> {
+    async close(): Promise<void> {
+        const release = await this.stop.acquire();
         if (this.client) {
             this.client.close();
         }
-        this.client = null;
+        await this.state.close();
+        await this.tries.close();
+        release();
     }
     async run(): Promise<void> {
         const maxRetries = 1000; // Maximum number of retries
@@ -152,6 +152,11 @@ class Indexer {
                 break; // Exit the retry loop
             } catch (err) {
                 this.client.close(); // Close the client to reset the connection
+                console.error(
+                    `WebSocket connection failed, retrying (${
+                        retries + 1
+                    }/${maxRetries})...`
+                );
                 await new Promise(resolve =>
                     setTimeout(resolve, 1000 * retries)
                 );

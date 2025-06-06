@@ -5,12 +5,61 @@ import { request } from './request';
 import { mkOutputRefId } from '../history/store';
 import { update } from './update';
 import { retract } from './retract';
+import { generateMnemonic, MeshWallet } from '@meshsdk/core';
+import { Context, getCagingScript, newContext, yaciProvider } from '../context';
+import { Indexer } from '../history/indexer';
+import { TrieManager } from '../trie';
+import { withTempDir } from '../test/lib';
 
+describe('Restarting the service', () => {
+    let tmpDir: string;
+    let clean: () => void;
+    let mnemonics: string;
+    beforeAll(async () => {
+        ({ tmpDir, clean } = withTempDir());
+        mnemonics = generateMnemonic();
+    });
+
+    afterAll(async () => {
+        await clean();
+    });
+
+    it('should not throw an error', async () => {
+        const { context: context1, close: close1 } = await setup(
+            3000,
+            tmpDir,
+            mnemonics
+        );
+        try {
+            await sync(context1);
+            const tokenId = await boot(context1);
+            expect(tokenId).toBeDefined();
+            await sync(context1);
+            await end(context1, tokenId);
+        } finally {
+            await close1();
+        }
+        const { context: context2, close: close2 } = await setup(
+            3000,
+            tmpDir,
+            mnemonics
+        );
+        try {
+            await sync(context2);
+            const tokenId = await boot(context2);
+            expect(tokenId).toBeDefined();
+            await sync(context2);
+            await end(context2, tokenId);
+        } finally {
+            await close2();
+        }
+    }, 30_000);
+});
 describe('Using transactions you', () => {
     let context: Context;
     let close: () => Promise<void>;
     beforeAll(async () => {
-        const setupResult = await setup(3000);
+        const setupResult = await setup(3000, null, null);
         context = setupResult.context;
         close = setupResult.close;
     });
@@ -21,6 +70,7 @@ describe('Using transactions you', () => {
 
     it('can create and delete a token successfully', async () => {
         await sync(context);
+
         const tokenId = await boot(context);
         await sync(context);
         const tokenBooted = await context.fetchToken(tokenId);
@@ -31,7 +81,7 @@ describe('Using transactions you', () => {
         await sync(context);
         const tokenDeleted = await context.fetchToken(tokenId);
         expect(tokenDeleted).toBeUndefined();
-    }, 60000);
+    }, 20000);
 
     it('can create a request successfully', async () => {
         await sync(context);
@@ -117,18 +167,17 @@ describe('Using transactions you', () => {
     }, 60000);
 });
 
-import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { Context, getCagingScript, newContext, yaciProvider } from '../context';
-import { promises as fsPromises } from 'fs';
-import { Indexer } from '../history/indexer';
-import { TrieManager } from '../trie';
-import { withTempDir } from '../test/lib';
-
-export async function setup(port: number) {
-    // Ensure the tmp directory is clean before starting
-    const { tmpDir, clean } = withTempDir();
-    await fsPromises.rm(tmpDir, { recursive: true, force: true });
-    const mnemonic = generateMnemonic();
+export async function setup(
+    port: number,
+    maybeDatabaseDir: string | null = null,
+    maybeMnemonic: string | null = null
+) {
+    const { tmpDir, clean } = maybeDatabaseDir
+        ? { tmpDir: maybeDatabaseDir, clean: () => {} }
+        : withTempDir();
+    const databaseDir = tmpDir;
+    const cleanup = clean;
+    const mnemonic = maybeMnemonic || generateMnemonic();
 
     const mkWallet = provider =>
         new MeshWallet({
@@ -191,13 +240,13 @@ export async function setup(port: number) {
         }
     }
     const cleanAll = async () => {
-        await indexer.closeConnection();
-        await clean();
+        await indexer.close();
+        cleanup();
     };
 
     return { context, close: cleanAll };
 }
-export async function sync(context) {
+export async function sync(context: Context) {
     while (!(await context.indexer.getSync())) {
         console.log('Waiting for indexer to be ready...');
         await new Promise(resolve => setTimeout(resolve, 1000));
