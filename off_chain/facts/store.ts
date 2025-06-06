@@ -7,6 +7,14 @@ export class Facts {
         this.db = new Level<string, string>(dbPath, { valueEncoding: 'json' }); // Correct instantiation
     }
 
+    static async create(dbPath: string): Promise<Facts> {
+        if (!dbPath) {
+            throw new Error('Database path is required');
+        }
+        const facts = new Facts(dbPath);
+        await facts.db.open();
+        return facts;
+    }
     async set(key: string, value: string): Promise<void> {
         await this.db.put(key, value);
     }
@@ -38,5 +46,9 @@ export class Facts {
                 throw err;
             }
         }
+    }
+
+    async close(): Promise<void> {
+        await this.db.close();
     }
 }
