@@ -4,6 +4,7 @@ import fs from 'fs';
 import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
 import { Level } from 'level';
+import { AbstractLevel, AbstractSublevel } from 'abstract-level';
 
 export type Change = {
     operation: 'insert' | 'delete';
@@ -21,14 +22,15 @@ export const invertChange = (change: Change): Change => {
 };
 export class PrivateTrie {
     public trie: Trie;
-    public path: string;
 
-    private constructor(path: string, trie: Trie) {
-        this.path = path;
+    private constructor(trie: Trie) {
         this.trie = trie;
     }
-    public static async create(path: string): Promise<PrivateTrie> {
-        const store = new Store(path);
+    public static async create(
+        tokenId: string,
+        levelDB: AbstractSublevel<any, any, any, any>
+    ): Promise<PrivateTrie> {
+        const store = new Store(tokenId, levelDB);
         await store.ready();
         let trie: Trie;
         try {
@@ -36,7 +38,7 @@ export class PrivateTrie {
         } catch (error) {
             trie = new Trie(store);
         }
-        return new PrivateTrie(path, trie);
+        return new PrivateTrie(trie);
     }
     public async close(): Promise<void> {
         await this.trie.store.close();
@@ -56,11 +58,14 @@ export class SafeTrie {
         this.facts = facts;
         this.db = db;
     }
-    public static async create(path: string): Promise<SafeTrie> {
-        const triePath = path + '/trie';
-        const db = new Level(path);
-        const trie = await PrivateTrie.create(triePath);
-        await fs.promises.mkdir(triePath, { recursive: true });
+    public static async create(
+        tokenId,
+        parent: Level<any, any>
+    ): Promise<SafeTrie> {
+        const db = parent.sublevel(tokenId, {
+            valueEncoding: 'json'
+        });
+        const trie = await PrivateTrie.create(tokenId, db);
         const facts = await Facts.create(db);
         return new SafeTrie(db, trie, facts);
     }
@@ -162,11 +167,11 @@ export const serializeProof = (proof: Proof): Data => {
 // Managing tries
 export class TrieManager {
     private tries: Record<string, SafeTrie> = {};
-    private dbPath: string;
     private lock: Mutex = new Mutex();
+    private managerDB: Level<string, any>;
 
-    constructor(dbPath: string) {
-        this.dbPath = `${dbPath}`;
+    private constructor(db: Level<string, any>) {
+        this.managerDB = db;
     }
     get trieIds() {
         return Object.keys(this.tries);
@@ -177,36 +182,37 @@ export class TrieManager {
             await trie.close();
         }
         this.tries = {};
+        await this.managerDB.close();
         release();
     }
     public static async create(dbPathRoot: string): Promise<TrieManager> {
         const dbPath = `${dbPathRoot}/tries`;
-        if (!fs.existsSync(dbPath)) {
-            fs.mkdirSync(dbPath, { recursive: true });
-        } else {
+        if (fs.existsSync(dbPath)) {
             fs.rmSync(dbPath, { recursive: true, force: true });
-            fs.mkdirSync(dbPath, { recursive: true });
         }
-        return new TrieManager(dbPath);
+        fs.mkdirSync(dbPath, { recursive: true });
+        const manager = new Level<string, any>(dbPath, {
+            valueEncoding: 'json'
+        });
+        await manager.open();
+        const noTokens: string[] = [];
+        await manager.put('token-ids', noTokens);
+        return new TrieManager(manager);
     }
 
     public static async load(dbPathRoot: string): Promise<TrieManager> {
         const dbPath = `${dbPathRoot}/tries`;
-        const manager = new TrieManager(dbPath);
-        if (!fs.existsSync(dbPath)) {
-            throw new Error(`Database path does not exist: ${dbPath}`);
-        }
-        for (const file of fs.readdirSync(dbPath)) {
-            const filePath = `${dbPath}/${file}`;
-            if (fs.statSync(filePath).isDirectory()) {
-                // Load existing trie
-                const trie = await SafeTrie.create(filePath);
-                console.log(`Loaded trie from: ${filePath}`);
-                if (trie) {
-                    manager.tries[file] = trie;
-                } else {
-                    throw new Error(`Failed to load trie from: ${filePath}`);
-                }
+        const managerDB = new Level(dbPath, {
+            valueEncoding: 'json'
+        });
+        const manager = new TrieManager(managerDB);
+        const tokenIds = await managerDB.get('token-ids');
+        for (const tokenId of tokenIds) {
+            const trie = await SafeTrie.create(tokenId, managerDB);
+            if (trie) {
+                manager.tries[tokenId] = trie;
+            } else {
+                throw new Error(`Failed to load trie for token ID: ${tokenId}`);
             }
         }
         return manager;
@@ -218,9 +224,11 @@ export class TrieManager {
         const release = await this.lock.acquire();
         try {
             if (!this.tries[tokenId]) {
-                const dbpath = `${this.dbPath}/${tokenId}`;
-
-                const trie = await SafeTrie.create(dbpath);
+                const trie = await SafeTrie.create(tokenId, this.managerDB);
+                await this.managerDB.put('token-ids', [
+                    ...this.trieIds,
+                    tokenId
+                ]);
                 if (trie) {
                     this.tries[tokenId] = trie;
                     await f(trie);

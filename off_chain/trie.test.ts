@@ -2,19 +2,32 @@ import { describe, it, expect } from 'vitest';
 import { withTempDir } from './test/lib';
 import { PrivateTrie, TrieManager } from './trie';
 import { Store, Trie } from './mpf/lib';
+import { Level } from 'level';
 
+async function withLevelDB(tmpDir, callback) {
+    const db = new Level(tmpDir, { valueEncoding: 'json' });
+    try {
+        await callback(db);
+    } finally {
+        await db.close();
+    }
+}
 describe('Trie', () => {
     it('can close and reopen without errors', async () => {
         const { tmpDir, clean } = withTempDir();
         try {
-            const store = new Store(tmpDir + '/trie');
-            await store.ready();
-            const trie = new Trie(store);
-            await store.ready();
-            expect(trie).toBeDefined();
-            await store.close();
-            const storeReopened = new Store(tmpDir + '/trie');
-            await storeReopened.ready();
+            await withLevelDB(tmpDir, async db => {
+                const store = new Store('testTrie', db);
+                await store.ready();
+                const trie = new Trie(store);
+                await store.ready();
+                expect(trie).toBeDefined();
+                await store.close();
+            });
+            await withLevelDB(tmpDir, async dbReopened => {
+                const storeReopened = new Store('testTrie', dbReopened);
+                await storeReopened.ready();
+            });
         } finally {
             await clean();
         }
@@ -22,15 +35,34 @@ describe('Trie', () => {
 });
 
 describe('PrivateTrie', () => {
+    it('can create and close', async () => {
+        const { tmpDir, clean } = withTempDir();
+        try {
+            await withLevelDB(tmpDir, async db => {
+                const trie = await PrivateTrie.create('tk1', db);
+                expect(trie).toBeDefined();
+                await trie.close();
+            });
+        } finally {
+            await clean();
+        }
+    });
     it('can close and reopen without errors', async () => {
         const { tmpDir, clean } = withTempDir();
         try {
-            const trie = await PrivateTrie.create(tmpDir + '/trie');
-            expect(trie).toBeDefined();
-            await trie.close();
-            const reopenedTrie = await PrivateTrie.create(tmpDir + '/trie');
-            expect(reopenedTrie).toBeDefined();
-            await reopenedTrie.close();
+            await withLevelDB(tmpDir, async db => {
+                const trie = await PrivateTrie.create('tk1', db);
+                expect(trie).toBeDefined();
+                await trie.close();
+            });
+            await withLevelDB(tmpDir, async reopenedDb => {
+                const reopenedTrie = await PrivateTrie.create(
+                    'tk1',
+                    reopenedDb
+                );
+                expect(reopenedTrie).toBeDefined();
+                await reopenedTrie.close();
+            });
         } finally {
             await clean();
         }
