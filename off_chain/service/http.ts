@@ -58,7 +58,6 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
                 await topup(walletAddress, amount);
                 res.json({ message: 'Top up successful' });
             } catch (error) {
-                console.log('Error topping up wallet:', error);
                 res.status(500).json({
                     error: 'Error topping up wallet',
                     details: error

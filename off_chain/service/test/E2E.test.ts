@@ -73,9 +73,27 @@ async function setup() {
     );
     const wallets: Wallets = { charlie, bob, alice };
 
-    await walletTopup(wallets.charlie);
-    await walletTopup(wallets.bob);
-    await walletTopup(wallets.alice);
+    const retryTopup = async (
+        wallet: string,
+        retries: number = 3,
+        delay: number = 10000
+    ) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                await walletTopup(wallet);
+                return;
+            } catch (error) {
+                if (attempt === retries) {
+                    throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    };
+
+    await retryTopup(wallets.charlie, 10, 10000);
+    await retryTopup(wallets.bob, 10, 10000);
+    await retryTopup(wallets.alice, 10, 10000);
 
     const runner: Runner = {
         run: async (fn: () => Promise<void>, name: string) => {
