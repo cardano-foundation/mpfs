@@ -176,11 +176,26 @@ export class TrieManager {
         return new TrieManager(dbPath);
     }
 
-    public static async load(dbPath: string): Promise<TrieManager> {
+    public static async load(dbPathRoot: string): Promise<TrieManager> {
+        const dbPath = `${dbPathRoot}/tries`;
+        const manager = new TrieManager(dbPath);
         if (!fs.existsSync(dbPath)) {
             throw new Error(`Database path does not exist: ${dbPath}`);
         }
-        return new TrieManager(dbPath);
+        for (const file of fs.readdirSync(dbPath)) {
+            const filePath = `${dbPath}/${file}`;
+            if (fs.statSync(filePath).isDirectory()) {
+                // Load existing trie
+                const trie = await SafeTrie.create(filePath);
+                console.log(`Loaded trie from: ${filePath}`);
+                if (trie) {
+                    manager.ptries[file] = trie;
+                } else {
+                    throw new Error(`Failed to load trie from: ${filePath}`);
+                }
+            }
+        }
+        return manager;
     }
     async trie(tokenId: string): Promise<SafeTrie> {
         const release = await this.lock.acquire();
