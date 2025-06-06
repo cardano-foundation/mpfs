@@ -5,6 +5,7 @@ import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
 import { Level } from 'level';
 import { AbstractLevel, AbstractSublevel } from 'abstract-level';
+import { A } from 'vitest/dist/chunks/environment.d.cL3nLXbE.js';
 
 export type Change = {
     operation: 'insert' | 'delete';
@@ -50,7 +51,7 @@ export class SafeTrie {
     // private hot_lock: boolean = false;
     private facts: Facts;
     private tempChanges: Change[] = [];
-    private db: Level<string, any>; // Top-level trie for safe operations
+    private db: AbstractSublevel<any, any, string, any>;
     // private lock: Mutex = new Mutex();
 
     private constructor(db, trie: PrivateTrie, facts: Facts) {
@@ -60,7 +61,7 @@ export class SafeTrie {
     }
     public static async create(
         tokenId,
-        parent: Level<any, any>
+        parent: AbstractSublevel<any, any, string, any>
     ): Promise<SafeTrie> {
         const db = parent.sublevel(tokenId, {
             valueEncoding: 'json'
@@ -163,14 +164,13 @@ export const serializeProof = (proof: Proof): Data => {
     const json = proof.toJSON() as Array<Record<string, unknown>>;
     return json.map((item: Record<string, unknown>) => serializeStepJ(item));
 };
-
 // Managing tries
 export class TrieManager {
     private tries: Record<string, SafeTrie> = {};
     private lock: Mutex = new Mutex();
-    private managerDB: Level<string, any>;
+    private managerDB: AbstractSublevel<any, any, string, any>;
 
-    private constructor(db: Level<string, any>) {
+    private constructor(db: AbstractSublevel<any, any, string, any>) {
         this.managerDB = db;
     }
     get trieIds() {
@@ -185,13 +185,10 @@ export class TrieManager {
         await this.managerDB.close();
         release();
     }
-    public static async create(dbPathRoot: string): Promise<TrieManager> {
-        const dbPath = `${dbPathRoot}/tries`;
-        if (fs.existsSync(dbPath)) {
-            fs.rmSync(dbPath, { recursive: true, force: true });
-        }
-        fs.mkdirSync(dbPath, { recursive: true });
-        const manager = new Level<string, any>(dbPath, {
+    public static async create(
+        parent: Level<string, any>
+    ): Promise<TrieManager> {
+        const manager = parent.sublevel<string, any>('tries', {
             valueEncoding: 'json'
         });
         await manager.open();
@@ -200,9 +197,8 @@ export class TrieManager {
         return new TrieManager(manager);
     }
 
-    public static async load(dbPathRoot: string): Promise<TrieManager> {
-        const dbPath = `${dbPathRoot}/tries`;
-        const managerDB = new Level(dbPath, {
+    public static async load(parent): Promise<TrieManager> {
+        const managerDB = parent.sublevel('tries', {
             valueEncoding: 'json'
         });
         const manager = new TrieManager(managerDB);

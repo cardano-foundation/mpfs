@@ -48,7 +48,7 @@ export type Checkpoint = {
 };
 export type BlockHash = string;
 export class StateManager {
-    private stateStore: Level<string, any>;
+    private stateStore: AbstractSublevel<any, any, string, any>;
     private tokenStore: AbstractSublevel<any, any, string, DBTokenState>;
     private requestStore: AbstractSublevel<any, any, string, DBRequest>;
     private rollbackStore: AbstractSublevel<
@@ -67,8 +67,11 @@ export class StateManager {
     private windowSize: number = 2160; // Default window size for checkpoints
     private readonly checkpointsSize: number | null;
 
-    constructor(dbPath: string, checkpointsSize: number | null) {
-        this.stateStore = new Level(dbPath, {
+    private constructor(
+        parent: Level<string, any>,
+        checkpointsSize: number | null
+    ) {
+        this.stateStore = parent.sublevel('state', {
             valueEncoding: 'json'
         });
         this.tokenStore = this.stateStore.sublevel('tokens', {
@@ -86,6 +89,18 @@ export class StateManager {
             keyEncoding: 'binary'
         });
         this.checkpointsSize = checkpointsSize;
+    }
+    static async create(
+        parent: Level<string, any>,
+        checkpointsSize: number | null = null
+    ): Promise<StateManager> {
+        const manager = new StateManager(parent, checkpointsSize);
+        await manager.stateStore.open();
+        await manager.tokenStore.open();
+        await manager.requestStore.open();
+        await manager.rollbackStore.open();
+        await manager.checkpointStore.open();
+        return manager;
     }
 
     async close(): Promise<void> {

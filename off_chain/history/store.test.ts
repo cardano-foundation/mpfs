@@ -7,6 +7,8 @@ import { mkOutputRefId, unmkOutputRefId } from './store';
 import * as fc from 'fast-check';
 import { samplePowerOfTwoPositions } from './store/intersection';
 import { withTempDir } from '../test/lib';
+import { withLevelDB } from '../trie.test';
+import { a } from 'vitest/dist/chunks/suite.d.FvehnV49.js';
 
 describe('level-db', () => {
     it('supports reopening a database', async () => {
@@ -183,27 +185,33 @@ describe('mkOutputRefId and unmkOutputRefId', () => {
         );
     });
 });
-describe('StateManager Class', () => {
-    it('should create a StateManager instance with correct properties', () => {
+describe('StateManager', () => {
+    it('should create a StateManager instance with correct properties', async () => {
         const { tmpDir, clean } = withTempDir();
         try {
-            const checkpointsSize = 100;
-            const stateManager = new StateManager(tmpDir, checkpointsSize);
+            await withLevelDB(tmpDir, async db => {
+                const checkpointsSize = 100;
+                const stateManager = new StateManager(db, checkpointsSize);
 
-            expect(stateManager).toBeInstanceOf(StateManager);
-            expect(stateManager['stateStore']).toBeInstanceOf(Level);
-            expect(stateManager['tokenStore']).toBeInstanceOf(AbstractSublevel);
-            expect(stateManager['requestStore']).toBeInstanceOf(
-                AbstractSublevel
-            );
-            expect(stateManager['rollbackStore']).toBeInstanceOf(
-                AbstractSublevel
-            );
-            expect(stateManager['checkpointStore']).toBeInstanceOf(
-                AbstractSublevel
-            );
-            expect(stateManager['checkpointsCount']).toBe(0);
-            expect(stateManager['checkpointsSize']).toBe(checkpointsSize);
+                expect(stateManager).toBeInstanceOf(StateManager);
+                expect(stateManager['stateStore']).toBeInstanceOf(
+                    AbstractSublevel
+                );
+                expect(stateManager['tokenStore']).toBeInstanceOf(
+                    AbstractSublevel
+                );
+                expect(stateManager['requestStore']).toBeInstanceOf(
+                    AbstractSublevel
+                );
+                expect(stateManager['rollbackStore']).toBeInstanceOf(
+                    AbstractSublevel
+                );
+                expect(stateManager['checkpointStore']).toBeInstanceOf(
+                    AbstractSublevel
+                );
+                expect(stateManager['checkpointsCount']).toBe(0);
+                expect(stateManager['checkpointsSize']).toBe(checkpointsSize);
+            });
         } finally {
             clean();
         }
@@ -219,18 +227,20 @@ describe('StateManager Class', () => {
     });
     it('should store and retrieve checkpoints', async () => {
         const { tmpDir, clean } = withTempDir();
-        const dbPath = tmpDir;
-        const checkpointsSize = 10;
-        const stateManager = new StateManager(dbPath, checkpointsSize);
-        const checkpoint = {
-            slot: new RollbackKey(123456789),
-            blockHash: 'blockhash123'
-        };
-
         try {
-            await stateManager.putCheckpoint(checkpoint);
-            const retrievedHash = await stateManager.getAllCheckpoints();
-            expect(retrievedHash).toContainEqual(checkpoint);
+            await withLevelDB(tmpDir, async db => {
+                const dbPath = tmpDir;
+                const checkpointsSize = 10;
+                const stateManager = new StateManager(db, checkpointsSize);
+                const checkpoint = {
+                    slot: new RollbackKey(123456789),
+                    blockHash: 'blockhash123'
+                };
+
+                await stateManager.putCheckpoint(checkpoint);
+                const retrievedHash = await stateManager.getAllCheckpoints();
+                expect(retrievedHash).toContainEqual(checkpoint);
+            });
         } finally {
             clean();
         }
@@ -239,18 +249,23 @@ describe('StateManager Class', () => {
         await fc.assert(
             fc.asyncProperty(genCheckpoints(0, 100), async checkpoints => {
                 const { tmpDir, clean } = withTempDir();
-                const dbPath = tmpDir;
-                const checkpointsSize = null;
-                const stateManager = new StateManager(dbPath, checkpointsSize);
-
                 try {
-                    for (const checkpoint of checkpoints) {
-                        await stateManager.putCheckpoint(checkpoint);
-                    }
+                    await withLevelDB(tmpDir, async db => {
+                        const dbPath = tmpDir;
+                        const checkpointsSize = null;
+                        const stateManager = new StateManager(
+                            db,
+                            checkpointsSize
+                        );
 
-                    const retrievedCheckpoints =
-                        await stateManager.getAllCheckpoints();
-                    expect(retrievedCheckpoints).toEqual(checkpoints);
+                        for (const checkpoint of checkpoints) {
+                            await stateManager.putCheckpoint(checkpoint);
+                        }
+
+                        const retrievedCheckpoints =
+                            await stateManager.getAllCheckpoints();
+                        expect(retrievedCheckpoints).toEqual(checkpoints);
+                    });
                 } finally {
                     clean();
                 }
@@ -262,24 +277,29 @@ describe('StateManager Class', () => {
         await fc.assert(
             fc.asyncProperty(genCheckpoints(20, 1000), async checkpoints => {
                 const { tmpDir, clean } = withTempDir();
-                const dbPath = tmpDir;
-                const checkpointsSize = 20;
-                const stateManager = new StateManager(dbPath, checkpointsSize);
-
                 try {
-                    for (const checkpoint of checkpoints) {
-                        await stateManager.putCheckpoint(checkpoint);
-                    }
+                    await withLevelDB(tmpDir, async db => {
+                        const dbPath = tmpDir;
+                        const checkpointsSize = 20;
+                        const stateManager = new StateManager(
+                            db,
+                            checkpointsSize
+                        );
 
-                    const retrievedCheckpoints =
-                        await stateManager.getAllCheckpoints();
+                        for (const checkpoint of checkpoints) {
+                            await stateManager.putCheckpoint(checkpoint);
+                        }
 
-                    expect(retrievedCheckpoints.length).toBeLessThan(
-                        checkpointsSize * 2
-                    );
-                    expect(retrievedCheckpoints.length).toBeGreaterThanOrEqual(
-                        checkpointsSize
-                    );
+                        const retrievedCheckpoints =
+                            await stateManager.getAllCheckpoints();
+
+                        expect(retrievedCheckpoints.length).toBeLessThan(
+                            checkpointsSize * 2
+                        );
+                        expect(
+                            retrievedCheckpoints.length
+                        ).toBeGreaterThanOrEqual(checkpointsSize);
+                    });
                 } finally {
                     clean(); // Cleanup tmpDir
                 }
@@ -288,20 +308,24 @@ describe('StateManager Class', () => {
         );
     }, 30000);
     it('supports reopening', async () => {
+        const checkpointsSize = 10;
         const { tmpDir, clean } = withTempDir();
         try {
-            const checkpointsSize = 10;
-            const stateManager = new StateManager(tmpDir, checkpointsSize);
+            await withLevelDB(tmpDir, async db => {
+                const stateManager = new StateManager(db, checkpointsSize);
 
-            await stateManager.close();
+                await stateManager.close();
 
-            // Reopen the StateManager
-            const reopenedStateManager = new StateManager(
-                tmpDir,
-                checkpointsSize
-            );
+                // Reopen the StateManager
+            });
+            await withLevelDB(tmpDir, async reopenedDb => {
+                const reopenedStateManager = new StateManager(
+                    reopenedDb,
+                    checkpointsSize
+                );
 
-            await reopenedStateManager.close();
+                await reopenedStateManager.close();
+            });
         } finally {
             clean(); // Cleanup tmpDir
         }

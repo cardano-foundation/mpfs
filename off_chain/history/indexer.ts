@@ -4,6 +4,7 @@ import { Mutex } from 'async-mutex';
 import { DBTokenState, StateChange, StateManager } from './store';
 import { Process } from './process';
 import { RollbackKey } from './store/rollbackkey';
+import { Level } from 'level';
 
 class Indexer {
     private process: Process;
@@ -31,16 +32,16 @@ class Indexer {
         this.state = state;
     }
 
-    public static create(
+    public static async create(
         tries: TrieManager,
-        dbPath: string,
+        parentDB: Level<string, any>,
         address: string,
         policyId: string,
         wsAddress: string,
         name: string = 'Indexer',
         checkpointsSize: number = 10
-    ): Indexer {
-        const state = new StateManager(`${dbPath}/state`, checkpointsSize);
+    ): Promise<Indexer> {
+        const state = await StateManager.create(parentDB, checkpointsSize);
         const process = new Process(state, tries, address, policyId);
         return new Indexer(process, wsAddress, name, state);
     }

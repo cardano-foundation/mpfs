@@ -16,6 +16,7 @@ import { MeshWallet } from '@meshsdk/core';
 import { TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../history/store';
+import { Level } from 'level';
 
 // API Endpoints
 function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
@@ -237,6 +238,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
 export type Service = {
     server: Server;
     indexer: Indexer;
+    db: Level<string, any>;
 };
 
 export type Name = {
@@ -255,20 +257,26 @@ export async function runServices(
     const servers: Service[] = [];
     for (const { port, name } of names) {
         const dbPathWithPort = `${dbPath}/${port}`;
+        const db = new Level(dbPathWithPort, {
+            valueEncoding: 'json',
+            keyEncoding: 'utf8'
+        });
+        await db.open();
         try {
             const wallet = mkWallet(ctxProvider.provider);
-            const tries = await TrieManager.create(dbPathWithPort);
+            const tries = await TrieManager.create(db);
 
             const { address, policyId } = getCagingScript();
 
-            const indexer = Indexer.create(
+            const indexer = await Indexer.create(
                 tries,
-                dbPathWithPort,
+                db,
                 address,
                 policyId,
                 ogmios,
                 name
             );
+            await new Promise(resolve => setTimeout(resolve, 3000));
             new Promise(async () => {
                 await indexer.run();
             });
@@ -288,7 +296,7 @@ export async function runServices(
                     reject(err);
                 });
             });
-            servers.push({ server, indexer });
+            servers.push({ server, indexer, db });
         } catch (error) {
             console.error(`Failed to start service on port ${port}:`, error);
             throw error;
@@ -298,19 +306,10 @@ export async function runServices(
 }
 
 export async function stopServices(servers: Service[]) {
-    return Promise.all(
-        servers.map(({ server, indexer }) => {
-            return new Promise<void>((resolve, reject) => {
-                indexer.close();
-                server.close(err => {
-                    if (err) {
-                        console.error('Error stopping server:', err);
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-        })
-    );
+    for (const { server, indexer, db } of servers) {
+        await indexer.close();
+        await db.close();
+        server.close();
+    }
+    console.log('All services stopped successfully.');
 }
