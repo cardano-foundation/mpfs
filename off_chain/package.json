@@ -19,13 +19,13 @@
                 "bip39": "^3.1.0",
                 "chalk": "^5.4.1",
                 "express": "^5.1.0",
+                "fast-check": "^4.1.1",
                 "get-port": "^7.1.0",
                 "level": "^10.0.0",
                 "prettier": "^3.5.3",
                 "tsx": "^4.19.4",
-                "yargs": "^17.7.2",
-                "fast-check": "^4.1.1",
-                "vitest": "^3.2.1"
+                "vitest": "^3.2.1",
+                "yargs": "^17.7.2"
         },
         "devDependencies": {
                 "@eslint/js": "^9.27.0",
