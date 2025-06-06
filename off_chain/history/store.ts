@@ -88,6 +88,17 @@ export class StateManager {
         this.checkpointsSize = checkpointsSize;
     }
 
+    async close(): Promise<void> {
+        try {
+            await this.rollbackStore.close();
+            await this.requestStore.close();
+            await this.tokenStore.close();
+            await this.checkpointStore.close();
+            await this.stateStore.close();
+        } catch (error) {
+            console.error('Error closing StateManager:', error);
+        }
+    }
     async getRequest(outputRef: string): Promise<DBRequest | null> {
         try {
             const result = await this.requestStore.get(outputRef);
