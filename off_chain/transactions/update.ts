@@ -7,7 +7,7 @@ import {
 } from '@meshsdk/core';
 
 import { Context } from '../context';
-import { Proof } from '@aiken-lang/merkle-patricia-forestry';
+import { Proof } from '../mpf/lib';
 import { serializeProof } from '../trie';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
 import { unmkOutputRefId } from '../history/store';

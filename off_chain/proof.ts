@@ -1,4 +1,4 @@
-import { Store, Trie } from '@aiken-lang/merkle-patricia-forestry';
+import { Store, Trie } from './mpf/lib';
 
 const trie = await Trie.fromList([{ key: '42', value: '42' }]);
 

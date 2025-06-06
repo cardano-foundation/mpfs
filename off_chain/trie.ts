@@ -1,4 +1,4 @@
-import { Proof, Store, Trie } from '@aiken-lang/merkle-patricia-forestry';
+import { Proof, Store, Trie } from './mpf/lib';
 import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import fs from 'fs';
 import { Facts } from './facts/store';
