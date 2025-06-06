@@ -52,22 +52,33 @@ wait_for_service service_name port:
         echo "Waiting for {{service_name}} to be up on port {{port}}..."
         sleep 1
     done
-run-bare-E2E-tests:
-    #!/usr/bin/env bash
 
+# shellcheck disable=SC2035
+run-tests pat:
+    #!/usr/bin/env bash
     just wait_for_service "yaci-store" 8080
     just wait_for_service "yaci-admin" 10000
     just wait_for_service "ogmios" 1337
-    cd off_chain
     export YACI_STORE_PORT=8080
     export YACI_ADMIN_PORT=10000
     export OGMIOS_PORT=1337
-    npx tsx service/test/E2E.ts
-
-run-tests:
-    #!/usr/bin/env bash
     cd off_chain
-    npx vitest run --reporter verbose
+    npx ava --verbose "{{pat}}"
+    npx vitest run  -t "{{pat}}"
+
+test-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just wait_for_service "yaci-store" 8080
+    just wait_for_service "yaci-admin" 10000
+    just wait_for_service "ogmios" 1337
+    export YACI_STORE_PORT=8080
+    export YACI_ADMIN_PORT=10000
+    export OGMIOS_PORT=1337
+    cd off_chain
+    npx ava
+    npx vitest --bail 1 run -t "^(?!.*E2E).*"
+    npx vitest --bail 1 run -t ".*E2E.*"
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash
