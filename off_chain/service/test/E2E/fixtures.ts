@@ -1,4 +1,4 @@
-import { Name, runServices, stopServices } from '../../http';
+import { Name, withServices } from '../../http';
 import getPort from 'get-port';
 import { Provider, yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
@@ -34,7 +34,7 @@ export type Runner = {
     wallets: Wallets;
 };
 
-export async function withRunner(f) {
+export async function withRunner(test) {
     const yaciStorePort = process.env.YACI_STORE_PORT || '8080';
     const yaciStorePortNumber = validatePort(yaciStorePort, 'YACI_STORE_PORT');
     const yaciStoreHost = `http://localhost:${yaciStorePortNumber}`;
@@ -68,49 +68,52 @@ export async function withRunner(f) {
     const alice = await setupService('ALICE_PORT', 'alice');
 
     await withTempDir(async tmpDir => {
-        const servers = await runServices(
+        await withServices(
             tmpDir,
             tmpDir,
             namesToServe,
             provider,
             newWallet,
-            ogmiosHost
-        );
-        const wallets: Wallets = { charlie, bob, alice };
+            ogmiosHost,
+            async () => {
+                const wallets: Wallets = { charlie, bob, alice };
 
-        const retryTopup = async (
-            wallet: string,
-            retries: number = 30,
-            delay: number = Math.random() * 10000 + 2000
-        ) => {
-            for (let attempt = 1; attempt <= retries; attempt++) {
-                try {
-                    await walletTopup(wallet);
-                    return;
-                } catch (error) {
-                    if (attempt === retries) {
-                        throw error;
+                const retryTopup = async (
+                    wallet: string,
+                    retries: number = 30,
+                    delay: number = Math.random() * 10000 + 2000
+                ) => {
+                    for (let attempt = 1; attempt <= retries; attempt++) {
+                        try {
+                            await walletTopup(wallet);
+                            return;
+                        } catch (error) {
+                            if (attempt === retries) {
+                                throw error;
+                            }
+                            await new Promise(resolve =>
+                                setTimeout(resolve, delay)
+                            );
+                        }
                     }
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
+                };
+
+                await retryTopup(wallets.charlie);
+                await retryTopup(wallets.bob);
+                await retryTopup(wallets.alice);
+
+                const runner: Runner = {
+                    run: async (fn: () => Promise<void>, name: string) => {
+                        await fn();
+                    },
+                    log: async (s: string) => {
+                        // console.log(`  - ${s}`);
+                    },
+                    wallets
+                };
+                await test(runner);
             }
-        };
-
-        await retryTopup(wallets.charlie);
-        await retryTopup(wallets.bob);
-        await retryTopup(wallets.alice);
-
-        const runner: Runner = {
-            run: async (fn: () => Promise<void>, name: string) => {
-                await fn();
-            },
-            log: async (s: string) => {
-                // console.log(`  - ${s}`);
-            },
-            wallets
-        };
-        await f(runner);
-        await stopServices(servers);
+        );
     });
 }
 

@@ -19,7 +19,7 @@ import { unmkOutputRefId, mkOutputRefId } from '../history/store';
 import { Level } from 'level';
 
 // API Endpoints
-function mkAPI(tmp: string, topup: TopUp | undefined, context): Function {
+function mkAPI(tmp: string, topup: TopUp | undefined, context) {
     async function withTokens(f: (tokens: any[]) => any): Promise<any> {
         const tokens = await withContext(
             `${tmp}/logs/tokens`,
@@ -246,69 +246,90 @@ export type Name = {
     port: number;
 };
 
-export async function runServices(
+export async function withService(
+    port: number,
+    logsPath: string,
+    dbPath: string,
+    ctxProvider: ContextProvider,
+    mkWallet: (Provider) => MeshWallet,
+    ogmios: string,
+    f
+): Promise<void> {
+    const db = new Level(`${dbPath}/${port}`, {
+        valueEncoding: 'json',
+        keyEncoding: 'utf8'
+    });
+    await db.open();
+    try {
+        const wallet = mkWallet(ctxProvider.provider);
+        const tries = await TrieManager.create(db);
+
+        const { address, policyId } = getCagingScript();
+
+        const indexer = await Indexer.create(
+            tries,
+            db,
+            address,
+            policyId,
+            ogmios
+        );
+        try {
+            new Promise<void>(async (resolve, reject) => {
+                try {
+                    await indexer.run();
+                    resolve();
+                } catch (error) {
+                    console.error('Error running indexer:', error);
+                    reject(error);
+                }
+            });
+
+            const context = await newContext(indexer, ctxProvider, wallet);
+            const app = mkAPI(logsPath, ctxProvider.topup, context);
+            const server = app.listen(port);
+
+            await new Promise<void>((resolve, reject) => {
+                server.on('listening', resolve);
+                server.on('error', reject);
+            });
+            try {
+                await f();
+            } finally {
+                server.close();
+            }
+        } finally {
+            await indexer.close();
+        }
+    } finally {
+        await db.close();
+    }
+}
+
+export async function withServices(
     logsPath: string,
     dbPath: string,
     names: Name[],
     ctxProvider: ContextProvider,
     mkWallet: (Provider) => MeshWallet,
-    ogmios: string
-) {
-    const servers: Service[] = [];
-    for (const { port, name } of names) {
-        const dbPathWithPort = `${dbPath}/${port}`;
-        const db = new Level(dbPathWithPort, {
-            valueEncoding: 'json',
-            keyEncoding: 'utf8'
-        });
-        await db.open();
-        try {
-            const wallet = mkWallet(ctxProvider.provider);
-            const tries = await TrieManager.create(db);
-
-            const { address, policyId } = getCagingScript();
-
-            const indexer = await Indexer.create(
-                tries,
-                db,
-                address,
-                policyId,
-                ogmios,
-                name
-            );
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            new Promise(async () => {
-                await indexer.run();
-            });
-
-            const context = await newContext(indexer, ctxProvider, wallet);
-            const app = mkAPI(logsPath, ctxProvider.topup, context);
-
-            const server = await new Promise<Server>((resolve, reject) => {
-                const srv = app.listen(port, () => {
-                    resolve(srv);
-                });
-                srv.on('error', err => {
-                    console.error(
-                        `Error starting server on port ${port}:`,
-                        err
-                    );
-                    reject(err);
-                });
-            });
-            servers.push({ server, indexer, db });
-        } catch (error) {
-            console.error(`Failed to start service on port ${port}:`, error);
-            throw error;
+    ogmios: string,
+    f
+): Promise<void> {
+    async function loop(names: Name[]) {
+        if (names.length === 0) {
+            await f();
+            return;
         }
+        const { port, name } = names[0];
+        const remainingNames = names.slice(1);
+        await withService(
+            port,
+            logsPath,
+            dbPath,
+            ctxProvider,
+            mkWallet,
+            ogmios,
+            async () => await loop(remainingNames)
+        );
     }
-    return servers;
-}
-
-export async function stopServices(servers: Service[]) {
-    for (const { server, indexer, db } of servers) {
-        await indexer.close();
-        await db.close();
-        server.close();
-    }
+    await loop(names);
 }

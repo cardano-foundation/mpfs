@@ -1,12 +1,7 @@
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { validatePort } from '../lib';
-import { runServices, stopServices } from './http';
-import {
-    blockfrostProvider,
-    ContextProvider,
-    Provider,
-    yaciProvider
-} from '../context';
+import { withService } from './http';
+import { blockfrostProvider, ContextProvider, yaciProvider } from '../context';
 import fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -147,29 +142,24 @@ async function setup() {
 async function main() {
     const { portNumber, ctxProvider, mkWallet, ogmios, database, logs } =
         await setup();
-    servers = await runServices(
+    await withService(
+        portNumber,
         logs,
         database,
-        [{ name: 'main', port: portNumber }],
         ctxProvider,
         mkWallet,
-        ogmios
+        ogmios,
+        async () => {
+            console.log(`Server is running on port ${portNumber}`);
+            console.log('Press Ctrl+C to stop the server');
+            await new Promise<void>(resolve => {
+                process.on('SIGINT', () => {
+                    console.log('Shutting down server...');
+                    resolve();
+                });
+            });
+        }
     );
-    console.log(`Server is running on port ${portNumber}`);
-
-    process.on('SIGINT', async () => {
-        console.log('Received SIGINT. Shutting down...');
-        await stopServices(servers);
-        console.log('Server stopped');
-        process.exit(0);
-    });
-
-    process.on('SIGTERM', async () => {
-        console.log('Received SIGTERM. Shutting down...');
-        await stopServices(servers);
-        console.log('Server stopped');
-        process.exit(0);
-    });
 }
 
 await main();
