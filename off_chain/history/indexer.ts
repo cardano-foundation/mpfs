@@ -213,7 +213,6 @@ class Indexer {
                             });
                             for (const tx of response.result.block
                                 .transactions) {
-                                //console.log(JSON.stringify(tx, null, 2));
                                 const changes = await this.process.process(
                                     slot,
                                     tx
@@ -222,6 +221,11 @@ class Indexer {
                             this.queryNextBlock();
                             break;
                         case 'backward':
+                            console.log(
+                                `Received backward block: ${JSON.stringify(
+                                    response
+                                )}`
+                            );
                             this.queryNextBlock();
                             break;
                     }

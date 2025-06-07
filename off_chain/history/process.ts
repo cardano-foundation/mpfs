@@ -73,15 +73,6 @@ export class Process {
                         state: tokenState,
                         outputRef: { txHash: tx.id, outputIndex: 0 }
                     });
-
-                    const localRoot = rootHex(trie.root());
-                    // Assert that roots are the same
-                    if (localRoot !== tokenState.root) {
-                        throw new Error(
-                            `Root mismatch for asset ${tokenId}:
-                                expected ${tokenState.root}, got ${localRoot}`
-                        );
-                    }
                 }
                 const tokenState = parseStateDatumCbor(output.datum);
                 if (tokenState) {

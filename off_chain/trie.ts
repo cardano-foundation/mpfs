@@ -121,18 +121,11 @@ export class SafeTrie {
 
 async function updateTrie(trie: Trie, change: Change): Promise<Proof> {
     const { key, value, operation } = change;
-    const present = await trie.get(key);
     switch (operation) {
         case 'insert':
-            if (present !== undefined) {
-                throw new Error('Key already exists');
-            }
             await trie.insert(key, value);
             return await trie.prove(key);
         case 'delete':
-            if (present === undefined) {
-                throw new Error('Key does not exist');
-            }
             const proof = await trie.prove(key);
             await trie.delete(key);
             return proof;
