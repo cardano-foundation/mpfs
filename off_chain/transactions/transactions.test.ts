@@ -13,51 +13,44 @@ import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
 
 describe('Restarting the service', () => {
-    let tmpDir: string;
-    let clean: () => void;
-    let mnemonics: string;
-    beforeAll(async () => {
-        ({ tmpDir, clean } = withTempDir());
-        mnemonics = generateMnemonic();
-    });
-
-    afterAll(async () => {
-        await clean();
-    });
-
     it('should not throw an error', async () => {
-        await withContext(3000, tmpDir, mnemonics, async context1 => {
-            await sync(context1);
-            const tokenId = await boot(context1);
-            expect(tokenId).toBeDefined();
-            await sync(context1);
-            await end(context1, tokenId);
-        });
+        const mnemonics = generateMnemonic();
+        await withTempDir(async tmpDir => {
+            await withContext(3000, tmpDir, mnemonics, async context1 => {
+                await sync(context1);
+                const tokenId = await boot(context1);
+                expect(tokenId).toBeDefined();
+                await sync(context1);
+                await end(context1, tokenId);
+            });
 
-        await withContext(3000, tmpDir, mnemonics, async context2 => {
-            await sync(context2);
-            const tokenId = await boot(context2);
-            expect(tokenId).toBeDefined();
-            await sync(context2);
-            await end(context2, tokenId);
+            await withContext(3000, tmpDir, mnemonics, async context2 => {
+                await sync(context2);
+                const tokenId = await boot(context2);
+                expect(tokenId).toBeDefined();
+                await sync(context2);
+                await end(context2, tokenId);
+            });
         });
     }, 30_000);
 });
 describe('Submitting transactions we', () => {
     it('can create and delete a token', async () => {
-        await withContext(3000, null, null, async context => {
-            await sync(context);
+        await withTempDir(async tmpDir => {
+            await withContext(3000, null, null, async context => {
+                await sync(context);
 
-            const tokenId = await boot(context);
-            await sync(context);
-            const tokenBooted = await context.fetchToken(tokenId);
-            expect(tokenBooted).toBeDefined();
+                const tokenId = await boot(context);
+                await sync(context);
+                const tokenBooted = await context.fetchToken(tokenId);
+                expect(tokenBooted).toBeDefined();
 
-            await end(context, tokenId);
+                await end(context, tokenId);
 
-            await sync(context);
-            const tokenDeleted = await context.fetchToken(tokenId);
-            expect(tokenDeleted).toBeUndefined();
+                await sync(context);
+                const tokenDeleted = await context.fetchToken(tokenId);
+                expect(tokenDeleted).toBeUndefined();
+            });
         });
     }, 20000);
 
@@ -168,11 +161,8 @@ export async function withContext(
     maybeMnemonic: string | null = null,
     f
 ) {
-    const { tmpDir, clean } = maybeDatabaseDir
-        ? { tmpDir: maybeDatabaseDir, clean: () => {} }
-        : withTempDir();
-    try {
-        const databaseDir = tmpDir;
+    await withTempDir(async tmpDirFresh => {
+        const databaseDir = maybeDatabaseDir || tmpDirFresh;
         const mnemonic = maybeMnemonic || generateMnemonic();
 
         const mkWallet = provider =>
@@ -241,9 +231,7 @@ export async function withContext(
             }
             await indexer.close();
         });
-    } finally {
-        clean();
-    }
+    });
 }
 
 export async function sync(context: Context) {

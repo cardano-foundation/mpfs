@@ -2,14 +2,15 @@ import { rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-export function withTempDir(): { tmpDir: string; clean: () => void } {
+export async function withTempDir(f: (tmpDir: string) => Promise<void>) {
     const tmpDir = join(
         tmpdir(),
-        `testdb-${Math.random().toString(36).substring(2, 15)}`
+        `mpfs-${Math.random().toString(36).substring(2, 15)}`
     );
     rmSync(tmpDir, { recursive: true, force: true }); // Ensure the directory is clean
-    return {
-        tmpDir,
-        clean: () => rmSync(tmpDir, { recursive: true, force: true })
-    };
+    try {
+        await f(tmpDir);
+    } finally {
+        rmSync(tmpDir, { recursive: true, force: true }); // Clean up after the test
+    }
 }

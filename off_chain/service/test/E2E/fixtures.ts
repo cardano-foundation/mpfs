@@ -67,51 +67,51 @@ export async function withRunner(f) {
     const bob = await setupService('BOB_PORT', 'bob');
     const alice = await setupService('ALICE_PORT', 'alice');
 
-    const { tmpDir, clean } = withTempDir();
-    const servers = await runServices(
-        tmpDir,
-        tmpDir,
-        namesToServe,
-        provider,
-        newWallet,
-        ogmiosHost
-    );
-    const wallets: Wallets = { charlie, bob, alice };
+    await withTempDir(async tmpDir => {
+        const servers = await runServices(
+            tmpDir,
+            tmpDir,
+            namesToServe,
+            provider,
+            newWallet,
+            ogmiosHost
+        );
+        const wallets: Wallets = { charlie, bob, alice };
 
-    const retryTopup = async (
-        wallet: string,
-        retries: number = 30,
-        delay: number = Math.random() * 10000 + 2000
-    ) => {
-        for (let attempt = 1; attempt <= retries; attempt++) {
-            try {
-                await walletTopup(wallet);
-                return;
-            } catch (error) {
-                if (attempt === retries) {
-                    throw error;
+        const retryTopup = async (
+            wallet: string,
+            retries: number = 30,
+            delay: number = Math.random() * 10000 + 2000
+        ) => {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    await walletTopup(wallet);
+                    return;
+                } catch (error) {
+                    if (attempt === retries) {
+                        throw error;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
-                await new Promise(resolve => setTimeout(resolve, delay));
             }
-        }
-    };
+        };
 
-    await retryTopup(wallets.charlie);
-    await retryTopup(wallets.bob);
-    await retryTopup(wallets.alice);
+        await retryTopup(wallets.charlie);
+        await retryTopup(wallets.bob);
+        await retryTopup(wallets.alice);
 
-    const runner: Runner = {
-        run: async (fn: () => Promise<void>, name: string) => {
-            await fn();
-        },
-        log: async (s: string) => {
-            // console.log(`  - ${s}`);
-        },
-        wallets
-    };
-    await f(runner);
-    await stopServices(servers);
-    clean();
+        const runner: Runner = {
+            run: async (fn: () => Promise<void>, name: string) => {
+                await fn();
+            },
+            log: async (s: string) => {
+                // console.log(`  - ${s}`);
+            },
+            wallets
+        };
+        await f(runner);
+        await stopServices(servers);
+    });
 }
 
 export async function e2eTest(

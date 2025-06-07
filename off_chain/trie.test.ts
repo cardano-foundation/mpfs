@@ -14,8 +14,7 @@ export async function withLevelDB(tmpDir, callback) {
 }
 describe('Trie', () => {
     it('can close and reopen without errors', async () => {
-        const { tmpDir, clean } = withTempDir();
-        try {
+        await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
                 const store = new Store('testTrie', db);
                 await store.ready();
@@ -28,28 +27,22 @@ describe('Trie', () => {
                 const storeReopened = new Store('testTrie', dbReopened);
                 await storeReopened.ready();
             });
-        } finally {
-            await clean();
-        }
+        });
     });
 });
 
 describe('PrivateTrie', () => {
     it('can create and close', async () => {
-        const { tmpDir, clean } = withTempDir();
-        try {
+        await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
                 const trie = await PrivateTrie.create('tk1', db);
                 expect(trie).toBeDefined();
                 await trie.close();
             });
-        } finally {
-            await clean();
-        }
+        });
     });
     it('can close and reopen without errors', async () => {
-        const { tmpDir, clean } = withTempDir();
-        try {
+        await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
                 const trie = await PrivateTrie.create('tk1', db);
                 expect(trie).toBeDefined();
@@ -63,16 +56,13 @@ describe('PrivateTrie', () => {
                 expect(reopenedTrie).toBeDefined();
                 await reopenedTrie.close();
             });
-        } finally {
-            await clean();
-        }
+        });
     });
 });
 
 describe('TrieManager', () => {
     it('can close and reopen without errors', async () => {
-        const { tmpDir, clean } = withTempDir();
-        try {
+        await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
                 const trieManager = await TrieManager.create(db);
                 async function onTrie(trie) {
@@ -111,8 +101,6 @@ describe('TrieManager', () => {
                 }
                 await reopenedTrieManager.trie('testTokenId', onReopenedTrie);
             });
-        } finally {
-            await clean();
-        }
+        });
     });
 });
