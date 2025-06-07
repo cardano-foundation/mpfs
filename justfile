@@ -20,38 +20,35 @@ build-off-chain:
     cd off_chain
     npm install
 
-run-docker-E2E-tests:
-    #!/usr/bin/env bash
-    just build-on-chain
-    just build-off-chain
-    cd off_chain
-    export YACI_STORE_PORT=$(shuf -i 1024-65535 -n 1)
-    export YACI_ADMIN_PORT=$(shuf -i 1024-65535 -n 1)
-    export OGMIOS_PORT=$(shuf -i 1024-65535 -n 1)
-    export CHARLIE_PORT=$(shuf -i 1024-65535 -n 1)
-    export BOB_PORT=$(shuf -i 1024-65535 -n 1)
-    export ALICE_PORT=$(shuf -i 1024-65535 -n 1)
-
-    name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
-    docker compose -f docker/docker-compose.yaml -p "$name" up  -d
-    down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
-    trap '$down' EXIT
-    for port in "$CHARLIE_PORT" "$ALICE_PORT" "$BOB_PORT"; do
-        until curl -s "http://localhost:$port/tokens" > /dev/null; do
-            echo "Waiting for server on port $port to start..."
-            sleep 1
-        done
-    done
-
-    sleep 10 # wait for yaci
-    rm -rf tmp
-    npx tsx service/test/E2E.ts
 wait_for_service service_name port:
     #!/usr/bin/env bash
     until curl -s "http://localhost:{{port}}" > /dev/null; do
         echo "Waiting for {{service_name}} to be up on port {{port}}..."
         sleep 1
     done
+
+run-docker-E2E-tests:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just build-on-chain
+    just build-off-chain
+    cd off_chain
+    export CHARLIE_PORT=$(shuf -i 1024-65535 -n 1)
+    export BOB_PORT=$(shuf -i 1024-65535 -n 1)
+    export ALICE_PORT=$(shuf -i 1024-65535 -n 1)
+    name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+    docker compose -f docker/docker-compose.yaml -p "$name" up  -d
+    down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
+    trap '$down' EXIT
+
+    just wait_for_service "charlie" "$CHARLIE_PORT"
+    just wait_for_service "bob" "$BOB_PORT"
+    just wait_for_service "alice" "$ALICE_PORT"
+    echo "All services are up and running."
+
+    npx vitest --bail 1 run -t ".*E2E.*"
+
+
 
 # shellcheck disable=SC2035
 run-tests pat:

@@ -10,6 +10,7 @@ import {
     getWallet,
     updateToken
 } from './client';
+import { Runner, Wallets } from './fixtures';
 import { assertThrows, shouldFail } from './lib';
 
 export {
@@ -29,18 +30,6 @@ export {
     canBatchUpdate,
     insertCommutes,
     deleteCommutes
-};
-
-type Wallets = {
-    charlie: string;
-    bob: string;
-    alice: string;
-};
-
-type Runner = {
-    run: (test: () => Promise<void>, name: string) => Promise<void>;
-    log: (message: string) => void;
-    wallets: Wallets;
 };
 
 const canAccessWallets = async ({

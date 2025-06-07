@@ -311,5 +311,4 @@ export async function stopServices(servers: Service[]) {
         await db.close();
         server.close();
     }
-    console.log('All services stopped successfully.');
 }

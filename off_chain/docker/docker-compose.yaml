@@ -24,9 +24,6 @@ services:
   yaci-cli:
     container_name: yaci-cli
     image: bloxbean/yaci-cli:0.10.6-beta
-    ports:
-      - "${YACI_STORE_PORT:-8080}:8080"
-      - "${YACI_ADMIN_PORT:-10000}:10000"
     volumes:
       - cluster-data:/clusters
       - ../config/node.properties:/app/config/node.properties
