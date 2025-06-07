@@ -39,11 +39,11 @@ const canAccessWallets = async ({
 }: Runner) => {
     const test = async () => {
         log('charlie can get his wallet');
-        getWallet(charlie);
+        await getWallet(charlie);
         log('bob can get his wallet');
-        getWallet(bob);
+        await getWallet(bob);
         log('alice can get her wallet');
-        getWallet(alice);
+        await getWallet(alice);
     };
     await run(test, 'users can access wallets');
 };
