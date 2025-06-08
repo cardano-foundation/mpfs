@@ -1,6 +1,6 @@
 import { Proof } from '../mpf/lib';
 import { Buffer } from 'buffer';
-import { createFacts } from '../facts/store';
+import { createFacts } from './fatcs';
 import { AbstractSublevel } from 'abstract-level';
 import { Change, invertChange, updateTrie } from '../trie/change';
 import { createLoaded } from '../trie/loaded';
