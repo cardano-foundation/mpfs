@@ -5,6 +5,7 @@ import { AbstractSublevel } from 'abstract-level';
 import { RollbackKey } from './store/rollbackkey';
 import { Checkpoints, createCheckpoints } from './store/checkpoints';
 import { createTokens, DBTokenState, Tokens } from './store/tokens';
+import { createRequests, Requests } from './store/requests';
 
 export type DBRequest = {
     owner: string;
@@ -30,7 +31,7 @@ export type Rollback = {
 export class StateManager {
     private stateStore: AbstractSublevel<any, any, string, any>;
     public tokens: Tokens;
-    private requestStore: AbstractSublevel<any, any, string, DBRequest>;
+    public requests: Requests;
     private rollbackStore: AbstractSublevel<
         any,
         any,
@@ -42,7 +43,7 @@ export class StateManager {
     private constructor(
         stateStore: AbstractSublevel<any, any, string, any>,
         tokens: Tokens,
-        requestStore: AbstractSublevel<any, any, string, DBRequest>,
+        requests: Requests,
         rollbackStore: AbstractSublevel<
             any,
             any,
@@ -53,7 +54,7 @@ export class StateManager {
     ) {
         this.stateStore = stateStore;
         this.tokens = tokens;
-        this.requestStore = requestStore;
+        this.requests = requests
         this.rollbackStore = rollbackStore;
         this.checkpoints = checkpoints;
     }
@@ -66,11 +67,7 @@ export class StateManager {
         });
         await stateStore.open();
         const tokens = await createTokens(stateStore);
-        const requestStore: AbstractSublevel<any, any, string, DBRequest> =
-            stateStore.sublevel('requests', {
-                valueEncoding: 'json'
-            });
-        await requestStore.open();
+        const requestStore = await createRequests(stateStore);
         const rollbackStore: AbstractSublevel<
             any,
             any,
@@ -97,22 +94,12 @@ export class StateManager {
     async close(): Promise<void> {
         try {
             await this.rollbackStore.close();
-            await this.requestStore.close();
+            await this.requests.close();
             await this.tokens.close();
             await this.checkpoints.close();
             await this.stateStore.close();
         } catch (error) {
             console.error('Error closing StateManager:', error);
-        }
-    }
-
-    async getRequest(outputRef: string): Promise<DBRequest | null> {
-        try {
-            const result = await this.requestStore.get(outputRef);
-            return result || null;
-        } catch (error) {
-            if (error.notFound) return null;
-            throw error;
         }
     }
 
@@ -135,7 +122,7 @@ export class StateManager {
         outputRef: string,
         value: DBRequest
     ): Promise<void> {
-        await this.requestStore.put(outputRef, value);
+        await this.requests.put(outputRef, value);
         await this.putRollbackValue(rollbackKey, {
             type: 'RemoveRequest',
             outputRef
@@ -146,13 +133,13 @@ export class StateManager {
         rollbackKey: RollbackKey,
         outputRef: string
     ): Promise<void> {
-        const request = await this.getRequest(outputRef);
+        const request = await this.requests.get(outputRef);
         if (!request) {
             throw new Error(
                 `Request with output reference ${outputRef} does not exist.`
             );
         }
-        await this.requestStore.del(outputRef);
+        await this.requests.delete(outputRef);
         await this.putRollbackValue(rollbackKey, {
             type: 'AddRequest',
             outputRef,
@@ -192,20 +179,5 @@ export class StateManager {
         return changes.reverse();
     }
 
-    async getRequests(
-        tokenId: string | null
-    ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        const requests: { outputRef: string; change: Change; owner: string }[] =
-            [];
-        for await (const [key, value] of this.requestStore.iterator()) {
-            if (!tokenId || value.tokenId === tokenId) {
-                requests.push({
-                    outputRef: key,
-                    change: value.change,
-                    owner: value.owner
-                });
-            }
-        }
-        return requests;
-    }
+
 }

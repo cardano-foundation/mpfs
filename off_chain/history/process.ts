@@ -60,7 +60,7 @@ export class Process {
                 ) {
                     for (const input of tx.inputs) {
                         const ref = Process.inputToOutputRef(input);
-                        const request = await state.getRequest(ref);
+                        const request = await state.requests.get(ref);
                         if (!request) {
                             continue; // skip inputs with no request
                         }
@@ -102,7 +102,7 @@ export class Process {
         const inputs = tx.inputs;
         for (const input of inputs) {
             const ref = Process.inputToOutputRef(input);
-            if (await this.state.getRequest(ref)) {
+            if (await this.state.requests.get(ref)) {
                 this.state.deleteRequest(slotNumber, ref); // delete requests from inputs
             }
         }

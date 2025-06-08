@@ -80,7 +80,7 @@ class Indexer {
     async fetchRequests(
         tokenId: string | null = null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        return await this.process.stateManager.getRequests(tokenId);
+        return await this.process.stateManager.requests.byToken(tokenId);
     }
 
     async getSync(): Promise<{
