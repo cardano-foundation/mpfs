@@ -3,21 +3,8 @@ import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
 import { Level } from 'level';
 import { AbstractSublevel } from 'abstract-level';
+import { Change, invertChange, updateTrie } from './trie/change';
 
-export type Change = {
-    operation: 'insert' | 'delete';
-    key: string;
-    value: string;
-};
-
-export const invertChange = (change: Change): Change => {
-    const { operation, key, value } = change;
-    return {
-        operation: operation === 'insert' ? 'delete' : 'insert',
-        key,
-        value
-    };
-};
 export class PrivateTrie {
     public trie: Trie;
 
@@ -113,19 +100,6 @@ export class SafeTrie {
     }
     public async allFacts(): Promise<Record<string, string>> {
         return await this.facts.getAll();
-    }
-}
-
-async function updateTrie(trie: Trie, change: Change): Promise<Proof> {
-    const { key, value, operation } = change;
-    switch (operation) {
-        case 'insert':
-            await trie.insert(key, value);
-            return await trie.prove(key);
-        case 'delete':
-            const proof = await trie.prove(key);
-            await trie.delete(key);
-            return proof;
     }
 }
 

@@ -1,7 +1,7 @@
 import { TokenState } from '../token';
 import { OutputRef } from '../lib';
 import { Level } from 'level';
-import { Change, invertChange } from '../trie';
+import { Change, invertChange } from '../trie/change';
 import { AbstractSublevel } from 'abstract-level';
 import { RollbackKey } from './store/rollbackkey';
 

@@ -1,6 +1,6 @@
 import { deserializeDatum, UTxO } from '@meshsdk/core';
 import { fromHex, OutputRef } from './lib';
-import { Change } from './trie';
+import { Change } from './trie/change';
 
 export type RequestCore = {
     tokenId: string;

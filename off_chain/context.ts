@@ -11,11 +11,11 @@ import {
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import { Change, SafeTrie } from './trie';
 import blueprint from './plutus.json';
 import { TokenState } from './token';
 import { Indexer } from './history/indexer';
 import { DBTokenState } from './history/store';
+import { Change } from './trie/change';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;

@@ -1,11 +1,12 @@
 import WebSocket from 'ws';
-import { Change, TrieManager } from '../trie';
+import { TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 import { Checkpoint, DBTokenState, StateChange, StateManager } from './store';
 import { Process } from './process';
 import { RollbackKey } from './store/rollbackkey';
 import { Level } from 'level';
 import { samplePowerOfTwoPositions } from './store/intersection';
+import { Change } from '../trie/change';
 
 class Indexer {
     private process: Process;
