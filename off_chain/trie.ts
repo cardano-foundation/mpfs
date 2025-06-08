@@ -1,5 +1,5 @@
 import { Proof, Store, Trie } from './mpf/lib';
-import { Facts } from './facts/store';
+import { createFacts, Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
 import { Level } from 'level';
 import { AbstractSublevel } from 'abstract-level';
@@ -28,7 +28,7 @@ export class SafeTrie {
             valueEncoding: 'json'
         });
         const loaded = await createLoaded(tokenId, db);
-        const facts = await Facts.create(db);
+        const facts = await createFacts(db);
         return new SafeTrie(db, loaded, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
