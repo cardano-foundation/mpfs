@@ -1,12 +1,14 @@
 import WebSocket from 'ws';
 import { TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { Checkpoint, DBTokenState, StateChange, StateManager } from './store';
+import { DBTokenState, StateChange, StateManager } from './store';
 import { Process } from './process';
 import { RollbackKey } from './store/rollbackkey';
 import { Level } from 'level';
 import { samplePowerOfTwoPositions } from './store/intersection';
 import { Change } from '../trie/change';
+import { AbstractSublevel } from 'abstract-level';
+import { Checkpoint } from './store/checkpoints';
 
 class Indexer {
     private process: Process;
@@ -36,7 +38,7 @@ class Indexer {
 
     public static async create(
         tries: TrieManager,
-        parentDB: Level<string, any>,
+        parentDB: AbstractSublevel<any, any, string, any>,
         address: string,
         policyId: string,
         wsAddress: string,
@@ -150,7 +152,8 @@ class Indexer {
             try {
                 await connectWebSocket();
                 // Once connected, proceed with initialization
-                const checkpoints = await this.state.getAllCheckpoints();
+                const checkpoints =
+                    await this.state.checkpoints.getAllCheckpoints();
                 const sampleCheckpoints = samplePowerOfTwoPositions(
                     checkpoints.reverse()
                 );
@@ -216,7 +219,7 @@ class Indexer {
                             const slot = new RollbackKey(
                                 response.result.block.slot
                             );
-                            await this.state.putCheckpoint(
+                            await this.state.checkpoints.putCheckpoint(
                                 {
                                     slot,
                                     blockHash: response.result.block.id
@@ -236,7 +239,7 @@ class Indexer {
                             break;
                         case 'backward':
                             const checkpoints =
-                                await this.state.getAllCheckpoints();
+                                await this.state.checkpoints.getAllCheckpoints();
 
                             if (response.result.point === 'origin') {
                                 await this.rollback(null);
@@ -256,7 +259,8 @@ class Indexer {
     async rollback(checkpoint: Checkpoint | null): Promise<void> {
         // remove all checkpoints after this one
 
-        const requests = await this.state.extractCheckpointsAfter(checkpoint);
+        const requests =
+            await this.state.checkpoints.extractCheckpointsAfter(checkpoint);
 
         // // get out the rollbacks after this checkpoint
         // const rollbacks = await this.state.extractRollbacksAfter(
