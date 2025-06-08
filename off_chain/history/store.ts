@@ -5,18 +5,6 @@ import { Change, invertChange } from '../trie';
 import { AbstractSublevel } from 'abstract-level';
 import { RollbackKey } from './store/rollbackkey';
 
-export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
-    return `${txHash}-${outputIndex}`;
-}
-export function unmkOutputRefId(refId: string): OutputRef {
-    const [txHash, indexStr] = refId.split('-');
-    const outputIndex = parseInt(indexStr, 10);
-    if (isNaN(outputIndex)) {
-        throw new Error(`Invalid output reference: ${refId}`);
-    }
-    return { txHash, outputIndex };
-}
-
 export type DBRequest = {
     owner: string;
     tokenId: string;

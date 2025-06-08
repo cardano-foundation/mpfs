@@ -15,7 +15,7 @@ import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
-import { unmkOutputRefId, mkOutputRefId } from '../history/store';
+import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
 
 // API Endpoints

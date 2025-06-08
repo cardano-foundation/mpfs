@@ -10,7 +10,7 @@ import { Context } from '../context';
 import { Proof } from '../mpf/lib';
 import { serializeProof } from '../trie';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
-import { unmkOutputRefId } from '../history/store';
+import { unmkOutputRefId } from '../outputRef';
 
 const guessingLowCost = {
     mem: 1_000_000,

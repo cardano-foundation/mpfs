@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { boot } from './boot';
 import { end } from './end';
 import { request } from './request';
-import { mkOutputRefId } from '../history/store';
 import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
@@ -11,6 +10,7 @@ import { Indexer } from '../history/indexer';
 import { TrieManager } from '../trie';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
+import { mkOutputRefId } from '../outputRef';
 
 describe('Restarting the service', () => {
     it('should not throw an error', async () => {

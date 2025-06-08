@@ -3,7 +3,7 @@ import { RollbackKey } from './store/rollbackkey';
 import { Checkpoint, StateManager } from './store';
 import { Level } from 'level';
 import { AbstractSublevel } from 'abstract-level';
-import { mkOutputRefId, unmkOutputRefId } from './store';
+import { mkOutputRefId, unmkOutputRefId } from '../outputRef';
 import * as fc from 'fast-check';
 import { samplePowerOfTwoPositions } from './store/intersection';
 import { withTempDir } from '../test/lib';
