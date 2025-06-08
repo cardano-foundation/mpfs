@@ -1,14 +1,14 @@
 import WebSocket from 'ws';
 import { TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
-import { DBTokenState, StateChange, StateManager } from './store';
+import { StateChange, StateManager } from './store';
 import { Process } from './process';
 import { RollbackKey } from './store/rollbackkey';
-import { Level } from 'level';
 import { samplePowerOfTwoPositions } from './store/intersection';
 import { Change } from '../trie/change';
 import { AbstractSublevel } from 'abstract-level';
 import { Checkpoint } from './store/checkpoints';
+import { DBTokenState } from './store/tokens';
 
 class Indexer {
     private process: Process;
@@ -70,11 +70,11 @@ class Indexer {
     }
 
     async fetchTokens(): Promise<{ tokenId: string; state: DBTokenState }[]> {
-        return await this.process.stateManager.getTokens();
+        return await this.process.stateManager.tokens.getTokens();
     }
 
     async fetchToken(tokenId: string): Promise<DBTokenState | undefined> {
-        return await this.process.stateManager.getToken(tokenId);
+        return await this.process.stateManager.tokens.getToken(tokenId);
     }
 
     async fetchRequests(

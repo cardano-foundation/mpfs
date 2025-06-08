@@ -32,7 +32,7 @@ export class Process {
             for (const asset of Object.keys(minted)) {
                 if (minted[asset] == -1) {
                     // This is a token end request, delete the token state
-                    await this.state.deleteToken(slotNumber, asset);
+                    await this.state.tokens.deleteToken(asset);
                 }
             }
         }
@@ -70,9 +70,9 @@ export class Process {
                             request.change
                         );
                     }
-                    await state.putToken(slotNumber, tokenId, {
-                        state: tokenState,
-                        outputRef: { txHash: tx.id, outputIndex: 0 }
+                    await state.tokens.putToken(tokenId, {
+                        outputRef: { txHash: tx.id, outputIndex },
+                        state: tokenState
                     });
                 }
                 const tokenState = parseStateDatumCbor(output.datum);

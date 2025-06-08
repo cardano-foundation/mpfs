@@ -14,7 +14,7 @@ import { OutputLogger } from './logging';
 import blueprint from './plutus.json';
 import { TokenState } from './token';
 import { Indexer } from './history/indexer';
-import { DBTokenState } from './history/store';
+import { DBTokenState } from './history/store/tokens';
 import { Change } from './trie/change';
 import { SafeTrie } from './trie/safeTrie';
 

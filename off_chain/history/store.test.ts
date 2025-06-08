@@ -187,9 +187,6 @@ describe('StateManager', () => {
                 expect(stateManager['stateStore']).toBeInstanceOf(
                     AbstractSublevel
                 );
-                expect(stateManager['tokenStore']).toBeInstanceOf(
-                    AbstractSublevel
-                );
                 expect(stateManager['requestStore']).toBeInstanceOf(
                     AbstractSublevel
                 );
