@@ -4,42 +4,19 @@ import { Mutex } from 'async-mutex';
 import { Level } from 'level';
 import { AbstractSublevel } from 'abstract-level';
 import { Change, invertChange, updateTrie } from './trie/change';
+import { createLoaded, Loaded } from './trie/loaded';
 
-export class PrivateTrie {
-    public trie: Trie;
-
-    private constructor(trie: Trie) {
-        this.trie = trie;
-    }
-    public static async create(
-        tokenId: string,
-        levelDB: AbstractSublevel<any, any, any, any>
-    ): Promise<PrivateTrie> {
-        const store = new Store(tokenId, levelDB);
-        await store.ready();
-        let trie: Trie;
-        try {
-            trie = await Trie.load(store);
-        } catch (error) {
-            trie = new Trie(store);
-        }
-        return new PrivateTrie(trie);
-    }
-    public async close(): Promise<void> {
-        await this.trie.store.close();
-    }
-}
 // An MPF that can roll back operations
 export class SafeTrie {
-    private privateTrie: PrivateTrie;
+    private loaded: Loaded;
     // private hot_lock: boolean = false;
     private facts: Facts;
     private tempChanges: Change[] = [];
     private db: AbstractSublevel<any, any, string, any>;
     // private lock: Mutex = new Mutex();
 
-    private constructor(db, trie: PrivateTrie, facts: Facts) {
-        this.privateTrie = trie;
+    private constructor(db, trie: Loaded, facts: Facts) {
+        this.loaded = trie;
         this.facts = facts;
         this.db = db;
     }
@@ -50,12 +27,12 @@ export class SafeTrie {
         const db = parent.sublevel(tokenId, {
             valueEncoding: 'json'
         });
-        const trie = await PrivateTrie.create(tokenId, db);
+        const loaded = await createLoaded(tokenId, db);
         const facts = await Facts.create(db);
-        return new SafeTrie(db, trie, facts);
+        return new SafeTrie(db, loaded, facts);
     }
     public async getKey(key: string): Promise<Buffer | undefined> {
-        return this.privateTrie?.trie.get(key);
+        return this.loaded?.trie.get(key);
     }
 
     public async temporaryUpdate(change: Change): Promise<Proof> {
@@ -66,13 +43,13 @@ export class SafeTrie {
     public async rollback(): Promise<void> {
         for (const change of this.tempChanges.reverse()) {
             const inverted = invertChange(change);
-            await updateTrie(this.privateTrie.trie, inverted);
+            await updateTrie(this.loaded.trie, inverted);
         }
         this.tempChanges = [];
     }
     public async update(change: Change): Promise<Proof> {
         const { key, value, operation } = change;
-        const proof = await updateTrie(this.privateTrie.trie, change);
+        const proof = await updateTrie(this.loaded.trie, change);
         switch (change.operation) {
             case 'insert': {
                 await this.facts.set(key, value);
@@ -90,11 +67,11 @@ export class SafeTrie {
     }
 
     public root(): Buffer {
-        return this.privateTrie.trie.hash;
+        return this.loaded.trie.hash;
     }
 
     public async close(): Promise<void> {
-        await this.privateTrie.close();
+        await this.loaded.close();
         await this.facts.close();
         await this.db.close();
     }

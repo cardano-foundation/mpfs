@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { withTempDir } from './test/lib';
-import { PrivateTrie, TrieManager } from './trie';
+import { TrieManager } from './trie';
 import { Store, Trie } from './mpf/lib';
 import { Level } from 'level';
+import { createLoaded } from './trie/loaded';
+import { AbstractLevel, AbstractSublevel } from 'abstract-level';
 
-export async function withLevelDB(tmpDir, callback) {
+export async function withLevelDB(
+    tmpDir,
+    callback: (db: Level<any, any>) => Promise<void>
+) {
     const db = new Level(tmpDir, { valueEncoding: 'json' });
     try {
         await callback(db);
@@ -12,6 +17,7 @@ export async function withLevelDB(tmpDir, callback) {
         await db.close();
     }
 }
+
 describe('Trie', () => {
     it('can close and reopen without errors', async () => {
         await withTempDir(async tmpDir => {
@@ -31,11 +37,11 @@ describe('Trie', () => {
     });
 });
 
-describe('PrivateTrie', () => {
+describe('Loaded', () => {
     it('can create and close', async () => {
         await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
-                const trie = await PrivateTrie.create('tk1', db);
+                const trie = await createLoaded('tk1', db);
                 expect(trie).toBeDefined();
                 await trie.close();
             });
@@ -44,15 +50,12 @@ describe('PrivateTrie', () => {
     it('can close and reopen without errors', async () => {
         await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
-                const trie = await PrivateTrie.create('tk1', db);
+                const trie = await createLoaded('tk1', db);
                 expect(trie).toBeDefined();
                 await trie.close();
             });
             await withLevelDB(tmpDir, async reopenedDb => {
-                const reopenedTrie = await PrivateTrie.create(
-                    'tk1',
-                    reopenedDb
-                );
+                const reopenedTrie = await createLoaded('tk1', reopenedDb);
                 expect(reopenedTrie).toBeDefined();
                 await reopenedTrie.close();
             });
