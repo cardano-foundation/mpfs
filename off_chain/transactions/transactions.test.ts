@@ -10,7 +10,7 @@ import { Indexer } from '../history/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
 import { mkOutputRefId } from '../outputRef';
-import { TrieManager } from '../trie';
+import { createTrieManager, TrieManager } from '../trie';
 
 describe('Restarting the service', () => {
     it('should not throw an error', async () => {
@@ -292,7 +292,7 @@ export async function withContext(
         const ogmios = `http://localhost:${ogmiosPortNumber}`;
         const wallet = mkWallet(ctxProvider.provider);
         await withLevelDB(databaseDir, async db => {
-            const tries = await TrieManager.create(db);
+            const tries = await createTrieManager(db);
 
             const { address, policyId } = getCagingScript();
 

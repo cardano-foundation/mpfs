@@ -1,82 +1,102 @@
 import { Mutex } from 'async-mutex';
-import { Level } from 'level';
-import { AbstractSublevel } from 'abstract-level';
 import { createSafeTrie, SafeTrie } from './trie/safeTrie';
+import { Level } from 'level';
+import { update } from './transactions/update';
 
-// Managing tries
-export class TrieManager {
-    private tries: Record<string, SafeTrie> = {};
-    private lock: Mutex = new Mutex();
-    private managerDB: AbstractSublevel<any, any, string, any>;
+export type TrieManager = {
+    trieIds(): Promise<string[]>;
+    close(): Promise<void>;
+    trie(tokenId: string, f: (trie: SafeTrie) => Promise<any>): Promise<void>;
+};
 
-    private constructor(db: AbstractSublevel<any, any, string, any>) {
-        this.managerDB = db;
-    }
-    get trieIds() {
-        return Object.keys(this.tries);
-    }
-    async close(): Promise<void> {
-        const release = await this.lock.acquire();
-        for (const [_tokenId, trie] of Object.entries(this.tries)) {
-            await trie.close();
-        }
-        this.tries = {};
-        await this.managerDB.close();
+const withLock = async (lock: Mutex, f: () => Promise<void>) => {
+    const release = await lock.acquire();
+    try {
+        return await f();
+    } finally {
         release();
     }
-    public static async create(
-        parent: Level<string, any>
-    ): Promise<TrieManager> {
-        const manager = parent.sublevel<string, any>('tries', {
-            valueEncoding: 'json'
-        });
-        await manager.open();
-        const noTokens: string[] = [];
-        await manager.put('token-ids', noTokens);
-        return new TrieManager(manager);
-    }
+};
 
-    public static async load(parent): Promise<TrieManager> {
-        const managerDB = parent.sublevel('tries', {
-            valueEncoding: 'json'
-        });
-        const manager = new TrieManager(managerDB);
-        const tokenIds = await managerDB.get('token-ids');
-        for (const tokenId of tokenIds) {
-            const trie = await createSafeTrie(tokenId, managerDB);
-            if (trie) {
-                manager.tries[tokenId] = trie;
-            } else {
-                throw new Error(`Failed to load trie for token ID: ${tokenId}`);
-            }
-        }
-        return manager;
+const withTrieLock = async (
+    locks: Record<string, Mutex>,
+    tokenId: string,
+    f: () => Promise<void>
+) => {
+    if (!locks[tokenId]) {
+        locks[tokenId] = new Mutex();
     }
-    async trie(
-        tokenId: string,
-        f: (trie: SafeTrie) => Promise<any>
-    ): Promise<void> {
-        const release = await this.lock.acquire(); // should be at the trie level
-        try {
-            if (!this.tries[tokenId]) {
-                const trie = await createSafeTrie(tokenId, this.managerDB);
-                await this.managerDB.put('token-ids', [
-                    ...this.trieIds,
-                    tokenId
-                ]);
-                if (trie) {
-                    this.tries[tokenId] = trie;
-                    await f(trie);
+    const lock = locks[tokenId];
+    const release = await lock.acquire();
+    try {
+        return await f();
+    } finally {
+        release();
+    }
+};
+
+const updateTokenIds = async (
+    managerDB,
+    f = (ids: string[]) => ids
+): Promise<void> => {
+    const tokenIds = await managerDB.get('token-ids');
+    const updatedIds = f(tokenIds || []);
+    await managerDB.put('token-ids', updatedIds);
+};
+
+const appendTokenId = async (managerDB, tokenId: string): Promise<void> => {
+    await updateTokenIds(managerDB, ids => [...ids, tokenId]);
+};
+
+export const createTrieManager = async (
+    parent: Level<string, any>
+): Promise<TrieManager> => {
+    const managerDB = parent.sublevel<string, any>('tries', {
+        valueEncoding: 'json'
+    });
+    await managerDB.open();
+    // let locks: Record<string, Mutex> = {};
+    const lock = new Mutex();
+    const tokenIds = (await managerDB.get('token-ids')) || [];
+    await managerDB.put('token-ids', tokenIds);
+    let tries: Record<string, SafeTrie> = {};
+    for (const tokenId of tokenIds) {
+        const trie = await createSafeTrie(tokenId, managerDB);
+        if (!trie) {
+            throw new Error(`Failed to load trie for token ID: ${tokenId}`);
+        }
+        tries[tokenId] = trie;
+    }
+    return {
+        trieIds: async () => {
+            const tokenIds = await managerDB.get('token-ids');
+            return tokenIds || [];
+        },
+        close: async () => {
+            const tokenIds = await managerDB.get('token-ids');
+            for (const tokenId of tokenIds) {
+                await withLock(lock, async () => {
+                    const trie = await managerDB.get(tokenId);
+                    if (trie) {
+                        await trie.close();
+                    }
+                });
+            }
+            await managerDB.close();
+            tries = {};
+        },
+        trie: async (tokenId: string, f: (trie: SafeTrie) => Promise<any>) => {
+            await withLock(lock, async () => {
+                const trie = tries[tokenId];
+                if (!trie) {
+                    const newTrie = await createSafeTrie(tokenId, managerDB);
+                    await appendTokenId(managerDB, tokenId);
+                    tries[tokenId] = newTrie;
+                    await f(newTrie);
                 } else {
-                    throw new Error(
-                        `Failed to load or create trie for index: ${tokenId}`
-                    );
+                    await f(trie);
                 }
-            } else {
-                await f(this.tries[tokenId]);
-            }
-        } finally {
-            release();
+            });
         }
-    }
-}
+    };
+};

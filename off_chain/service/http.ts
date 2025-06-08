@@ -13,7 +13,7 @@ import { end } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
-import { TrieManager } from '../trie';
+import { createTrieManager, TrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
@@ -255,14 +255,15 @@ export async function withService(
     ogmios: string,
     f
 ): Promise<void> {
-    const db = new Level(`${dbPath}/${port}`, {
+    const db: Level<any, any> = new Level(`${dbPath}/${port}`, {
         valueEncoding: 'json',
         keyEncoding: 'utf8'
     });
     await db.open();
+
     try {
         const wallet = mkWallet(ctxProvider.provider);
-        const tries = await TrieManager.create(db);
+        const tries = await createTrieManager(db);
 
         const { address, policyId } = getCagingScript();
 

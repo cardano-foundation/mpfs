@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { withTempDir } from './test/lib';
-import { TrieManager } from './trie';
+import { createTrieManager, TrieManager } from './trie';
 import { Store, Trie } from './mpf/lib';
 import { Level } from 'level';
 import { createLoaded } from './trie/loaded';
@@ -64,12 +64,40 @@ describe('Loaded', () => {
 });
 
 describe('TrieManager', () => {
-    it('can close and reopen without errors', async () => {
+    it('can load with 0 tries', async () => {
         await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
-                const trieManager = await TrieManager.create(db);
+                const trieManager = await createTrieManager(db);
+                expect(trieManager).toBeDefined();
+                const trieIds = await trieManager.trieIds();
+                expect(trieIds).toBeDefined();
+                expect(trieIds.length).toBe(0);
+            });
+        });
+    });
+    it('can create a trie', async () => {
+        await withTempDir(async tmpDir => {
+            await withLevelDB(tmpDir, async db => {
+                const trieManager = await createTrieManager(db);
+
                 async function onTrie(trie) {
                     expect(trie).toBeDefined();
+                    expect(trie.root()).toBeDefined();
+                    expect(await trie.allFacts()).toEqual({});
+                }
+                await trieManager.trie('testTokenId', onTrie);
+                const tries = await trieManager.trieIds();
+                expect(tries).toBeDefined();
+                expect(tries.includes('testTokenId')).toBe(true);
+            });
+        });
+    });
+    it('can update a trie', async () => {
+        await withTempDir(async tmpDir => {
+            await withLevelDB(tmpDir, async db => {
+                const trieManager = await createTrieManager(db);
+
+                async function onTrie(trie) {
                     await trie.update({
                         key: 'testKey',
                         value: 'testValue',
@@ -81,28 +109,66 @@ describe('TrieManager', () => {
                     });
                 }
                 await trieManager.trie('testTokenId', onTrie);
+            });
+        });
+    });
+    it('can close and reopen without errors', async () => {
+        await withTempDir(async tmpDir => {
+            await withLevelDB(tmpDir, async db => {
+                const trieManager = await createTrieManager(db);
                 await trieManager.close();
             });
             await withLevelDB(tmpDir, async reopenedDb => {
-                const reopenedTrieManager = await TrieManager.load(reopenedDb);
+                const reopenedTrieManager = await createTrieManager(reopenedDb);
                 expect(reopenedTrieManager).toBeDefined();
-                const tries = reopenedTrieManager.trieIds;
-                expect(tries).toBeDefined();
-                expect(tries.includes('testTokenId')).toBe(true);
-                async function onReopenedTrie(trie) {
-                    expect(trie).toBeDefined();
-                    expect(trie.root()).toBeDefined();
-                    expect(await trie.allFacts()).toEqual({
-                        testKey: 'testValue'
-                    });
+                await reopenedTrieManager.close();
+            });
+        });
+    });
+    it('can reopen a non-empty trie manager', async () => {
+        await withTempDir(async tmpDir => {
+            await withLevelDB(tmpDir, async db => {
+                const trieManager = await createTrieManager(db);
+                async function onTrie(trie) {}
+                await trieManager.trie('testTokenId', onTrie);
+                expect(await trieManager.trieIds()).toEqual(['testTokenId']);
+                await trieManager.close();
+            });
+            await withLevelDB(tmpDir, async reopenedDb => {
+                const reopenedTrieManager = await createTrieManager(reopenedDb);
+                expect(await reopenedTrieManager.trieIds()).toEqual([
+                    'testTokenId'
+                ]);
+                await reopenedTrieManager.close();
+            });
+        });
+    });
+    it('can reopen a non-empty trie manager with non-empty-trie', async () => {
+        await withTempDir(async tmpDir => {
+            await withLevelDB(tmpDir, async db => {
+                const trieManager = await createTrieManager(db);
+                async function onTrie(trie) {
                     await trie.update({
                         key: 'testKey',
                         value: 'testValue',
-                        operation: 'delete'
+                        operation: 'insert'
                     });
-                    expect(await trie.allFacts()).toEqual({});
                 }
-                await reopenedTrieManager.trie('testTokenId', onReopenedTrie);
+                await trieManager.trie('testTokenId', onTrie);
+                expect(await trieManager.trieIds()).toEqual(['testTokenId']);
+                await trieManager.close();
+            });
+            await withLevelDB(tmpDir, async reopenedDb => {
+                const reopenedTrieManager = await createTrieManager(reopenedDb);
+                expect(await reopenedTrieManager.trieIds()).toEqual([
+                    'testTokenId'
+                ]);
+                await reopenedTrieManager.trie('testTokenId', async trie => {
+                    expect(await trie.allFacts()).toEqual({
+                        testKey: 'testValue'
+                    });
+                });
+                await reopenedTrieManager.close();
             });
         });
     });
