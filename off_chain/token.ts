@@ -16,9 +16,3 @@ export function parseStateDatumCbor(cbor: string): TokenState | undefined {
         return undefined;
     }
 }
-export function parseStateDatum(utxo: UTxO) {
-    if (!utxo.output.plutusData) {
-        throw new Error('Plutus data is undefined');
-    }
-    return parseStateDatumCbor(utxo.output.plutusData);
-}
