@@ -8,7 +8,7 @@ import {
 
 import { Context } from '../context';
 import { Proof } from '../mpf/lib';
-import { serializeProof } from '../trie';
+import { serializeProof } from '../trie/proof';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
 import { unmkOutputRefId } from '../outputRef';
 

@@ -1,11 +1,8 @@
 import { Proof, Store, Trie } from './mpf/lib';
-import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
-import fs from 'fs';
 import { Facts } from './facts/store';
 import { Mutex } from 'async-mutex';
 import { Level } from 'level';
-import { AbstractLevel, AbstractSublevel } from 'abstract-level';
-import { A } from 'vitest/dist/chunks/environment.d.cL3nLXbE.js';
+import { AbstractSublevel } from 'abstract-level';
 
 export type Change = {
     operation: 'insert' | 'delete';
@@ -132,31 +129,6 @@ async function updateTrie(trie: Trie, change: Change): Promise<Proof> {
     }
 }
 
-const serializeStepJ = (step: Record<string, unknown>): Data => {
-    if (step.type === 'leaf') {
-        const skip = step.skip as number;
-        const neighbor = step.neighbor as Record<string, unknown>;
-        const key = neighbor.key as string;
-        const value = neighbor.value as string;
-        return mConStr2([skip, key, value]);
-    } else if (step.type === 'branch') {
-        const skip = step.skip as number;
-        const neighbors = step.neighbors as string;
-        return mConStr0([skip, neighbors]);
-    } else {
-        const skip = step.skip as number;
-        const neighbor = step.neighbor as Record<string, unknown>;
-        const nibble = neighbor.nibble as number;
-        const prefix = neighbor.prefix as string;
-        const root = neighbor.root as string;
-        return mConStr1([skip, mConStr0([nibble, prefix, root])]);
-    }
-};
-
-export const serializeProof = (proof: Proof): Data => {
-    const json = proof.toJSON() as Array<Record<string, unknown>>;
-    return json.map((item: Record<string, unknown>) => serializeStepJ(item));
-};
 // Managing tries
 export class TrieManager {
     private tries: Record<string, SafeTrie> = {};
@@ -210,7 +182,7 @@ export class TrieManager {
         tokenId: string,
         f: (trie: SafeTrie) => Promise<any>
     ): Promise<void> {
-        const release = await this.lock.acquire();
+        const release = await this.lock.acquire(); // should be at the trie level
         try {
             if (!this.tries[tokenId]) {
                 const trie = await SafeTrie.create(tokenId, this.managerDB);
