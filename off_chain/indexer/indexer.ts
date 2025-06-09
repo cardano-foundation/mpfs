@@ -6,113 +6,30 @@ import { samplePowerOfTwoPositions } from './state/intersection';
 import { Checkpoint } from './state/checkpoints';
 import { State } from './state';
 
-export class Indexer {
-    private process: Process;
-    private client: WebSocket;
-    private indexerTip: number | null = null;
-    private networkTip: number | null = null;
-    private networkTipQueried: boolean = false;
-    private ready: boolean = false;
-    private checkingReadiness: boolean = false;
-    private stop: Mutex;
-    private webSocketAddress: string;
-    private state: State;
+const connectWebSocket = async (address: string) => {
+    return new Promise<WebSocket>((resolve, reject) => {
+        const client = new WebSocket(address);
+        client.on('open', () => {
+            resolve(client);
+        });
 
-    constructor(state: State, process: Process, address: string) {
-        this.process = process;
-        this.stop = new Mutex();
-        this.webSocketAddress = address;
-        this.state = state;
-    }
+        client.on('error', err => {
+            console.error('WebSocket connection error:', err);
+            reject(err);
+        });
+    });
+};
 
-    private rpc(method: string, params: any, id: any): void {
-        this.client.send(
-            JSON.stringify({
-                jsonrpc: '2.0',
-                method,
-                params,
-                id
-            })
-        );
-    }
-    async getSync(): Promise<{
-        ready: boolean;
-        networkTip: number | null;
-        indexerTip: number | null;
-    }> {
-        this.checkingReadiness = true;
-        this.queryNetworkTip();
-        while (this.checkingReadiness) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        return {
-            ready: this.ready,
-            networkTip: this.networkTip,
-            indexerTip: this.indexerTip
-        };
-    }
-
-    async pause() {
-        return await this.stop.acquire();
-    }
-    private withTips(f) {
-        if (this.networkTip && this.indexerTip) {
-            f(this.networkTip, this.indexerTip);
-        }
-    }
-    private queryFindIntersection(points: any[]): void {
-        this.rpc('findIntersection', { points }, 'intersection');
-    }
-    private queryNetworkTip(): void {
-        if (!this.networkTipQueried) {
-            this.rpc('queryNetwork/tip', {}, 'tip');
-            this.networkTipQueried = true;
-        }
-    }
-    private queryNextBlock(): void {
-        this.rpc('nextBlock', {}, 'block');
-    }
-    async close(): Promise<void> {
-        const release = await this.stop.acquire();
-        if (this.client) {
-            this.client.close();
-        }
-        release();
-    }
-    async run(): Promise<void> {
-        const maxRetries = 1000; // Maximum number of retries
-
-        const connectWebSocket = async () => {
-            return new Promise<void>((resolve, reject) => {
-                this.client = new WebSocket(this.webSocketAddress);
-                this.client.on('open', () => {
-                    resolve();
-                });
-
-                this.client.on('error', err => {
-                    console.error('WebSocket connection error:', err);
-                    reject(err);
-                });
-            });
-        };
+const connect = async (address): Promise<Client> => {
+    const maxRetries = 1000; // Maximum number of retries
+    return await new Promise(async (resolve, reject) => {
         let retries = 0;
         for (; retries < maxRetries; retries++) {
             try {
-                await connectWebSocket();
-                // Once connected, proceed with initialization
-                const checkpoints: Checkpoint[] =
-                    await this.state.checkpoints.getAllCheckpoints();
-                const sampleCheckpoints = samplePowerOfTwoPositions(
-                    checkpoints.reverse()
-                );
-                const intersections = (
-                    sampleCheckpoints.map(convertCheckpoint) as any[]
-                ).concat(['origin']);
-                this.queryFindIntersection(intersections);
-                this.queryNetworkTip();
-                break; // Exit the retry loop
+                const websocket = await connectWebSocket(address);
+                resolve(createClient(websocket));
+                break;
             } catch (err) {
-                this.client.close(); // Close the client to reset the connection
                 console.error(
                     `WebSocket connection failed, retrying (${
                         retries + 1
@@ -124,88 +41,286 @@ export class Indexer {
             }
         }
         if (retries === maxRetries) {
-            throw new Error(
-                'Failed to connect to WebSocket after maximum retries'
+            reject(
+                new Error(
+                    `Failed to connect to WebSocket after ${maxRetries} attempts`
+                )
             );
         }
+    });
+};
 
-        this.client.on('message', async msg => {
-            const release = await this.stop.acquire();
-            const response = JSON.parse(msg);
+const withTips = (w, f) => {
+    if (w.networkTip && w.indexerTip) {
+        f(w.networkTip, w.indexerTip);
+    }
+};
 
+type Client = {
+    findIntersection: (points: any[]) => void;
+    queryNetworkTip: () => void;
+    nextBlock: () => void;
+    reply: (f: (string) => Promise<void>) => void;
+    close: () => void;
+};
+
+const createClient = (client: WebSocket): Client => {
+    const rpc = (method: string, params: any, id: any): void => {
+        client.send(
+            JSON.stringify({
+                jsonrpc: '2.0',
+                method,
+                params,
+                id
+            })
+        );
+    };
+    const rpcClient: Client = {
+        findIntersection: (points: any[]) => {
+            rpc('findIntersection', { points }, 'intersection');
+        },
+        queryNetworkTip: () => {
+            rpc(`queryNetwork/tip`, {}, 'tip');
+        },
+        nextBlock: () => {
+            rpc('nextBlock', {}, 'block');
+        },
+        close: () => {
+            client.close();
+        },
+        reply: (f: (string) => Promise<void>) => {
+            client.on('message', async msg => {
+                const response = JSON.parse(msg);
+                await f(response);
+            });
+        }
+    };
+    return rpcClient;
+};
+
+export type Indexer = {
+    getSync: () => Promise<{
+        ready: boolean;
+        networkTip: number | null;
+        indexerTip: number | null;
+    }>;
+    pause: () => Promise<() => void>;
+    close: () => Promise<void>;
+};
+
+export const createIndexer = async (
+    state: State,
+    process: Process,
+    ogmios: string
+): Promise<Indexer> => {
+    let indexerTip: number | null = null;
+    let networkTip: number | null = null;
+    let networkTipQueried: boolean = false;
+    let ready: boolean = false;
+    let checkingReadiness: boolean = false;
+    const stop: Mutex = new Mutex();
+    const client = await connect(ogmios);
+    const checkpoints: Checkpoint[] =
+        await state.checkpoints.getAllCheckpoints();
+    const sampleCheckpoints = samplePowerOfTwoPositions(checkpoints.reverse());
+    const intersections = (
+        sampleCheckpoints.map(convertCheckpoint) as any[]
+    ).concat(['origin']);
+    client.findIntersection(intersections);
+    client.queryNetworkTip();
+    client.reply(async response => {
+        const release = await stop.acquire();
+        try {
             switch (response.id) {
                 case 'intersection':
                     if (!response.result.intersection) {
                         throw 'No intersection found';
                     }
-                    this.queryNextBlock();
+                    client.nextBlock();
                     break;
                 case 'tip':
-                    this.checkingReadiness = false;
-                    this.networkTip = response.result.slot;
-                    this.networkTipQueried = false;
-                    this.withTips((networkTip, indexerTip) => {
-                        if (networkTip == indexerTip) {
-                            this.ready = true;
-                        } else {
-                            this.ready = false;
+                    checkingReadiness = false;
+                    networkTip = response.result.slot;
+                    networkTipQueried = false;
+                    withTips(
+                        { networkTip, indexerTip },
+                        (networkTip, indexerTip) => {
+                            ready = networkTip === indexerTip;
                             if (networkTip < indexerTip) {
-                                this.queryNetworkTip();
+                                client.queryNetworkTip();
                             }
                         }
-                    });
+                    );
                     break;
                 case 'block':
                     switch (response.result.direction) {
                         case 'forward':
-                            this.indexerTip = response.result.block.slot;
-                            this.withTips((networkTip, indexerTip) => {
-                                if (networkTip < indexerTip) {
-                                    this.queryNetworkTip();
+                            indexerTip = response.result.block.slot;
+                            withTips(
+                                { networkTip, indexerTip },
+                                (networkTip, indexerTip) => {
+                                    if (networkTip < indexerTip) {
+                                        client.queryNetworkTip();
+                                    }
                                 }
-                            });
+                            );
                             const slot = new RollbackKey(
                                 response.result.block.slot
                             );
-                            await this.state.checkpoints.putCheckpoint(
-                                {
-                                    slot,
-                                    blockHash: response.result.block.id
-                                },
+                            await state.checkpoints.putCheckpoint(
+                                { slot, blockHash: response.result.block.id },
                                 response.result.block.transactions.flatMap(tx =>
                                     tx.inputs.map(Process.inputToOutputRef)
                                 )
                             );
                             for (const tx of response.result.block
                                 .transactions) {
-                                const changes = await this.process.process(
-                                    slot,
-                                    tx
-                                );
+                                await process.process(slot, tx);
                             }
-                            this.queryNextBlock();
+
+                            client.nextBlock();
                             break;
                         case 'backward':
                             const checkpoints =
-                                await this.state.checkpoints.getAllCheckpoints();
+                                await state.checkpoints.getAllCheckpoints();
 
-                            if (response.result.point === 'origin') {
-                                await this.rollback(null);
-                            } else {
-                                await this.rollback(
-                                    reconvertCheckpoint(response.result.point)
-                                );
-                            }
-
-                            this.queryNextBlock();
+                            client.nextBlock();
                             break;
                     }
             }
+        } catch (error) {
+            console.error('Error processing response:', error);
+            throw error;
+        } finally {
             release();
-        });
-    }
-    async rollback(checkpoint: Checkpoint | null): Promise<void> {}
-}
+        }
+    });
+
+    return {
+        getSync: async () => {
+            checkingReadiness = true;
+            client.queryNetworkTip();
+            while (checkingReadiness) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            return {
+                ready: ready,
+                networkTip: networkTip,
+                indexerTip: indexerTip
+            };
+        },
+        pause: async () => {
+            const release = await stop.acquire();
+            return () => {
+                release();
+            };
+        },
+        close: async () => {
+            const release = await stop.acquire();
+            client.close();
+            release();
+        }
+    };
+};
+
+//     async run(): Promise<void> {
+
+//         this.client.on('message', async msg => {
+//             const release = await this.stop.acquire();
+//             const response = JSON.parse(msg);
+
+//             switch (response.id) {
+//                 case 'intersection':
+//                     if (!response.result.intersection) {
+//                         throw 'No intersection found';
+//                     }
+//                     this.queryNextBlock();
+//                     break;
+//                 case 'tip':
+//                     this.checkingReadiness = false;
+//                     this.networkTip = response.result.slot;
+//                     this.networkTipQueried = false;
+//                     this.withTips((networkTip, indexerTip) => {
+//                         if (networkTip == indexerTip) {
+//                             this.ready = true;
+//                         } else {
+//                             this.ready = false;
+//                             if (networkTip < indexerTip) {
+//                                 this.queryNetworkTip();
+//                             }
+//                         }
+//                     });
+//                     break;
+//                 case 'block':
+//                     switch (response.result.direction) {
+//                         case 'forward':
+//                             this.indexerTip = response.result.block.slot;
+//                             this.withTips((networkTip, indexerTip) => {
+//                                 if (networkTip < indexerTip) {
+//                                     this.queryNetworkTip();
+//                                 }
+//                             });
+//                             const slot = new RollbackKey(
+//                                 response.result.block.slot
+//                             );
+//                             await this.state.checkpoints.putCheckpoint(
+//                                 {
+//                                     slot,
+//                                     blockHash: response.result.block.id
+//                                 },
+//                                 response.result.block.transactions.flatMap(tx =>
+//                                     tx.inputs.map(Process.inputToOutputRef)
+//                                 )
+//                             );
+//                             for (const tx of response.result.block
+//                                 .transactions) {
+//                                 const changes = await this.process.process(
+//                                     slot,
+//                                     tx
+//                                 );
+//                             }
+//                             this.queryNextBlock();
+//                             break;
+//                         case 'backward':
+//                             const checkpoints =
+//                                 await this.state.checkpoints.getAllCheckpoints();
+
+//                             if (response.result.point === 'origin') {
+//                                 await this.rollback(null);
+//                             } else {
+//                                 await this.rollback(
+//                                     reconvertCheckpoint(response.result.point)
+//                                 );
+//                             }
+
+//                             this.queryNextBlock();
+//                             break;
+//                     }
+//             }
+//             release();
+//         });
+//     }
+//     async rollback(checkpoint: Checkpoint | null): Promise<void> {
+//         // remove all checkpoints after this one
+
+//         const requests = await this.state.checkpoints.extractCheckpointsAfter(
+//             checkpoint
+//         );
+
+//         // // get out the rollbacks after this checkpoint
+//         // const rollbacks = await this.state.extractRollbacksAfter(
+//         //     checkpoint.slot
+//         // );
+//         // // and backapply them to the tries
+//         // for (const rollback of rollbacks) {
+//         //     await this.process.trieManager.applyRollback(rollback);
+//         // }
+//         // // prune the requests after this checkpoint
+//         // for (const request of requests) {
+//         //     await this.state.removeRequest(request.outputRef);
+//         // }
+//     }
+// }
 
 type WsCheckpoint = {
     slot: number;

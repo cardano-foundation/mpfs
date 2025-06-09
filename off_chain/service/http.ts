@@ -14,11 +14,10 @@ import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { createTrieManager } from '../trie';
-import { Indexer } from '../indexer/indexer';
+import { createIndexer, Indexer } from '../indexer/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
 import { Token } from '../indexer/state/tokens';
-import { create } from 'domain';
 import { createState } from '../indexer/state';
 import { Process } from '../indexer/process';
 
@@ -269,20 +268,12 @@ export async function withService(
         const wallet = mkWallet(ctxProvider.provider);
         const tries = await createTrieManager(db);
         const state = await createState(db, tries, 2160);
+
         const { address, policyId } = getCagingScript();
         const process = new Process(state, tries, address, policyId);
-        const indexer = new Indexer(state, process, ogmios);
-        try {
-            new Promise<void>(async (resolve, reject) => {
-                try {
-                    await indexer.run();
-                    resolve();
-                } catch (error) {
-                    console.error('Error running indexer:', error);
-                    reject(error);
-                }
-            });
 
+        const indexer = await createIndexer(state, process, ogmios);
+        try {
             const context = await new Context(
                 ctxProvider.provider,
                 wallet,

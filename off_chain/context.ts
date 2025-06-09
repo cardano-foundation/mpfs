@@ -12,13 +12,12 @@ import {
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
 import blueprint from './plutus.json';
-import { CurrentToken, TokenState } from './token';
+import { CurrentToken } from './token';
 import { Indexer } from './indexer/indexer';
 import { Change } from './trie/change';
 import { SafeTrie } from './trie/safeTrie';
 import { Token } from './indexer/state/tokens';
 import { State } from './indexer/state';
-import { Trie } from './mpf/lib';
 import { TrieManager } from './trie';
 
 export type Log = (key: string, value: any) => void;
@@ -58,6 +57,8 @@ export class Context {
         this.state = state;
         this.tries = tries;
         this.progress = progress;
+        this.state = state;
+        this.tries = tries;
     }
 
     log(key: string, value: any): void {
