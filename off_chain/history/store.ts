@@ -1,18 +1,10 @@
-import { TokenState } from '../token';
-import { OutputRef } from '../lib';
 import { Change, invertChange } from '../trie/change';
 import { AbstractSublevel } from 'abstract-level';
 import { RollbackKey } from './store/rollbackkey';
 import { Checkpoints, createCheckpoints } from './store/checkpoints';
 import { createTokens, DBTokenState, Tokens } from './store/tokens';
-import { createRequests, Requests } from './store/requests';
-
-export type DBRequest = {
-    owner: string;
-    tokenId: string;
-    change: Change;
-};
-
+import { createRequests, DBRequest, Requests } from './store/requests';
+import { createRollbacks, Rollbacks } from './store/rollbacks';
 
 export type StateChange =
     | { type: 'AddRequest'; outputRef: string; request: DBRequest }
@@ -21,41 +13,24 @@ export type StateChange =
     | { type: 'RemoveToken'; tokenId: string }
     | { type: 'UpdateToken'; change: Change };
 
-export type RollbackValue = StateChange[];
-
-export type Rollback = {
-    key: RollbackKey;
-    changes: RollbackValue;
-};
-
 export class StateManager {
     private stateStore: AbstractSublevel<any, any, string, any>;
     public tokens: Tokens;
     public requests: Requests;
-    private rollbackStore: AbstractSublevel<
-        any,
-        any,
-        Buffer<ArrayBufferLike>,
-        RollbackValue
-    >;
+    public rollbacks: Rollbacks;
     public checkpoints: Checkpoints;
 
     private constructor(
         stateStore: AbstractSublevel<any, any, string, any>,
         tokens: Tokens,
         requests: Requests,
-        rollbackStore: AbstractSublevel<
-            any,
-            any,
-            Buffer<ArrayBufferLike>,
-            RollbackValue
-        >,
+        rollbacks: Rollbacks,
         checkpoints: Checkpoints
     ) {
         this.stateStore = stateStore;
         this.tokens = tokens;
-        this.requests = requests
-        this.rollbackStore = rollbackStore;
+        this.requests = requests;
+        this.rollbacks = rollbacks;
         this.checkpoints = checkpoints;
     }
     static async create(
@@ -68,16 +43,7 @@ export class StateManager {
         await stateStore.open();
         const tokens = await createTokens(stateStore);
         const requestStore = await createRequests(stateStore);
-        const rollbackStore: AbstractSublevel<
-            any,
-            any,
-            Buffer<ArrayBufferLike>,
-            RollbackValue
-        > = stateStore.sublevel('rollback', {
-            valueEncoding: 'json',
-            keyEncoding: 'binary'
-        });
-        await rollbackStore.open();
+        const rollbacks = await createRollbacks(stateStore);
         const checkpoints = await createCheckpoints(
             stateStore,
             checkpointsSize
@@ -86,14 +52,14 @@ export class StateManager {
             stateStore,
             tokens,
             requestStore,
-            rollbackStore,
+            rollbacks,
             checkpoints
         );
     }
 
     async close(): Promise<void> {
         try {
-            await this.rollbackStore.close();
+            await this.rollbacks.close();
             await this.requests.close();
             await this.tokens.close();
             await this.checkpoints.close();
@@ -103,27 +69,13 @@ export class StateManager {
         }
     }
 
-    private async putRollbackValue(
-        rollbackKey: RollbackKey,
-        value: StateChange
-    ): Promise<void> {
-        const key = rollbackKey.key;
-        const existing = await this.rollbackStore.get(key);
-        if (!existing) {
-            await this.rollbackStore.put(key, [value]);
-        } else {
-            existing.push(value);
-            await this.rollbackStore.put(key, existing);
-        }
-    }
-
     async putRequest(
         rollbackKey: RollbackKey,
         outputRef: string,
         value: DBRequest
     ): Promise<void> {
         await this.requests.put(outputRef, value);
-        await this.putRollbackValue(rollbackKey, {
+        await this.rollbacks.put(rollbackKey, {
             type: 'RemoveRequest',
             outputRef
         });
@@ -140,44 +92,10 @@ export class StateManager {
             );
         }
         await this.requests.delete(outputRef);
-        await this.putRollbackValue(rollbackKey, {
+        await this.rollbacks.put(rollbackKey, {
             type: 'AddRequest',
             outputRef,
             request
         });
     }
-
-    async storeRollbackChange(
-        rollbackKey: RollbackKey,
-        change: Change
-    ): Promise<void> {
-        await this.putRollbackValue(rollbackKey, {
-            type: 'UpdateToken',
-            change: invertChange(change)
-        });
-    }
-
-    async removeRollbacksBefore(rollbackKey: RollbackKey): Promise<void> {
-        const iterator = this.rollbackStore.iterator({
-            gte: RollbackKey.zero.key,
-            lt: rollbackKey.key
-        });
-        for await (const [key] of iterator) {
-            await this.rollbackStore.del(key);
-        }
-    }
-
-    async splitRollbacks(splitKey: RollbackKey): Promise<StateChange[]> {
-        const changes: StateChange[] = [];
-        const iterator = this.rollbackStore.iterator({
-            gt: splitKey.key
-        });
-        for await (const [key, value] of iterator) {
-            await this.rollbackStore.del(key);
-            changes.push(...value.reverse());
-        }
-        return changes.reverse();
-    }
-
-
 }

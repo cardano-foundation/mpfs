@@ -9,6 +9,7 @@ import { Change } from '../trie/change';
 import { AbstractSublevel } from 'abstract-level';
 import { Checkpoint } from './store/checkpoints';
 import { DBTokenState } from './store/tokens';
+import { RollbackValue } from './store/rollbacks';
 
 class Indexer {
     private process: Process;
@@ -59,14 +60,6 @@ class Indexer {
                 id
             })
         );
-    }
-
-    async splitRollbacks(slot: RollbackKey): Promise<StateChange[]> {
-        return await this.process.stateManager.splitRollbacks(slot);
-    }
-
-    async removeRollbacksBefore(rollbackKey: RollbackKey): Promise<void> {
-        await this.process.stateManager.removeRollbacksBefore(rollbackKey);
     }
 
     async fetchTokens(): Promise<{ tokenId: string; state: DBTokenState }[]> {

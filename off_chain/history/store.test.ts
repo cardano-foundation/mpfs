@@ -187,9 +187,6 @@ describe('StateManager', () => {
                 expect(stateManager['stateStore']).toBeInstanceOf(
                     AbstractSublevel
                 );
-                expect(stateManager['rollbackStore']).toBeInstanceOf(
-                    AbstractSublevel
-                );
             });
         });
     });

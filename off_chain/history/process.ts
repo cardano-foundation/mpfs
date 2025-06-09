@@ -65,10 +65,6 @@ export class Process {
                             continue; // skip inputs with no request
                         }
                         await trie.update(request.change);
-                        await state.storeRollbackChange(
-                            slotNumber,
-                            request.change
-                        );
                     }
                     await state.tokens.putToken(tokenId, {
                         outputRef: { txHash: tx.id, outputIndex },

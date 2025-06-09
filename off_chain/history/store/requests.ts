@@ -26,15 +26,10 @@ export async function createRequests(
         });
     await requestStore.open();
     return {
-        get: async (
-            outputRef: string
-        ): Promise<DBRequest | undefined> => {
+        get: async (outputRef: string): Promise<DBRequest | undefined> => {
             return await requestStore.get(outputRef);
         },
-        put: async (
-            outputRef: string,
-            value: DBRequest
-        ): Promise<void> => {
+        put: async (outputRef: string, value: DBRequest): Promise<void> => {
             await requestStore.put(outputRef, value);
         },
         delete: async (outputRef: string): Promise<void> => {
