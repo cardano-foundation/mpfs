@@ -16,6 +16,7 @@ import { TokenState } from './token';
 import { Indexer } from './history/indexer';
 import { DBTokenState } from './history/store';
 import { Change } from './trie/change';
+import { SafeTrie } from './trie/safeTrie';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;

@@ -1,9 +1,10 @@
 import { parseStateDatumCbor, TokenState } from '../token';
 import { parseRequestCbor } from '../request';
-import { SafeTrie, TrieManager } from '../trie';
+import { TrieManager } from '../trie';
 import { StateManager } from './store';
 import { RollbackKey } from './store/rollbackkey';
 import { mkOutputRefId } from '../outputRef';
+import { SafeTrie } from '../trie/safeTrie';
 
 export class Process {
     private state: StateManager;
