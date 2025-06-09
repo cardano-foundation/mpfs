@@ -49,7 +49,7 @@ export async function request(
     const txHash = await context.submitTx(signedTx);
     context.log('txHash', txHash);
 
-    const block = await context.waitSettlement(txHash);
-    context.log('block', block);
+    // const block = await context.waitSettlement(txHash);
+    // context.log('block', block);
     return { txHash, outputIndex: 0 };
 }

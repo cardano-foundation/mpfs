@@ -305,9 +305,7 @@ export async function withContext(
                 'test-service' + port.toString()
             );
 
-            new Promise(async () => {
-                await indexer.run();
-            });
+            await indexer.run();
 
             const context = await newContext(indexer, ctxProvider, wallet);
             if (ctxProvider.topup) {

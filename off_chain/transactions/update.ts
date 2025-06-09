@@ -110,8 +110,8 @@ export async function update(
             // console.log('evaluate', JSON.stringify(e, null, 2));
             txHash = await context.submitTx(signedTx);
             context.log('txHash', txHash);
-            const block = await context.waitSettlement(txHash);
-            context.log('block', block);
+            // const block = await context.waitSettlement(txHash);
+            //context.log('block', block);
         } catch (error) {
             trie.rollback();
             await releaseIndexer();
