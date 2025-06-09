@@ -7,7 +7,8 @@ export type RequestCore = {
     change: Change;
     owner: string;
 };
-export type Request = RequestCore & {
+export type Request = {
+    core: RequestCore;
     ref: OutputRef;
 };
 
@@ -63,7 +64,7 @@ export function findRequests(utxos: UTxO[]): Request[] {
         const requestCore = parseRequest(utxo);
         if (requestCore) {
             requests.push({
-                ...requestCore,
+                core: requestCore,
                 ref: utxo.input
             });
         }

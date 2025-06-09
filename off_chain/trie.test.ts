@@ -4,7 +4,6 @@ import { createTrieManager, TrieManager } from './trie';
 import { Store, Trie } from './mpf/lib';
 import { Level } from 'level';
 import { createLoaded } from './trie/loaded';
-import { AbstractLevel, AbstractSublevel } from 'abstract-level';
 
 export async function withLevelDB(
     tmpDir,

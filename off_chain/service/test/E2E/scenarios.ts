@@ -170,10 +170,10 @@ const canInspectRequestsForAToken = async ({
         log('charlie created an mpf token');
         await createRequest(log, bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
-        const { owner, requests } = await getToken(log, bob, tk);
+        const { state, requests } = await getToken(log, bob, tk);
         const { owner: charlieSig } = await getWallet(charlie);
 
-        assertThrows(owner === charlieSig, 'Token owner is not charlie');
+        assertThrows(state.owner === charlieSig, 'Token owner is not charlie');
         assertThrows(requests.length === 1, 'Requests are not one');
         assertThrows(requests[0].change.key === 'abc', 'Request key abc');
         assertThrows(
@@ -310,8 +310,8 @@ const canDeleteFacts = async ({
         const facts = await getTokenFacts(log, charlie, tk);
         assertThrows(facts['abc'] === undefined, 'Token fact is not deleted');
         log('charlie updated the mpf token');
-        const { root } = await getToken(log, charlie, tk);
-        assertThrows(root === nullHash, 'Token root is not null');
+        const { state } = await getToken(log, charlie, tk);
+        assertThrows(state.root === nullHash, 'Token root is not null');
         await deleteToken(log, charlie, tk);
         log('charlie deleted the mpf token');
     };
@@ -369,8 +369,8 @@ const requestAndUpdate = async (
         refs.push(req);
     }
     await updateToken(log, owner, tk, refs);
-    const { root } = await getToken(log, owner, tk);
-    return root;
+    const { state } = await getToken(log, owner, tk);
+    return state.root;
 };
 
 const insertCommutes = async ({

@@ -12,41 +12,8 @@ import { withLevelDB } from '../trie.test';
 import { mkOutputRefId } from '../outputRef';
 import { createTrieManager, TrieManager } from '../trie';
 
-describe('Restarting the service', () => {
-    it('should not throw an error', async () => {
-        const mnemonics = generateMnemonic();
-        await withTempDir(async tmpDir => {
-            await withContext(3000, tmpDir, mnemonics, async context1 => {
-                await sync(context1);
-                const tokenId = await boot(context1);
-                expect(tokenId).toBeDefined();
-                await sync(context1);
-                const rq1 = await request(
-                    context1,
-                    tokenId,
-                    'key1',
-                    'value1',
-                    'insert'
-                );
-                await sync(context1);
-                await update(context1, tokenId, [rq1]);
-                await sync(context1);
-                await end(context1, tokenId);
-            });
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            await withContext(3000, tmpDir, mnemonics, async context2 => {
-                await sync(context2);
-                const tokenId = await boot(context2);
-                expect(tokenId).toBeDefined();
-                await sync(context2);
-                await end(context2, tokenId);
-            });
-        });
-    }, 60_000);
-});
 describe('Submitting transactions we', () => {
-    it('can create and delete a token', async () => {
+    it('can create and delete a token 1', async () => {
         await withTempDir(async tmpDir => {
             await withContext(3000, null, null, async context => {
                 await sync(context);
@@ -254,6 +221,39 @@ describe('Submitting transactions we', () => {
     }, 60000);
 });
 
+describe('Restarting the service', () => {
+    it('should not throw an error', async () => {
+        const mnemonics = generateMnemonic();
+        await withTempDir(async tmpDir => {
+            await withContext(3000, tmpDir, mnemonics, async context1 => {
+                await sync(context1);
+                const tokenId = await boot(context1);
+                expect(tokenId).toBeDefined();
+                await sync(context1);
+                const rq1 = await request(
+                    context1,
+                    tokenId,
+                    'key1',
+                    'value1',
+                    'insert'
+                );
+                await sync(context1);
+                await update(context1, tokenId, [rq1]);
+                await sync(context1);
+                await end(context1, tokenId);
+            });
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            await withContext(3000, tmpDir, mnemonics, async context2 => {
+                await sync(context2);
+                const tokenId = await boot(context2);
+                expect(tokenId).toBeDefined();
+                await sync(context2);
+                await end(context2, tokenId);
+            });
+        });
+    }, 60_000);
+});
 export async function withContext(
     port: number,
     maybeDatabaseDir: string | null = null,

@@ -51,26 +51,26 @@ const showHistory = () => {
     });
 };
 
-commands.push('history');
+commands.push('indexer');
 
-const historyFilePath = './mpfs-history.txt';
+const historyFilePath = './mpfs-indexer.txt';
 
-// Load history from file if it exists
+// Load indexer from file if it exists
 if (fs.existsSync(historyFilePath)) {
     const savedHistory = fs
         .readFileSync(historyFilePath, 'utf-8')
         .split('\n')
         .filter(line => line.trim() !== '');
     commandHistory.push(...savedHistory);
-    console.log('Loaded command history from file.');
+    console.log('Loaded command indexer from file.');
 }
 
-rl.history = commandHistory;
+rl.indexer = commandHistory;
 
-// Save history to file on exit
+// Save indexer to file on exit
 rl.on('close', () => {
     fs.writeFileSync(historyFilePath, commandHistory.join('\n'), 'utf-8');
-    console.log('Command history saved.');
+    console.log('Command indexer saved.');
     process.exit(0);
 });
 const logColorfulJSON = (data: any) => {

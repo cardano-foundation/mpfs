@@ -13,14 +13,15 @@ import { end } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
-import { createTrieManager, TrieManager } from '../trie';
+import { createTrieManager } from '../trie';
 import { Indexer } from '../history/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
+import { Token } from '../history/store/tokens';
 
 // API Endpoints
 function mkAPI(tmp: string, topup: TopUp | undefined, context) {
-    async function withTokens(f: (tokens: any[]) => any): Promise<any> {
+    async function withTokens(f: (tokens: Token[]) => any): Promise<any> {
         const tokens = await withContext(
             `${tmp}/logs/tokens`,
             'log',
@@ -105,7 +106,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context) {
         const { tokenId } = req.params;
 
         try {
-            const token = await withTokens(tokens =>
+            const token: Token = await withTokens(tokens =>
                 tokens.find(token => token.tokenId === tokenId)
             );
 
@@ -117,7 +118,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context) {
             }
             const requests = await context.fetchRequests(tokenId);
             res.json({
-                ...token.state,
+                ...token.current,
                 requests
             });
         } catch (error) {

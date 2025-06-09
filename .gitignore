@@ -12,8 +12,8 @@ me.sk
 mnemonics*.*
 
 yaci-cli.log
-yaci-cli.history
-demo-cli.history
+yaci-cli.indexer
+demo-cli.indexer
 
 config/download.properties
 config/node.properties

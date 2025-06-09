@@ -1,8 +1,14 @@
 import { deserializeDatum, UTxO } from '@meshsdk/core';
+import { OutputRef } from './lib';
 
 export type TokenState = {
     owner: string;
     root: string;
+};
+
+export type CurrentToken = {
+    state: TokenState;
+    outputRef: OutputRef;
 };
 
 export function parseStateDatumCbor(cbor: string): TokenState | undefined {

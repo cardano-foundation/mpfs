@@ -1,9 +1,11 @@
 import { OutputRef } from './lib';
 
-export function mkOutputRefId({ txHash, outputIndex }: OutputRef): string {
+export type OutputRefId = string;
+
+export function mkOutputRefId({ txHash, outputIndex }: OutputRef): OutputRefId {
     return `${txHash}-${outputIndex}`;
 }
-export function unmkOutputRefId(refId: string): OutputRef {
+export function unmkOutputRefId(refId: OutputRefId): OutputRef {
     const [txHash, indexStr] = refId.split('-');
     const outputIndex = parseInt(indexStr, 10);
     if (isNaN(outputIndex)) {

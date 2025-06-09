@@ -12,11 +12,11 @@ import {
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
 import blueprint from './plutus.json';
-import { TokenState } from './token';
+import { CurrentToken, TokenState } from './token';
 import { Indexer } from './history/indexer';
-import { DBTokenState } from './history/store/tokens';
 import { Change } from './trie/change';
 import { SafeTrie } from './trie/safeTrie';
+import { Token } from './history/store/tokens';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;
@@ -83,14 +83,10 @@ export class Context {
         return getTxBuilder(this.provider);
     }
 
-    async fetchTokens(): Promise<{ tokenId: string; state: TokenState }[]> {
-        const tokens = await this.indexer.fetchTokens();
-        return tokens.map(({ tokenId, state: { state } }) => ({
-            tokenId,
-            state
-        }));
+    async fetchTokens(): Promise<Token[]> {
+        return await this.indexer.fetchTokens();
     }
-    async fetchToken(tokenId: string): Promise<DBTokenState | undefined> {
+    async fetchToken(tokenId: string): Promise<CurrentToken | undefined> {
         return await this.indexer.fetchToken(tokenId);
     }
 
