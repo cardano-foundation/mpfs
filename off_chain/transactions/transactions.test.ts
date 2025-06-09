@@ -6,8 +6,7 @@ import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { Context, getCagingScript, newContext, yaciProvider } from '../context';
-import { Indexer } from '../history/indexer';
-import { TrieManager } from '../trie';
+import { Indexer, TrieManager } from '../history/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
 import { mkOutputRefId } from '../outputRef';
@@ -28,6 +27,7 @@ describe('Restarting the service', () => {
                     'value1',
                     'insert'
                 );
+                await sync(context1);
                 await update(context1, tokenId, [rq1]);
                 await sync(context1);
                 await end(context1, tokenId);
@@ -148,16 +148,104 @@ describe('Submitting transactions we', () => {
 
             await sync(context);
             const facts = await context.facts(tokenId);
-            if (!facts['key']) {
-                throw new Error(`Fact 'key' not found in facts after update`);
-            }
+            expect(facts).toEqual({
+                key: 'value'
+            });
 
-            const value = facts['key'];
-            if (value !== 'value') {
+            await sync(context);
+            await end(context, tokenId);
+        });
+    }, 60000);
+    it('can update a token twice tr', async () => {
+        await withContext(3000, null, null, async context => {
+            await sync(context);
+            const tokenId = await boot(context);
+
+            await sync(context);
+            const requestRef1 = await request(
+                context,
+                tokenId,
+                'key1',
+                'value1',
+                'insert'
+            );
+            const requestRefId1 = mkOutputRefId(requestRef1);
+
+            await sync(context);
+            await update(context, tokenId, [requestRef1]);
+
+            await sync(context);
+            const requestRef2 = await request(
+                context,
+                tokenId,
+                'key2',
+                'value2',
+                'insert'
+            );
+            const requestRefId2 = mkOutputRefId(requestRef2);
+
+            await sync(context);
+            await update(context, tokenId, [requestRef2]);
+
+            await sync(context);
+            const requests = await context.fetchRequests(tokenId);
+
+            await sync(context);
+            const facts = await context.facts(tokenId);
+            expect(facts).toEqual({
+                key1: 'value1',
+                key2: 'value2'
+            });
+
+            await sync(context);
+            await end(context, tokenId);
+        });
+    }, 60000);
+    it('can update the token with a batch', async () => {
+        await withContext(3000, null, null, async context => {
+            await sync(context);
+            const tokenId = await boot(context);
+
+            await sync(context);
+            const requestRef1 = await request(
+                context,
+                tokenId,
+                'key1',
+                'value1',
+                'insert'
+            );
+            const requestRefId1 = mkOutputRefId(requestRef1);
+
+            await sync(context);
+            const requestRef2 = await request(
+                context,
+                tokenId,
+                'key2',
+                'value2',
+                'insert'
+            );
+            const requestRefId2 = mkOutputRefId(requestRef2);
+
+            await sync(context);
+            await update(context, tokenId, [requestRef1, requestRef2]);
+
+            await sync(context);
+            const requests = await context.fetchRequests(tokenId);
+            if (
+                requests.some(req => req.outputRef === requestRefId1) ||
+                requests.some(req => req.outputRef === requestRefId2)
+            ) {
                 throw new Error(
-                    `Fact 'key' has unexpected value: ${value}. Expected 'value'.`
+                    `Request IDs ${requestRefId1} or ${requestRefId2} still found in requests after update`
                 );
             }
+
+            await sync(context);
+            const facts = await context.facts(tokenId);
+            expect(facts).toEqual({
+                key1: 'value1',
+                key2: 'value2'
+            });
 
             await sync(context);
             await end(context, tokenId);
