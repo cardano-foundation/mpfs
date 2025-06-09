@@ -13,10 +13,10 @@ import {
 import { OutputLogger } from './logging';
 import blueprint from './plutus.json';
 import { CurrentToken, TokenState } from './token';
-import { Indexer } from './history/indexer';
+import { Indexer } from './indexer/indexer';
 import { Change } from './trie/change';
 import { SafeTrie } from './trie/safeTrie';
-import { Token } from './history/store/tokens';
+import { Token } from './indexer/state/tokens';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;

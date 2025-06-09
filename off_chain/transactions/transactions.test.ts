@@ -6,7 +6,7 @@ import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { Context, getCagingScript, newContext, yaciProvider } from '../context';
-import { Indexer } from '../history/indexer';
+import { Indexer } from '../indexer/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
 import { mkOutputRefId } from '../outputRef';

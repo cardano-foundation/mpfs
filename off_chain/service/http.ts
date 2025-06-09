@@ -14,10 +14,10 @@ import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { MeshWallet } from '@meshsdk/core';
 import { createTrieManager } from '../trie';
-import { Indexer } from '../history/indexer';
+import { Indexer } from '../indexer/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
-import { Token } from '../history/store/tokens';
+import { Token } from '../indexer/state/tokens';
 
 // API Endpoints
 function mkAPI(tmp: string, topup: TopUp | undefined, context) {
