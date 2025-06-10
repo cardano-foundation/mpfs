@@ -4,7 +4,7 @@ import { assertThrows } from './lib';
 type Log = (s: string) => void;
 
 const sync = async (host: string) => {
-    const n = 1;
+    const n = 2;
     const response = await axios.post(`${host}/indexer/wait-blocks`, { n });
 };
 

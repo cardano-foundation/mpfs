@@ -74,8 +74,7 @@ test-all:
     export OGMIOS_PORT=1337
     cd off_chain
     npx ava
-    npx vitest --bail 1 run -t "^(?!.*E2E).*"
-    npx vitest --bail 1 run -t ".*E2E.*"
+    npx vitest --bail 1 run
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash

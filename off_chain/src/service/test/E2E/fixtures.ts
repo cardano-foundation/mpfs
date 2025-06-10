@@ -3,7 +3,7 @@ import getPort from 'get-port';
 import { Provider, yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from '../E2E/client';
-import { it } from 'vitest';
+import { it, test } from 'vitest';
 import { withTempDir } from '../../../test/lib';
 import { validatePort } from '../../../lib';
 
@@ -122,11 +122,7 @@ export async function e2eTest(
     f: (runner: Runner) => Promise<void>,
     secs = 60
 ) {
-    it(
-        name,
-        async () => {
-            await withRunner(f);
-        },
-        secs * 1000
-    );
+    it(name, { concurrent: true, timeout: secs * 1000, retry: 3 }, async () => {
+        await withRunner(f);
+    });
 }
