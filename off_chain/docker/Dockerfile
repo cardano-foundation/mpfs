@@ -2,7 +2,6 @@
 FROM node:18-alpine
 
 # Set the working directory inside the container
-WORKDIR /app
 
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
@@ -17,4 +16,4 @@ COPY src .
 EXPOSE 3000
 
 # Start the application
-ENTRYPOINT ["npx", "tsx", "src/service/main.ts"]
+ENTRYPOINT ["npx", "tsx", "service/main.ts"]
