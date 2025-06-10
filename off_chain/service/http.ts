@@ -295,6 +295,9 @@ export async function withService(
             }
         } finally {
             await indexer.close();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await state.close();
+            await tries.close();
         }
     } finally {
         await db.close();

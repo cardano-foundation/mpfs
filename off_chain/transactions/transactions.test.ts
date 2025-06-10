@@ -300,33 +300,40 @@ export async function withContext(
             const process = new Process(state, tries, address, policyId);
 
             const indexer = await createIndexer(state, process, ogmios);
+            try {
+                const context = await new Context(
+                    ctxProvider.provider,
+                    wallet,
+                    indexer,
+                    state,
+                    tries
+                );
+                if (ctxProvider.topup) {
+                    const { walletAddress } = await context.wallet();
+                    const startTime = Date.now();
+                    const timeout = 30 * 1000; // 30 seconds
 
-            const context = await new Context(
-                ctxProvider.provider,
-                wallet,
-                indexer,
-                state,
-                tries
-            );
-            if (ctxProvider.topup) {
-                const { walletAddress } = await context.wallet();
-                const startTime = Date.now();
-                const timeout = 30 * 1000; // 30 seconds
-
-                while (Date.now() - startTime < timeout) {
-                    try {
-                        await ctxProvider.topup(walletAddress, 10_000);
-                        break; // Exit loop if topup succeeds
-                    } catch (error) {
-                        console.error(
-                            `Topup failed: ${error.message}. Retrying...`
-                        );
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+                    while (Date.now() - startTime < timeout) {
+                        try {
+                            await ctxProvider.topup(walletAddress, 10_000);
+                            break; // Exit loop if topup succeeds
+                        } catch (error) {
+                            console.error(
+                                `Topup failed: ${error.message}. Retrying...`
+                            );
+                            await new Promise(resolve =>
+                                setTimeout(resolve, 1000)
+                            ); // Wait 1 second before retrying
+                        }
                     }
+                    await f(context);
                 }
-                await f(context);
+            } finally {
+                await indexer.close();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await state.close();
+                await tries.close();
             }
-            await indexer.close();
         });
     });
 }
