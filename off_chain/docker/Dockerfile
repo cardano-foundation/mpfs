@@ -11,10 +11,10 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the application code to the working directory
-COPY . .
+COPY src .
 
 # Expose the port the app runs on
 EXPOSE 3000
 
 # Start the application
-ENTRYPOINT ["npx", "tsx", "service/main.ts"]
+ENTRYPOINT ["npx", "tsx", "src/service/main.ts"]

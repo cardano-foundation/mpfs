@@ -16,7 +16,7 @@ check-on-chain:
 
 build-off-chain:
     #!/usr/bin/env bash
-    cp on_chain/plutus.json off_chain/plutus.json
+    cp on_chain/plutus.json off_chain/src/plutus.json
     cd off_chain
     npm install
 
