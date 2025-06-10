@@ -1,10 +1,10 @@
 import express from 'express';
 import {
-    newContext,
     withContext,
     ContextProvider,
     TopUp,
-    getCagingScript
+    getCagingScript,
+    Context
 } from '../context';
 import { boot } from '../transactions/boot';
 import { update } from '../transactions/update';
@@ -283,7 +283,13 @@ export async function withService(
                 }
             });
 
-            const context = await newContext(indexer, ctxProvider, wallet);
+            const context = await new Context(
+                ctxProvider.provider,
+                wallet,
+                indexer,
+                state,
+                tries
+            );
             const app = mkAPI(logsPath, ctxProvider.topup, context);
             const server = app.listen(port);
 

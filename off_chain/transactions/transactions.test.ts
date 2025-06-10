@@ -5,7 +5,7 @@ import { request } from './request';
 import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { Context, getCagingScript, newContext, yaciProvider } from '../context';
+import { Context, getCagingScript, yaciProvider } from '../context';
 import { Indexer } from '../indexer/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
@@ -302,7 +302,13 @@ export async function withContext(
 
             await indexer.run();
 
-            const context = await newContext(indexer, ctxProvider, wallet);
+            const context = await new Context(
+                ctxProvider.provider,
+                wallet,
+                indexer,
+                state,
+                tries
+            );
             if (ctxProvider.topup) {
                 const { walletAddress } = await context.wallet();
                 const startTime = Date.now();
@@ -327,8 +333,8 @@ export async function withContext(
 }
 
 export async function sync(context: Context) {
-    while (!(await context.indexer.getSync())) {
-        console.log('Waiting for indexer to be ready...');
+    while (!(await context.sync()).ready) {
+        // console.log('Waiting for indexer to be ready...');
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }

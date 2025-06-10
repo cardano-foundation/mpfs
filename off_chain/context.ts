@@ -17,6 +17,9 @@ import { Indexer } from './indexer/indexer';
 import { Change } from './trie/change';
 import { SafeTrie } from './trie/safeTrie';
 import { Token } from './indexer/state/tokens';
+import { State } from './indexer/state';
+import { Trie } from './mpf/lib';
+import { TrieManager } from './trie';
 
 export type Log = (key: string, value: any) => void;
 export type Provider = BlockfrostProvider | YaciProvider;
@@ -35,19 +38,25 @@ export class Context {
     private logger: OutputLogger;
     private provider: Provider;
     private walletInstance: MeshWallet;
-    indexer: Indexer;
+    private indexer: Indexer;
+    private state: State;
+    private tries: TrieManager;
     private progress?: Progress;
 
     constructor(
         provider: Provider,
         wallet: MeshWallet,
         indexer: Indexer,
+        state: State,
+        tries: TrieManager,
         progress?: Progress
     ) {
         this.logger = new OutputLogger();
         this.provider = provider;
         this.walletInstance = wallet;
         this.indexer = indexer;
+        this.state = state;
+        this.tries = tries;
         this.progress = progress;
     }
 
@@ -84,16 +93,16 @@ export class Context {
     }
 
     async fetchTokens(): Promise<Token[]> {
-        return await this.indexer.fetchTokens();
+        return await this.state.tokens.getTokens();
     }
     async fetchToken(tokenId: string): Promise<CurrentToken | undefined> {
-        return await this.indexer.fetchToken(tokenId);
+        return await this.state.tokens.getToken(tokenId);
     }
 
     async fetchRequests(
         tokenId: string | null
     ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        return await this.indexer.fetchRequests(tokenId);
+        return await this.state.requests.byToken(tokenId);
     }
 
     async signTx(tx: MeshTxBuilder): Promise<string> {
@@ -117,9 +126,16 @@ export class Context {
         tokenId: string,
         f: (trie: SafeTrie) => Promise<any>
     ): Promise<void> {
-        return await this.indexer.tries.trie(tokenId, f);
+        return await this.tries.trie(tokenId, f);
     }
 
+    async sync(): Promise<{
+        ready: boolean;
+        networkTip: number | null;
+        indexerTip: number | null;
+    }> {
+        return await this.indexer.getSync();
+    }
     async waitSettlement(txHash: string): Promise<string> {
         return await onTxConfirmedPromise(
             this.provider,
@@ -184,18 +200,6 @@ export function getCagingScript() {
         policyId
     };
     return caging;
-}
-
-export async function newContext(
-    indexer: Indexer,
-    ctxProvider: ContextProvider,
-    wallet: MeshWallet,
-    progress?: Progress
-): Promise<Context> {
-    const provider = ctxProvider.provider;
-
-    // run the indexer
-    return new Context(provider, wallet, indexer, progress);
 }
 
 export type ContextProvider = {

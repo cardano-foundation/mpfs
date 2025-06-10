@@ -1,15 +1,10 @@
 import WebSocket from 'ws';
-import { TrieManager } from '../trie';
 import { Mutex } from 'async-mutex';
 import { Process } from './process';
 import { RollbackKey } from './state/rollbackkey';
 import { samplePowerOfTwoPositions } from './state/intersection';
-import { Change } from '../trie/change';
 import { Checkpoint } from './state/checkpoints';
-import { createState, State } from './state';
-import { Token } from './state/tokens';
-import { CurrentToken } from '../token';
-import { Level } from 'level';
+import { State } from './state';
 
 export class Indexer {
     private process: Process;
@@ -40,21 +35,6 @@ export class Indexer {
             })
         );
     }
-
-    async fetchTokens(): Promise<Token[]> {
-        return await this.state.tokens.getTokens();
-    }
-
-    async fetchToken(tokenId: string): Promise<CurrentToken | undefined> {
-        return await this.state.tokens.getToken(tokenId);
-    }
-
-    async fetchRequests(
-        tokenId: string | null = null
-    ): Promise<{ outputRef: string; change: Change; owner: string }[]> {
-        return await this.state.requests.byToken(tokenId);
-    }
-
     async getSync(): Promise<{
         ready: boolean;
         networkTip: number | null;
@@ -71,9 +51,7 @@ export class Indexer {
             indexerTip: this.indexerTip
         };
     }
-    get tries(): TrieManager {
-        return this.process.trieManager;
-    }
+
     async pause() {
         return await this.stop.acquire();
     }
@@ -99,8 +77,6 @@ export class Indexer {
         if (this.client) {
             this.client.close();
         }
-        await this.state.close();
-        await this.tries.close();
         release();
     }
     async run(): Promise<void> {
@@ -228,25 +204,7 @@ export class Indexer {
             release();
         });
     }
-    async rollback(checkpoint: Checkpoint | null): Promise<void> {
-        // remove all checkpoints after this one
-
-        const requests =
-            await this.state.checkpoints.extractCheckpointsAfter(checkpoint);
-
-        // // get out the rollbacks after this checkpoint
-        // const rollbacks = await this.state.extractRollbacksAfter(
-        //     checkpoint.slot
-        // );
-        // // and backapply them to the tries
-        // for (const rollback of rollbacks) {
-        //     await this.process.trieManager.applyRollback(rollback);
-        // }
-        // // prune the requests after this checkpoint
-        // for (const request of requests) {
-        //     await this.state.removeRequest(request.outputRef);
-        // }
-    }
+    async rollback(checkpoint: Checkpoint | null): Promise<void> {}
 }
 
 type WsCheckpoint = {
