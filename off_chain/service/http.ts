@@ -18,6 +18,9 @@ import { Indexer } from '../indexer/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
 import { Level } from 'level';
 import { Token } from '../indexer/state/tokens';
+import { create } from 'domain';
+import { createState } from '../indexer/state';
+import { Process } from '../indexer/process';
 
 // API Endpoints
 function mkAPI(tmp: string, topup: TopUp | undefined, context) {
@@ -265,16 +268,10 @@ export async function withService(
     try {
         const wallet = mkWallet(ctxProvider.provider);
         const tries = await createTrieManager(db);
-
+        const state = await createState(db, tries, 2160);
         const { address, policyId } = getCagingScript();
-
-        const indexer = await Indexer.create(
-            tries,
-            db,
-            address,
-            policyId,
-            ogmios
-        );
+        const process = new Process(state, tries, address, policyId);
+        const indexer = new Indexer(state, process, ogmios);
         try {
             new Promise<void>(async (resolve, reject) => {
                 try {

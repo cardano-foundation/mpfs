@@ -11,6 +11,8 @@ import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
 import { mkOutputRefId } from '../outputRef';
 import { createTrieManager, TrieManager } from '../trie';
+import { createState } from '../indexer/state';
+import { Process } from '../indexer/process';
 
 describe('Submitting transactions we', () => {
     it('can create and delete a token 1', async () => {
@@ -293,17 +295,10 @@ export async function withContext(
         const wallet = mkWallet(ctxProvider.provider);
         await withLevelDB(databaseDir, async db => {
             const tries = await createTrieManager(db);
-
+            const state = await createState(db, tries, 2160);
             const { address, policyId } = getCagingScript();
-
-            const indexer = await Indexer.create(
-                tries,
-                db,
-                address,
-                policyId,
-                ogmios,
-                'test-service' + port.toString()
-            );
+            const process = new Process(state, tries, address, policyId);
+            const indexer = new Indexer(state, process, ogmios);
 
             await indexer.run();
 

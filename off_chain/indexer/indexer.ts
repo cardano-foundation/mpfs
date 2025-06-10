@@ -14,7 +14,6 @@ import { Level } from 'level';
 export class Indexer {
     private process: Process;
     private client: WebSocket;
-    private name: string;
     private indexerTip: number | null = null;
     private networkTip: number | null = null;
     private networkTipQueried: boolean = false;
@@ -24,31 +23,11 @@ export class Indexer {
     private webSocketAddress: string;
     private state: State;
 
-    constructor(
-        process: Process,
-        address: string,
-        name: string = 'Indexer',
-        state
-    ) {
+    constructor(state: State, process: Process, address: string) {
         this.process = process;
-        this.name = name;
         this.stop = new Mutex();
         this.webSocketAddress = address;
         this.state = state;
-    }
-
-    public static async create(
-        tries: TrieManager,
-        parentDB: Level<string, any>,
-        address: string,
-        policyId: string,
-        wsAddress: string,
-        name: string = 'Indexer',
-        checkpointsSize: number = 10
-    ): Promise<Indexer> {
-        const state = await createState(parentDB, tries, checkpointsSize);
-        const process = new Process(state, tries, address, policyId);
-        return new Indexer(process, wsAddress, name, state);
     }
 
     private rpc(method: string, params: any, id: any): void {
