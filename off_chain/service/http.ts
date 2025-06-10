@@ -90,7 +90,7 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context) {
 
     app.get('/tokens', async (req, res) => {
         try {
-            const indexerStatus = await context.indexer.getSync();
+            const indexerStatus = await context.indexer.tips();
             const tokens = await withTokens(tokens => tokens);
             res.json({
                 tokens,
@@ -233,6 +233,12 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context) {
                 details: error.message
             });
         }
+    });
+
+    app.post('/indexer/wait-blocks', async (req, res) => {
+        const { n } = req.body;
+        const height = await context.indexer.waitBlocks(n);
+        res.json({ height });
     });
 
     return app;

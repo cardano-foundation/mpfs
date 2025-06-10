@@ -3,23 +3,9 @@ import { assertThrows } from './lib';
 
 type Log = (s: string) => void;
 
-const waitForSync = async (log: Log, wallet) => {
-    let delay = 50; // Start with 1 second delay
-    while (true) {
-        const { ready, networkTip, indexerTip } = (
-            await axios.get(`${wallet}/tokens`)
-        ).data.indexerStatus;
-        if (ready) {
-            break;
-        }
-        log(
-            `waiting ${
-                delay / 1000
-            }s for token to sync: indexer tip ${indexerTip}, network tip ${networkTip}`
-        );
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay = Math.min(delay * 2, 10000);
-    }
+const sync = async (host: string) => {
+    const n = 1;
+    const response = await axios.post(`${host}/indexer/wait-blocks`, { n });
 };
 
 async function getWallet(host: string) {
@@ -44,28 +30,28 @@ async function walletTopup(host: string) {
     return response.data;
 }
 async function getTokens(log: Log, host: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.get(`${host}/tokens`);
     assertThrows(response.status === 200, 'Failed to get tokens');
     return response.data;
 }
 
 async function createToken(log, host: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.post(`${host}/token`);
     assertThrows(response.status === 200, 'Failed to create token');
     return response.data.tokenId;
 }
 
 async function getToken(log: Log, host: string, tokenId: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.get(`${host}/token/${tokenId}`);
     assertThrows(response.status === 200, 'Failed to get token');
     return response.data;
 }
 
 async function deleteToken(log: Log, host: string, tokenId: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.delete(`${host}/token/${tokenId}`);
     assertThrows(response.status === 200, 'Failed to delete token');
 
@@ -78,7 +64,7 @@ async function updateToken(
     tokenId: string,
     requestIds: string[]
 ) {
-    await waitForSync(log, host);
+    await sync(host);
 
     const response = await axios.put(`${host}/token/${tokenId}`, {
         requestIds
@@ -92,7 +78,7 @@ async function updateToken(
 }
 
 async function getTokenFacts(log: Log, host: string, tokenId: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.get(`${host}/token/${tokenId}/facts`);
     assertThrows(response.status === 200, 'Failed to get facts');
     return response.data;
@@ -105,7 +91,7 @@ async function createRequest(
     value: string,
     op: 'insert' | 'delete'
 ) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.post(`${host}/token/${tokenId}/request`, {
         key,
         value,
@@ -116,7 +102,7 @@ async function createRequest(
 }
 
 async function deleteRequest(log: Log, host: string, outputRefId: string) {
-    await waitForSync(log, host);
+    await sync(host);
     const response = await axios.delete(`${host}/request/${outputRefId}`);
     assertThrows(response.status === 200, 'Failed to delete request');
     assertThrows(

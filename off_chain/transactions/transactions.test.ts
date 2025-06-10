@@ -339,8 +339,5 @@ export async function withContext(
 }
 
 export async function sync(context: Context) {
-    while (!(await context.sync()).ready) {
-        // console.log('Waiting for indexer to be ready...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    await context.waitBlocks(2);
 }

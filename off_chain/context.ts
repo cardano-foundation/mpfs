@@ -130,13 +130,16 @@ export class Context {
         return await this.tries.trie(tokenId, f);
     }
 
-    async sync(): Promise<{
-        ready: boolean;
+    async waitBlocks(n) {
+        await this.indexer.waitBlocks(n);
+    }
+    async tips(): Promise<{
         networkTip: number | null;
         indexerTip: number | null;
     }> {
-        return await this.indexer.getSync();
+        return await this.indexer.tips();
     }
+
     async waitSettlement(txHash: string): Promise<string> {
         return await onTxConfirmedPromise(
             this.provider,
