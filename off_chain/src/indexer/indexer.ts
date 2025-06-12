@@ -166,26 +166,66 @@ export const createIndexer = async (
                                     }
                                 }
                             );
-                            const slot = new RollbackKey(
-                                response.result.block.slot
-                            );
-                            await checkpoints.putCheckpoint(
-                                { slot, id: response.result.block.id },
-                                response.result.block.transactions.flatMap(tx =>
-                                    tx.inputs.map(inputToOutputRef)
-                                )
-                            );
-                            for (const tx of response.result.block
-                                .transactions) {
-                                await process(slot, tx);
-                            }
+                            if (response.result.block.slot) {
+                                const slot = new RollbackKey(
+                                    response.result.block.slot
+                                );
+                                const inputRefs = response.result.block
+                                    .transactions
+                                    ? response.result.block.transactions.flatMap(
+                                          tx => tx.inputs.map(inputToOutputRef)
+                                      )
+                                    : [];
+                                await checkpoints.putCheckpoint(
+                                    { slot, id: response.result.block.id },
 
+                                    inputRefs
+                                );
+                                if (response.result.block.transactions)
+                                    for (const tx of response.result.block
+                                        .transactions) {
+                                        await process(slot, tx);
+                                    }
+                            }
                             client.nextBlock();
                             break;
                         case 'backward':
-                            await checkpoints.getAllCheckpoints();
+                            const sampleCheckpoints =
+                                await checkpoints.getIntersections();
+                            const moreRecent = sampleCheckpoints[0];
+                            if (response.result.point === 'origin') {
+                                if (moreRecent !== 'origin') {
+                                    throw new Error(
+                                        `Impossible request, more recent is ${JSON.stringify(moreRecent)}`
+                                    );
 
-                            client.nextBlock();
+                                    // await state.rollback('origin');
+                                    // issue 9b1ac369760ddbece549abd8afeafec4c733f3ee, over stability rollback
+                                }
+                                client.nextBlock();
+                                break;
+                            }
+                            if (moreRecent === 'origin')
+                                throw new Error(`Impossible request`);
+
+                            if (
+                                moreRecent.slot.value !==
+                                response.result.point.slot
+                            ) {
+                                state.rollback(
+                                    new RollbackKey(response.result.point.slot)
+                                );
+                                const intersection = (
+                                    await checkpoints.getIntersections()
+                                )[0];
+                                if (intersection === response.result.point) {
+                                    client.nextBlock();
+                                    break;
+                                } else {
+                                    await intersect(client, checkpoints);
+                                }
+                            } else client.nextBlock();
+
                             break;
                     }
             }
@@ -202,14 +242,14 @@ export const createIndexer = async (
         while (checkingReadiness) await sleepMs(100);
         return {
             ready,
-            networkTip: networkTip,
-            indexerTip: indexerTip
+            networkTip,
+            indexerTip
         };
     };
     const sync = async () => {
         await new Promise<void>(async resolve => {
             const checkReadiness = async () => {
-                const { ready } = await tips();
+                const { ready, networkTip, indexerTip } = await tips();
                 if (ready) {
                     resolve();
                 } else {
@@ -257,12 +297,12 @@ export const createIndexer = async (
 };
 
 export const withIndexer = async (
-    checkpoints: Checkpoints,
+    state: State,
     process: Process,
     ogmios: string,
     f: (indexer: Indexer) => Promise<void>
 ): Promise<void> => {
-    const indexer = await createIndexer(checkpoints, process, ogmios);
+    const indexer = await createIndexer(state, process, ogmios);
     try {
         await f(indexer);
     } finally {

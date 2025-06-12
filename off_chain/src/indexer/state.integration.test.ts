@@ -353,10 +353,6 @@ const withSetup = async (
                                 await ctxProvider.topup!(walletAddress, 10_000);
                                 break;
                             } catch (error) {
-                                console.error(
-                                    'Top-up failed, retrying...',
-                                    error
-                                );
                                 await sleepMs(
                                     Math.floor(Math.random() * 5000) + 1000
                                 );
