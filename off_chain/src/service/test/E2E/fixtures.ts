@@ -4,7 +4,7 @@ import { Provider, yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from '../../client';
 import { it } from 'vitest';
-import { withTempDir } from '../../../test/lib';
+import { retry, withTempDir } from '../../../test/lib';
 import { sleepMs, validatePort } from '../../../lib';
 
 function newWallet(provider: Provider) {
@@ -79,27 +79,16 @@ export async function withRunner(test) {
             async () => {
                 const wallets: Wallets = { charlie, bob, alice };
 
-                const retryTopup = async (
-                    wallet: string,
-                    retries: number = 30,
-                    delay: number = Math.random() * 10000 + 2000
-                ) => {
-                    for (let attempt = 1; attempt <= retries; attempt++) {
-                        try {
-                            await walletTopup(wallet);
-                            return;
-                        } catch (error) {
-                            if (attempt === retries) {
-                                throw error;
-                            }
-                            await sleepMs(delay);
-                        }
-                    }
-                };
+                const retryRemoteTopup = async (wallet: string) =>
+                    await retry(
+                        30,
+                        Math.random() * 10000 + 2000,
+                        async () => await walletTopup(wallet)
+                    );
 
-                await retryTopup(wallets.charlie);
-                await retryTopup(wallets.bob);
-                await retryTopup(wallets.alice);
+                await retryRemoteTopup(wallets.charlie);
+                await retryRemoteTopup(wallets.bob);
+                await retryRemoteTopup(wallets.alice);
 
                 const runner: Runner = {
                     run: async (fn: () => Promise<void>, name: string) => {
