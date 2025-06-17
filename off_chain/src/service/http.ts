@@ -7,6 +7,7 @@ import {
     Context
 } from '../context';
 import { boot } from '../transactions/boot';
+import { bootSigningless } from '../transactions/signing-less/boot';
 import { update } from '../transactions/update';
 import { request } from '../transactions/request';
 import { end } from '../transactions/end';
@@ -22,9 +23,18 @@ import { createState } from '../indexer/state';
 import { createProcess } from '../indexer/process';
 import { sleep } from '../lib';
 import { Checkpoint } from '../indexer/state/checkpoints';
+import {
+    SigninglessContext,
+    mkSigninglessContext
+} from '../transactions/signing-less/context';
 
 // API Endpoints
-function mkAPI(tmp: string, topup: TopUp | undefined, context) {
+function mkAPI(
+    tmp: string,
+    topup: TopUp | undefined,
+    context,
+    signingless: SigninglessContext
+) {
     async function withTokens(f: (tokens: Token[]) => any): Promise<any> {
         const tokens = await withContext(
             `${tmp}/logs/tokens`,
@@ -71,6 +81,20 @@ function mkAPI(tmp: string, topup: TopUp | undefined, context) {
             }
         });
     }
+
+    app.get('/transaction/create-token/:walletAddress', async (req, res) => {
+        const { walletAddress } = req.params;
+        try {
+            const result = await bootSigningless(signingless, walletAddress);
+            res.json(result);
+        } catch (error) {
+            console.error('Error booting:', error);
+            res.status(500).json({
+                error: 'Error booting',
+                details: JSON.stringify(error)
+            });
+        }
+    });
 
     app.post('/token', async (req, res) => {
         try {
@@ -279,18 +303,26 @@ export async function withService(
         const state = await createState(db, tries, 2160, since);
 
         const { address, policyId } = getCagingScript();
-        const process = await createProcess(state, address, policyId);
+        const process = createProcess(state, address, policyId);
 
         const indexer = await createIndexer(state, process, ogmios);
         try {
-            const context = await new Context(
+            const context = new Context(
                 ctxProvider.provider,
                 wallet,
                 indexer,
                 state,
                 tries
             );
-            const app = mkAPI(logsPath, ctxProvider.topup, context);
+            const signinglessContext = mkSigninglessContext(
+                ctxProvider.provider
+            );
+            const app = mkAPI(
+                logsPath,
+                ctxProvider.topup,
+                context,
+                signinglessContext
+            );
             const server = app.listen(port);
 
             await new Promise<void>((resolve, reject) => {
