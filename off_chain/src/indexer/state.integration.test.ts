@@ -215,7 +215,6 @@ describe('State and Indexer', () => {
         'can restart after rolling back the db by hand and contains one full token',
         { timeout: 60000, retry: 3 },
         async () => {
-            let rollback: Checkpoint | undefined = undefined;
             let tokenId: string | undefined = undefined;
             let points: {
                 checkpoint: Checkpoint;
@@ -255,10 +254,6 @@ describe('State and Indexer', () => {
                             const release = await indexer.pause();
                             const stateHash = await fullStateHash(state, tries);
                             const checkpoint = await getFirstCheckpoint(state);
-                            const checkPointWithStateHash = {
-                                slot: checkpoint,
-                                stateHash
-                            };
                             points.push({
                                 checkpoint,
                                 stateHash
