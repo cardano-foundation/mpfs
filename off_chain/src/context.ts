@@ -185,8 +185,13 @@ export async function withContext(
         throw error;
     }
 }
-
-export function getCagingScript() {
+export type CagingScript = {
+    cbor: string;
+    address: string;
+    scriptHash: string;
+    policyId: string;
+};
+export function getCagingScript(): CagingScript {
     const cbor = applyParamsToScript(
         blueprint.validators[0].compiledCode, // crap
         []
