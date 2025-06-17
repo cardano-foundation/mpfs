@@ -30,6 +30,13 @@ export type Wallets = {
 
 export type Runner = {
     run: (test: () => Promise<void>, name: string) => Promise<void>;
+    runSigningless: (
+        test: (
+            address: string,
+            signAndSubmitTx: (cbor: string) => Promise<string>
+        ) => Promise<void>,
+        name: string
+    ) => Promise<void>;
     log: (message: string) => void;
     wallets: Wallets;
 };
@@ -90,10 +97,41 @@ export async function withRunner(test) {
                 await retryRemoteTopup(wallets.bob);
                 await retryRemoteTopup(wallets.alice);
 
+                const mnemonics = generateMnemonic();
+                const clientWallet = new MeshWallet({
+                    networkId: 0,
+                    fetcher: provider.provider,
+                    submitter: provider.provider,
+                    key: {
+                        type: 'mnemonic',
+                        words: mnemonics.split(' ')
+                    }
+                });
+                await retry(30, Math.random() * 10000 + 2000, async () => {
+                    if (provider.topup) {
+                        await provider.topup(
+                            clientWallet.getChangeAddress(),
+                            1000000
+                        );
+                    }
+                });
+                const walletAddress = clientWallet.getChangeAddress();
                 const runner: Runner = {
                     run: async (fn: () => Promise<void>, name: string) => {
                         await fn();
                     },
+                    runSigningless: async (
+                        fn: (
+                            address: string,
+                            signAndSubmitTx: (cbor: string) => Promise<string>
+                        ) => Promise<void>,
+                        name: string
+                    ) =>
+                        await fn(walletAddress, async (cbor: string) => {
+                            const signed = await clientWallet.signTx(cbor);
+                            return await clientWallet.submitTx(signed);
+                        }),
+
                     log: async (s: string) => {
                         // console.log(`  - ${s}`);
                     },
