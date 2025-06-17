@@ -332,7 +332,7 @@ const withSetup = async (
     const wallet = mkWallet(mnemonic)(ctxProvider.provider);
     await withLevelDB(tmpDir, async db => {
         await withTrieManager(db, async tries => {
-            await withState(db, tries, checkpointsSize, async state => {
+            await withState(db, tries, checkpointsSize, null, async state => {
                 const process = createProcess(state, address, policyId);
                 await withIndexer(
                     state,

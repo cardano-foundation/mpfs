@@ -4,7 +4,11 @@ import { RollbackKey } from './state/rollbackkey';
 import { TrieManager } from '../trie';
 import { mkOutputRefId } from '../outputRef';
 import { CurrentToken } from '../token';
-import { Checkpoints, createCheckpoints } from './state/checkpoints';
+import {
+    Checkpoint,
+    Checkpoints,
+    createCheckpoints
+} from './state/checkpoints';
 import { createRollbacks, Rollbacks } from './state/rollbacks';
 import { createTokens, Token, Tokens } from './state/tokens';
 import { createRequests, Requests } from './state/requests';
@@ -40,7 +44,8 @@ export type State = {
 export const createState = async (
     parent: Level<string, any>,
     tries: TrieManager,
-    checkpointsSize: number | null = null
+    checkpointsSize: number | null = null,
+    since: Checkpoint | null = null
 ): Promise<State> => {
     const state: AbstractSublevel<any, any, string, any> = parent.sublevel(
         'state',
@@ -52,7 +57,7 @@ export const createState = async (
     const tokens = await createTokens(state);
     const requests = await createRequests(state);
     const rollbacks = await createRollbacks(state);
-    const checkpoints = await createCheckpoints(state, checkpointsSize);
+    const checkpoints = await createCheckpoints(state, checkpointsSize, since);
     return {
         close: async (): Promise<void> => {
             try {
@@ -190,9 +195,10 @@ export const withState = async (
     parent: Level<string, any>,
     tries: TrieManager,
     checkpointsSize: number | null = null,
+    since: Checkpoint | null = null,
     f: (state: State) => Promise<void>
 ): Promise<void> => {
-    const state = await createState(parent, tries, checkpointsSize);
+    const state = await createState(parent, tries, checkpointsSize, since);
     try {
         await f(state);
     } finally {

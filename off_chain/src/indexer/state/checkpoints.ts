@@ -39,7 +39,8 @@ export type Checkpoints = {
 
 export const createCheckpoints = async (
     parent: AbstractSublevel<any, any, any, any>,
-    size: number | null = null
+    size: number | null = null,
+    since: Checkpoint | null = null
 ): Promise<Checkpoints> => {
     const db: AbstractSublevel<
         any,
@@ -51,6 +52,24 @@ export const createCheckpoints = async (
         keyEncoding: 'binary'
     });
     await db.open();
+    const all = async () => {
+        const checkpoints: Checkpoint[] = [];
+        for await (const [key, value] of db.iterator()) {
+            checkpoints.push({
+                slot: RollbackKey.fromKey(key),
+                id: value.blockHash
+            });
+        }
+        return checkpoints;
+    };
+    const start = await all();
+    if (start.length == 0 && since !== null) {
+        // If there are no checkpoints, we can add the jump checkpoint
+        await db.put(since.slot.key, {
+            blockHash: since.id,
+            consumedRefIds: []
+        });
+    }
     let count = 0;
     const dropCheckpointsTail = async (): Promise<void> => {
         if (size === null) {
@@ -67,16 +86,6 @@ export const createCheckpoints = async (
             await db.del(key);
             count--;
         }
-    };
-    const all = async () => {
-        const checkpoints: Checkpoint[] = [];
-        for await (const [key, value] of db.iterator()) {
-            checkpoints.push({
-                slot: RollbackKey.fromKey(key),
-                id: value.blockHash
-            });
-        }
-        return checkpoints;
     };
     return {
         putCheckpoint: async (

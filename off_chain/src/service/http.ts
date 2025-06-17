@@ -21,6 +21,7 @@ import { Token } from '../indexer/state/tokens';
 import { createState } from '../indexer/state';
 import { createProcess } from '../indexer/process';
 import { sleep } from '../lib';
+import { Checkpoint } from '../indexer/state/checkpoints';
 
 // API Endpoints
 function mkAPI(tmp: string, topup: TopUp | undefined, context) {
@@ -263,6 +264,7 @@ export async function withService(
     ctxProvider: ContextProvider,
     mkWallet: (Provider) => MeshWallet,
     ogmios: string,
+    since: Checkpoint | null = null,
     f
 ): Promise<void> {
     const db: Level<any, any> = new Level(`${dbPath}/${port}`, {
@@ -274,7 +276,7 @@ export async function withService(
     try {
         const wallet = mkWallet(ctxProvider.provider);
         const tries = await createTrieManager(db);
-        const state = await createState(db, tries, 2160);
+        const state = await createState(db, tries, 2160, since);
 
         const { address, policyId } = getCagingScript();
         const process = await createProcess(state, address, policyId);
@@ -318,6 +320,7 @@ export async function withServices(
     ctxProvider: ContextProvider,
     mkWallet: (Provider) => MeshWallet,
     ogmios: string,
+    since: Checkpoint | null = null,
     f
 ): Promise<void> {
     async function loop(names: Name[]) {
@@ -334,6 +337,7 @@ export async function withServices(
             ctxProvider,
             mkWallet,
             ogmios,
+            since,
             async () => await loop(remainingNames)
         );
     }

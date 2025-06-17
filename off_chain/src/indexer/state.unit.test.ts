@@ -74,7 +74,7 @@ describe('State', () => {
         await withTempDir(async tmpDir => {
             await withLevelDB(tmpDir, async db => {
                 await withTrieManager(db, async tries => {
-                    await withState(db, tries, null, async state => {
+                    await withState(db, tries, null, null, async state => {
                         await f(state, tries);
                     });
                 });

@@ -75,6 +75,7 @@ export async function withRunner(test) {
             provider,
             newWallet,
             ogmiosHost,
+            null,
             async () => {
                 const wallets: Wallets = { charlie, bob, alice };
 

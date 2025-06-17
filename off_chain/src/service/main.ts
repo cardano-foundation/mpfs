@@ -5,6 +5,7 @@ import { blockfrostProvider, ContextProvider, yaciProvider } from '../context';
 import fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { RollbackKey } from '../indexer/state/rollbackkey';
 
 let servers;
 
@@ -43,7 +44,7 @@ async function setup() {
             })
             .option('yaci-admin-host', {
                 type: 'string',
-                describe: 'Yaci admin host (required if provider is yaci)'
+                describe: 'Yaci admin host'
             })
             .option('ogmios-host', {
                 type: 'string',
@@ -60,24 +61,15 @@ async function setup() {
                 describe: 'Path to the logs directory',
                 default: 'tmp'
             })
-            .check(argv => {
-                if (
-                    argv.provider === 'blockfrost' &&
-                    !argv['blockfrost-project-id']
-                ) {
-                    throw new Error(
-                        '--blockfrost-project-id is required when provider is blockfrost'
-                    );
-                }
-                if (
-                    argv.provider === 'yaci' &&
-                    (!argv['yaci-store-host'] || !argv['yaci-admin-host'])
-                ) {
-                    throw new Error(
-                        '--yaci-store-host and --yaci-admin-host are required when provider is yaci'
-                    );
-                }
-                return true;
+            .option('since-slot', {
+                type: 'number',
+                describe: 'Slot number to start indexing from',
+                default: 0
+            })
+            .option('since-block-id', {
+                type: 'string',
+                describe: 'Block ID to start indexing from',
+                default: ''
             }).argv;
 
         const argv = await argvPromise;
@@ -114,10 +106,8 @@ async function setup() {
             case 'yaci':
                 const yaciStoreHost = argv['yaci-store-host'];
                 const yaciAdminHost = argv['yaci-admin-host'];
-                if (!yaciStoreHost || !yaciAdminHost) {
-                    throw new Error(
-                        'Yaci store host and admin host are required'
-                    );
+                if (!yaciStoreHost) {
+                    throw new Error('Yaci store host is required');
                 }
 
                 ctxProvider = yaciProvider(yaciStoreHost, yaciAdminHost);
@@ -131,7 +121,14 @@ async function setup() {
             mkWallet,
             ogmios: argv['ogmios-host'],
             database: argv['database-path'],
-            logs: argv['logs-path']
+            logs: argv['logs-path'],
+            since:
+                argv['since-slot'] === 0
+                    ? null
+                    : {
+                          slot: new RollbackKey(parseInt(argv['since-slot'])),
+                          id: argv['since-block-id']
+                      }
         };
     } catch (error) {
         console.error('Error in setup:', error.message);
@@ -140,7 +137,7 @@ async function setup() {
 }
 
 async function main() {
-    const { portNumber, ctxProvider, mkWallet, ogmios, database, logs } =
+    const { portNumber, ctxProvider, mkWallet, ogmios, database, logs, since } =
         await setup();
     await withService(
         portNumber,
@@ -149,6 +146,7 @@ async function main() {
         ctxProvider,
         mkWallet,
         ogmios,
+        since,
         async () => {
             console.log(`Server is running on port ${portNumber}`);
             console.log('Press Ctrl+C to stop the server');
