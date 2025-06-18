@@ -1,4 +1,6 @@
-import { nullHash, OutputRef } from '../../../lib';
+import { describe } from 'vitest';
+import { e2eTest as e2eVitest } from './E2E/fixtures';
+import { nullHash, OutputRef } from '../../lib';
 import {
     createRequest,
     createToken,
@@ -9,28 +11,9 @@ import {
     getTokens,
     getWallet,
     updateToken
-} from '../../client';
-import { Runner, Wallets } from './fixtures';
-import { assertThrows, shouldFail } from './lib';
-
-export {
-    Wallets,
-    Runner,
-    canAccessWallets,
-    tokensAreEmpty,
-    createTokenAndDelete,
-    cannotDeleteAnotherUsersToken,
-    canRetractRequest,
-    cannotRetractAnotherUsersRequest,
-    cannotUpdateATokenWithNoRequests,
-    canInspectRequestsForAToken,
-    canUpdateAToken,
-    cannotUpdateAnotherUsersToken,
-    canDeleteFacts,
-    canBatchUpdate,
-    insertCommutes,
-    deleteCommutes
-};
+} from '../client';
+import { Runner, Wallets } from './E2E/fixtures';
+import { assertThrows, shouldFail } from './E2E/lib';
 
 const canAccessWallets = async ({
     run,
@@ -48,7 +31,7 @@ const canAccessWallets = async ({
     await run(test, 'users can access wallets');
 };
 
-const tokensAreEmpty = async ({
+const canRetrieveTokens = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
@@ -61,7 +44,7 @@ const tokensAreEmpty = async ({
     await run(test, 'users can retrieve their tokens');
 };
 
-const createTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
+const canCreateTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -454,3 +437,33 @@ const deleteCommutes = async ({
     };
     await run(test, 'user can commute deletions');
 };
+
+describe('E2E Tests', () => {
+    e2eVitest('can access wallets', canAccessWallets);
+    e2eVitest('can retrieve tokens', canRetrieveTokens);
+    e2eVitest('can create and delete a token', canCreateTokenAndDelete);
+    e2eVitest(
+        "cannot delete another user's token",
+        cannotDeleteAnotherUsersToken
+    );
+    e2eVitest('can retract a request', canRetractRequest);
+    e2eVitest(
+        "cannot retract another user's request",
+        cannotRetractAnotherUsersRequest
+    );
+    e2eVitest(
+        'cannot update a token with no requests',
+        cannotUpdateATokenWithNoRequests
+    );
+    e2eVitest('can inspect requests for a token', canInspectRequestsForAToken);
+    e2eVitest('can update a token', canUpdateAToken);
+    e2eVitest(
+        "cannot update another user's token",
+        cannotUpdateAnotherUsersToken
+    );
+    e2eVitest('can update a token twice', canUpdateATokenTwice);
+    e2eVitest('can delete facts', canDeleteFacts);
+    e2eVitest('can batch update', canBatchUpdate);
+    e2eVitest('can insert commutes', insertCommutes);
+    e2eVitest('can delete commutes', deleteCommutes);
+});
