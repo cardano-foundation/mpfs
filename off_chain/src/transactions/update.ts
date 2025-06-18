@@ -55,7 +55,7 @@ export async function update(
     let proofs: Proof[] = [];
     let txHash: string = 'not defined';
     const tx = context.newTxBuilder();
-    const releaseIndexer = await context.indexer.pause();
+    const releaseIndexer = await context.pauseIndexer();
     const { policyId } = context.cagingScript;
     const unit = policyId + tokenId;
     async function onTrie(trie) {

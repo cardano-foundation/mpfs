@@ -1,5 +1,5 @@
 import express from 'express';
-import { Context } from '../context';
+import { Context, mkContext } from '../context';
 import { boot } from '../transactions/boot';
 import { bootSigningless } from '../transactions/signing-less/boot';
 import { update } from '../transactions/update';
@@ -32,7 +32,7 @@ import {
 function mkAPI(
     tmp: string,
     topup: TopUp | undefined,
-    context,
+    context: Context,
     signingless: SigninglessContext
 ) {
     async function withTokens(f: (tokens: Token[]) => any): Promise<any> {
@@ -97,7 +97,7 @@ function mkAPI(
 
     app.get('/tokens', async (req, res) => {
         try {
-            const indexerStatus = await context.indexer.tips();
+            const indexerStatus = await context.tips();
             const tokens = await withTokens(tokens => tokens);
             res.json({
                 tokens,
@@ -212,7 +212,7 @@ function mkAPI(
 
     app.post('/indexer/wait-blocks', async (req, res) => {
         const { n } = req.body;
-        const height = await context.indexer.waitBlocks(n);
+        const height = await context.waitBlocks(n);
         res.json({ height });
     });
 
@@ -256,13 +256,7 @@ export async function withService(
 
         const indexer = await createIndexer(state, process, ogmios);
         try {
-            const context = new Context(
-                provider,
-                wallet,
-                indexer,
-                state,
-                tries
-            );
+            const context = mkContext(provider, wallet, indexer, state, tries);
             const signinglessContext = mkSigninglessContext(provider);
             const app = mkAPI(
                 logsPath,
@@ -273,13 +267,14 @@ export async function withService(
                 signinglessContext
             );
             const server = app.listen(port);
-
             await new Promise<void>((resolve, reject) => {
                 server.on('listening', resolve);
                 server.on('error', reject);
             });
             try {
                 await f();
+            } catch (error) {
+                console.error(`Error in service on port ${port}:`, error);
             } finally {
                 server.close();
             }

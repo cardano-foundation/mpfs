@@ -5,7 +5,7 @@ import { request } from './request';
 import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { Context } from '../context';
+import { Context, mkContext } from '../context';
 import { createIndexer } from '../indexer/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
@@ -337,7 +337,7 @@ export async function withContext(
 
             const indexer = await createIndexer(state, process, ogmios);
             try {
-                const context = await new Context(
+                const context = mkContext(
                     provider,
                     wallet,
                     indexer,

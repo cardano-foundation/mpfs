@@ -4,7 +4,7 @@ import { withLevelDB } from '../trie.test';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { createProcess } from './process';
-import { Context } from '../context';
+import { Context, mkContext } from '../context';
 import { createIndexer, withIndexer, Indexer } from './indexer';
 import {
     Checkpoint,
@@ -256,7 +256,7 @@ describe('State and Indexer', () => {
                     async (db, tries, state, indexer, context) => {
                         const pushCheckpoint = async () => {
                             await indexer.waitBlocks(2);
-                            const release = await indexer.pause();
+                            const release = await context.pauseIndexer();
                             const stateHash = await fullStateHash(state, tries);
                             const checkpoint = await getFirstCheckpoint(state);
                             points.push({
@@ -339,7 +339,7 @@ const withSetup = async (
                     process,
                     'http://localhost:1337',
                     async indexer => {
-                        const context = await new Context(
+                        const context = mkContext(
                             provider,
                             wallet,
                             indexer,
