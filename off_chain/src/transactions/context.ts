@@ -1,6 +1,4 @@
-import {
-    MeshTxBuilder,
-    MeshWallet} from '@meshsdk/core';
+import { MeshTxBuilder, MeshWallet } from '@meshsdk/core';
 import { CurrentToken } from '../token';
 import { Indexer } from '../indexer/indexer';
 import { Change } from '../trie/change';
@@ -13,9 +11,14 @@ import {
     getTxBuilder,
     getWalletInfoForTx,
     onTxConfirmedPromise,
-    Provider,
-    Wallet
+    Provider
 } from './context/lib';
+import {
+    mkObservingWallet,
+    mkSigningWallet,
+    SigningWallet,
+    WalletInfo
+} from './context/wallet';
 
 export type Context = {
     cagingScript: {
@@ -24,15 +27,14 @@ export type Context = {
         scriptHash: string;
         policyId: string;
     };
-    wallet: () => Promise<Wallet>;
+    signingWallet: SigningWallet | undefined;
+    addressWallet: (address: string) => Promise<WalletInfo>;
     newTxBuilder: () => MeshTxBuilder;
     fetchTokens: () => Promise<Token[]>;
     fetchToken: (tokenId: string) => Promise<CurrentToken | undefined>;
     fetchRequests: (
         tokenId: string | null
     ) => Promise<{ outputRef: string; change: Change; owner: string }[]>;
-    signTx: (tx: MeshTxBuilder) => Promise<string>;
-    submitTx: (tx: string) => Promise<string>;
     evaluate: (txHex: string) => Promise<any>;
     trie: (
         tokenId: string,
@@ -47,29 +49,31 @@ export type Context = {
 
 export const mkContext = (
     provider: Provider,
-    wallet: MeshWallet,
+    mnemonics: string | null,
     indexer: Indexer,
     state: State,
     tries: TrieManager
 ): Context => {
+    let signingWallet: SigningWallet | undefined;
+    if (mnemonics) {
+        signingWallet = mkSigningWallet(mnemonics, provider);
+    } else {
+        signingWallet = undefined;
+    }
+    const observingWallet = mkObservingWallet(provider);
+
     return {
         cagingScript: getCagingScript(),
-        wallet: async () => await getWalletInfoForTx(wallet),
+        signingWallet: signingWallet,
+        addressWallet: async (walletAddress: string) =>
+            await observingWallet(walletAddress),
         newTxBuilder: () => getTxBuilder(provider),
         fetchTokens: async () => await state.tokens.getTokens(),
         fetchToken: async (tokenId: string) =>
             await state.tokens.getToken(tokenId),
         fetchRequests: async (tokenId: string | null) =>
             await state.requests.byToken(tokenId),
-        signTx: async (tx: MeshTxBuilder) => {
-            const unsignedTx = tx.txHex;
-            const signedTx = await wallet.signTx(unsignedTx);
-            return signedTx;
-        },
-        submitTx: async (tx: string) => {
-            const txHash = await wallet.submitTx(tx);
-            return txHash;
-        },
+
         evaluate: async (txHex: string) => {
             await provider.evaluateTx(txHex);
         },

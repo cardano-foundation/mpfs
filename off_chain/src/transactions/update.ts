@@ -27,8 +27,9 @@ export async function update(
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
+    const wallet = context.signingWallet!;
     const { utxos, walletAddress, collateral, signerHash } =
-        await context.wallet();
+        await wallet.info();
 
     const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
@@ -102,11 +103,11 @@ export async function update(
                 );
 
             await tx.complete();
-            const signedTx = await context.signTx(tx);
+            const signedTx = await wallet.signTx(tx.txHex);
 
             // const e = await evaluate(tx.txHex)
             // console.log('evaluate', JSON.stringify(e, null, 2));
-            txHash = await context.submitTx(signedTx);
+            txHash = await wallet.submitTx(signedTx);
             // const block = await context.waitSettlement(txHash);
             //context.log('block', block);
         } catch (error) {

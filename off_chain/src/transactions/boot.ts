@@ -4,7 +4,7 @@ import { assetName, nullHash, OutputRef } from '../lib';
 
 export async function boot(context: Context) {
     const { utxos, walletAddress, collateral, signerHash } =
-        await context.wallet();
+        await context.signingWallet!.info();
 
     const firstUTxO = utxos[0];
     if (!firstUTxO) {
@@ -38,8 +38,8 @@ export async function boot(context: Context) {
         .selectUtxosFrom(utxos)
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex)
         .complete();
-    const signedTx = await context.signTx(tx);
-    const txHash = await context.submitTx(signedTx);
+    const signedTx = await context.signingWallet!.signTx(tx.txHex);
+    const txHash = await context.signingWallet!.submitTx(signedTx);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return asset;

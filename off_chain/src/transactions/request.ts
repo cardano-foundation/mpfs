@@ -13,7 +13,8 @@ export async function request(
         throw new Error('No token id provided');
     }
 
-    const { walletAddress, utxos, signerHash } = await context.wallet();
+    const wallet = context.signingWallet!;
+    const { walletAddress, utxos, signerHash } = await wallet.info();
     if (!utxos.length) {
         throw new Error(
             `No UTxO found. Please fund the wallet ${walletAddress}`
@@ -41,8 +42,8 @@ export async function request(
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
         .complete();
-    const signedTx = await context.signTx(tx);
-    const txHash = await context.submitTx(signedTx);
+    const signedTx = await wallet.signTx(tx.txHex);
+    const txHash = await wallet.submitTx(signedTx);
 
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);

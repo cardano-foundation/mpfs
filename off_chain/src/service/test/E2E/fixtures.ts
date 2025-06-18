@@ -11,21 +11,6 @@ import {
     yaciProvider
 } from '../../../transactions/context/lib';
 
-function newWallet(provider: Provider) {
-    const seed = crypto.getRandomValues(new Uint32Array(4)).join('');
-    const entropy = Buffer.from(`${seed}`.repeat(32).slice(0, 32), 'utf8');
-    const mnemonic = generateMnemonic(256, () => entropy);
-    return new MeshWallet({
-        networkId: 0,
-        fetcher: provider,
-        submitter: provider,
-        key: {
-            type: 'mnemonic',
-            words: mnemonic.split(' ')
-        }
-    });
-}
-
 export type Wallets = {
     charlie: string;
     bob: string;
@@ -65,8 +50,9 @@ export async function withRunner(test) {
     const setupService = async (envvar: string, name: string) => {
         const port = process.env[envvar];
         if (!port) {
+            const mnemonics = generateMnemonic();
             const portNumber = await getPort();
-            namesToServe.push({ name, port: portNumber });
+            namesToServe.push({ name, port: portNumber, mnemonics });
             return `http://localhost:${portNumber}`;
         } else {
             const portNumber = validatePort(port, envvar);
@@ -83,7 +69,6 @@ export async function withRunner(test) {
             tmpDir,
             namesToServe,
             provider,
-            newWallet,
             ogmiosHost,
             null,
             async () => {

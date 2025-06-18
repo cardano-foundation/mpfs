@@ -1,6 +1,6 @@
 import { deserializeAddress, mConStr0, mConStr1 } from '@meshsdk/core';
 import { assetName, nullHash, OutputRef } from '../../lib';
-import { SigninglessContext } from './context';
+import { Context } from '../context';
 
 export type WithUnsignedTransaction<T> = {
     unsignedTransaction: string;
@@ -8,13 +8,11 @@ export type WithUnsignedTransaction<T> = {
 };
 
 export async function bootSigningless(
-    signinglessContext: SigninglessContext,
+    context: Context,
     walletAddress: string
 ): Promise<WithUnsignedTransaction<string>> {
-    const { cagingScript, mkWallet, txBuilder } = signinglessContext;
-    const wallet = mkWallet(walletAddress);
-    const utxos = await wallet.getUtxos();
-    const firstUTxO = utxos[0];
+    const cagingScript = context.cagingScript;
+    const { utxos, firstUTxO } = await context.addressWallet(walletAddress);
     if (!firstUTxO) {
         throw new Error(
             `No UTxO found. Please fund the wallet ${walletAddress}`
@@ -33,7 +31,7 @@ export async function bootSigningless(
 
     const unit = mintPolicyId + asset;
 
-    const tx = txBuilder();
+    const tx = context.newTxBuilder();
     const signerHash = deserializeAddress(walletAddress).pubKeyHash;
     await tx
         .txIn(uniqueness.txHash, uniqueness.outputIndex)

@@ -7,7 +7,6 @@ import { request } from '../transactions/request';
 import { end } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
-import { MeshWallet } from '@meshsdk/core';
 import { createTrieManager } from '../trie';
 import { createIndexer, Indexer } from '../indexer/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
@@ -17,10 +16,7 @@ import { createState } from '../indexer/state';
 import { createProcess } from '../indexer/process';
 import { sleep } from '../lib';
 import { Checkpoint } from '../indexer/state/checkpoints';
-import {
-    SigninglessContext,
-    mkSigninglessContext
-} from '../transactions/signing-less/context';
+
 import {
     getCagingScript,
     Provider,
@@ -29,12 +25,7 @@ import {
 } from '../transactions/context/lib';
 
 // API Endpoints
-function mkAPI(
-    tmp: string,
-    topup: TopUp | undefined,
-    context: Context,
-    signingless: SigninglessContext
-) {
+function mkAPI(topup: TopUp | undefined, context: Context) {
     async function withTokens(f: (tokens: Token[]) => any): Promise<any> {
         const tokens = await context.fetchTokens();
         return f(tokens);
@@ -45,18 +36,28 @@ function mkAPI(
     app.use(express.json()); // Ensure JSON parsing middleware is applied
 
     app.get('/wallet', async (req, res) => {
-        const wallet = await context.wallet();
-        res.json({
-            address: wallet.walletAddress,
-            owner: wallet.signerHash,
-            utxos: wallet.utxos
-        });
+        const wallet = context.signingWallet;
+        if (!wallet) {
+            res.status(404).json({
+                error: 'No signing wallet found'
+            });
+            return;
+        }
+        const walletInfo = await wallet.info();
+        res.json(walletInfo);
     });
     if (topup) {
         app.put('/wallet/topup', async (req, res) => {
             const { amount } = req.body;
             try {
-                const { walletAddress } = await context.wallet();
+                const wallet = context.signingWallet;
+                if (!wallet) {
+                    res.status(404).json({
+                        error: 'No signing wallet found'
+                    });
+                    return;
+                }
+                const { walletAddress } = await wallet.info();
                 await topup(walletAddress, amount);
                 res.json({ message: 'Top up successful' });
             } catch (error) {
@@ -71,7 +72,7 @@ function mkAPI(
     app.get('/transaction/create-token/:walletAddress', async (req, res) => {
         const { walletAddress } = req.params;
         try {
-            const result = await bootSigningless(signingless, walletAddress);
+            const result = await bootSigningless(context, walletAddress);
             res.json(result);
         } catch (error) {
             console.error('Error booting:', error);
@@ -228,6 +229,7 @@ export type Service = {
 export type Name = {
     name: string;
     port: number;
+    mnemonics: string;
 };
 
 export async function withService(
@@ -235,7 +237,7 @@ export async function withService(
     logsPath: string,
     dbPath: string,
     provider: Provider,
-    mkWallet: (Provider) => MeshWallet,
+    mnemonics: string,
     ogmios: string,
     since: Checkpoint | null = null,
     f
@@ -247,7 +249,6 @@ export async function withService(
     await db.open();
 
     try {
-        const wallet = mkWallet(provider);
         const tries = await createTrieManager(db);
         const state = await createState(db, tries, 2160, since);
 
@@ -256,16 +257,16 @@ export async function withService(
 
         const indexer = await createIndexer(state, process, ogmios);
         try {
-            const context = mkContext(provider, wallet, indexer, state, tries);
-            const signinglessContext = mkSigninglessContext(provider);
-            const app = mkAPI(
-                logsPath,
-                async (address: string, amount: number) => {
-                    await topup(provider)(address, amount);
-                },
-                context,
-                signinglessContext
+            const context = mkContext(
+                provider,
+                mnemonics,
+                indexer,
+                state,
+                tries
             );
+            const app = mkAPI(async (address: string, amount: number) => {
+                await topup(provider)(address, amount);
+            }, context);
             const server = app.listen(port);
             await new Promise<void>((resolve, reject) => {
                 server.on('listening', resolve);
@@ -294,7 +295,6 @@ export async function withServices(
     dbPath: string,
     names: Name[],
     provider: Provider,
-    mkWallet: (Provider) => MeshWallet,
     ogmios: string,
     since: Checkpoint | null = null,
     f
@@ -304,14 +304,14 @@ export async function withServices(
             await f();
             return;
         }
-        const { port, name } = names[0];
+        const { port, name, mnemonics } = names[0];
         const remainingNames = names.slice(1);
         await withService(
             port,
             logsPath,
             dbPath,
             provider,
-            mkWallet,
+            mnemonics,
             ogmios,
             since,
             async () => await loop(remainingNames)

@@ -5,12 +5,12 @@ import {
     MeshWallet,
     resolveScriptHash,
     serializePlutusScript,
-    UTxO,
     YaciProvider
 } from '@meshsdk/core';
 import { deserializeAddress } from '@meshsdk/core';
 import blueprint from '../../plutus.json';
 import { retry } from '../../test/lib';
+import { WalletInfo } from './wallet';
 
 export function getTxBuilder(provider: Provider) {
     return new MeshTxBuilder({
@@ -19,7 +19,9 @@ export function getTxBuilder(provider: Provider) {
     });
 }
 
-export async function getWalletInfoForTx(wallet: MeshWallet): Promise<Wallet> {
+export async function getWalletInfoForTx(
+    wallet: MeshWallet
+): Promise<WalletInfo> {
     const utxos = await wallet.getUtxos();
     const collateral = (await wallet.getCollateral())[0];
     const walletAddress = wallet.getChangeAddress();
@@ -104,14 +106,6 @@ export function getCagingScript(): CagingScript {
     };
     return caging;
 }
-
-export type Wallet = {
-    utxos: UTxO[];
-    firstUTxO: UTxO;
-    collateral: UTxO;
-    walletAddress: string;
-    signerHash: string;
-};
 
 export type Provider = BlockfrostProvider | YaciProvider;
 

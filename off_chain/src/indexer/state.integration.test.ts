@@ -11,11 +11,10 @@ import {
     checkpointWithOriginGreaterThan
 } from './state/checkpoints';
 import { generateMnemonic } from 'bip39';
-import { mkWallet } from '../transactions/transactions.test';
 import { boot } from '../transactions/boot';
 import { request } from '../transactions/request';
 import { update } from '../transactions/update';
-import { nullHash, sleep, sleepMs, WithOrigin } from '../lib';
+import { nullHash, sleep, WithOrigin } from '../lib';
 import { end } from '../transactions/end';
 import { Level } from 'level';
 import {
@@ -187,9 +186,8 @@ describe('State and Indexer', () => {
                         await indexer.waitBlocks(0);
                         const token = await state.tokens.getToken(tokenId!);
                         expect(token).toBeDefined();
-                        const signerHash = await context
-                            .wallet()
-                            .then(w => w.signerHash);
+                        const { signerHash } =
+                            await context.signingWallet!.info();
                         expect(token!.state.owner).toEqual(signerHash);
                         expect(token!.state.root).toEqual(nullHash);
                     }
@@ -328,8 +326,7 @@ const withSetup = async (
         `http://localhost:8080`,
         `http://localhost:10000`
     );
-    const mnemonic = maybeMnemonic ? maybeMnemonic : generateMnemonic();
-    const wallet = mkWallet(mnemonic)(provider);
+    const mnemonics = maybeMnemonic ? maybeMnemonic : generateMnemonic();
     await withLevelDB(tmpDir, async db => {
         await withTrieManager(db, async tries => {
             await withState(db, tries, checkpointsSize, null, async state => {
@@ -341,12 +338,13 @@ const withSetup = async (
                     async indexer => {
                         const context = mkContext(
                             provider,
-                            wallet,
+                            mnemonics,
                             indexer,
                             state,
                             tries
                         );
-                        const { walletAddress } = await context.wallet();
+                        const { walletAddress } =
+                            await context.signingWallet!.info();
                         await topup(provider)(walletAddress, 10_000);
                         await indexer.waitBlocks(0);
                         await f(db, tries, state, indexer, context);

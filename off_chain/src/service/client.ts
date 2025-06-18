@@ -13,7 +13,7 @@ async function getWallet(host: string) {
     const response = await axios.get(`${host}/wallet`);
     assertThrows(response.status === 200, 'Failed to get wallet');
     assertThrows(
-        response.data.address.slice(0, 4) == 'addr',
+        response.data.walletAddress.slice(0, 4) == 'addr',
         'Address is not present'
     );
     return response.data;

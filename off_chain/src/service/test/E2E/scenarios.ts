@@ -171,7 +171,7 @@ const canInspectRequestsForAToken = async ({
         await createRequest(log, bob, tk, 'abc', 'value', 'insert');
         log('bob created a request to insert a fact');
         const { state, requests } = await getToken(log, bob, tk);
-        const { owner: charlieSig } = await getWallet(charlie);
+        const { signerHash: charlieSig } = await getWallet(charlie);
 
         assertThrows(state.owner === charlieSig, 'Token owner is not charlie');
         assertThrows(requests.length === 1, 'Requests are not one');

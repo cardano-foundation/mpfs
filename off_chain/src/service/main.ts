@@ -11,8 +11,6 @@ import {
     yaciProvider
 } from '../transactions/context/lib';
 
-let servers;
-
 async function setup() {
     try {
         const argvPromise = yargs(hideBin(process.argv))
@@ -84,18 +82,7 @@ async function setup() {
             const mnemonic = generateMnemonic();
             fs.writeFileSync(argv.seed, mnemonic);
         }
-        const mnemonic = fs.readFileSync(argv.seed, 'utf8');
-
-        const mkWallet = provider =>
-            new MeshWallet({
-                networkId: 0,
-                fetcher: provider,
-                submitter: provider,
-                key: {
-                    type: 'mnemonic',
-                    words: mnemonic.split(' ')
-                }
-            });
+        const mnemonics = fs.readFileSync(argv.seed, 'utf8');
 
         let provider: Provider;
 
@@ -122,7 +109,7 @@ async function setup() {
         return {
             portNumber,
             provider,
-            mkWallet,
+            mnemonics,
             ogmios: argv['ogmios-host'],
             database: argv['database-path'],
             logs: argv['logs-path'],
@@ -141,14 +128,14 @@ async function setup() {
 }
 
 async function main() {
-    const { portNumber, provider, mkWallet, ogmios, database, logs, since } =
+    const { portNumber, provider, mnemonics, ogmios, database, logs, since } =
         await setup();
     await withService(
         portNumber,
         logs,
         database,
         provider,
-        mkWallet,
+        mnemonics,
         ogmios,
         since,
         async () => {

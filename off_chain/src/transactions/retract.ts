@@ -12,7 +12,8 @@ export async function retract(
     context: Context,
     requestOutputRef: OutputRef
 ): Promise<string> {
-    const { walletAddress, collateral, signerHash } = await context.wallet();
+    const wallet = context.signingWallet!;
+    const { walletAddress, collateral, signerHash } = await wallet.info();
 
     const { cbor: cageCbor } = context.cagingScript;
     const requests = await context.fetchRequests(null);
@@ -40,8 +41,8 @@ export async function retract(
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
 
     await tx.complete();
-    const signedTx = await context.signTx(tx);
-    const txHash = await context.submitTx(signedTx);
+    const signedTx = await wallet.signTx(tx.txHex);
+    const txHash = await wallet.submitTx(signedTx);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return txHash;

@@ -310,7 +310,7 @@ export async function withContext(
 ) {
     await withTempDir(async tmpDirFresh => {
         const databaseDir = maybeDatabaseDir || tmpDirFresh;
-        const mnemonic = maybeMnemonic || generateMnemonic();
+        const mnemonics = maybeMnemonic || generateMnemonic();
 
         const yaciStorePort = process.env.YACI_STORE_PORT;
         const yaciStorePortNumber = yaciStorePort
@@ -327,7 +327,6 @@ export async function withContext(
         const ogmiosPort = process.env.OGMIOS_PORT;
         const ogmiosPortNumber = ogmiosPort ? parseInt(ogmiosPort, 10) : 1337;
 
-        const wallet = mkWallet(mnemonic)(provider);
         const ogmios = `http://localhost:${ogmiosPortNumber}`;
         await withLevelDB(databaseDir, async db => {
             const tries = await createTrieManager(db);
@@ -339,12 +338,12 @@ export async function withContext(
             try {
                 const context = mkContext(
                     provider,
-                    wallet,
+                    mnemonics,
                     indexer,
                     state,
                     tries
                 );
-                const { walletAddress } = await context.wallet();
+                const { walletAddress } = await context.signingWallet!.info();
                 await topup(provider)(walletAddress, 10_000);
                 await f(context);
             } finally {
