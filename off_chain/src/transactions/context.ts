@@ -19,6 +19,7 @@ import {
     SigningWallet,
     WalletInfo
 } from './context/wallet';
+import { OgmiosProvider } from '@meshsdk/core';
 
 export type Context = {
     cagingScript: {
@@ -45,9 +46,11 @@ export type Context = {
     waitSettlement(txHash: string): Promise<string>;
     facts(tokenId: string): Promise<Record<string, string>>;
     pauseIndexer: () => Promise<() => void>;
+    submitTx: (txHex: string) => Promise<string>;
 };
 
 export const mkContext = (
+    ogmios: string,
     provider: Provider,
     mnemonics: string | null,
     indexer: Indexer,
@@ -62,6 +65,7 @@ export const mkContext = (
     }
     const observingWallet = mkObservingWallet(provider);
 
+    const ogmiosProvider = new OgmiosProvider(ogmios);
     return {
         cagingScript: getCagingScript(),
         signingWallet: signingWallet,
@@ -96,6 +100,9 @@ export const mkContext = (
             });
             return fs;
         },
-        pauseIndexer: async () => indexer.pause()
+        pauseIndexer: async () => indexer.pause(),
+        submitTx: async (txHex: string) => {
+            return await ogmiosProvider.submitTx(txHex);
+        }
     };
 };

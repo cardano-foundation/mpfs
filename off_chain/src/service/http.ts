@@ -297,6 +297,7 @@ export async function withService(
         const indexer = await createIndexer(state, process, ogmios);
         try {
             const context = mkContext(
+                ogmios,
                 provider,
                 mnemonics,
                 indexer,

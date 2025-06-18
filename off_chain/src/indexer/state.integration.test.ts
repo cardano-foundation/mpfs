@@ -337,6 +337,7 @@ const withSetup = async (
                     'http://localhost:1337',
                     async indexer => {
                         const context = mkContext(
+                            'http://localhost:1337',
                             provider,
                             mnemonics,
                             indexer,
