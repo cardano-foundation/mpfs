@@ -1,5 +1,10 @@
-import { MeshTxBuilder, MeshWallet, YaciProvider } from '@meshsdk/core';
-import { CagingScript, getCagingScript, Provider } from '../../context';
+import { MeshTxBuilder, MeshWallet } from '@meshsdk/core';
+import {
+    CagingScript,
+    Provider,
+    getCagingScript,
+    getTxBuilder
+} from '../context/lib';
 
 export type SigninglessContext = {
     cagingScript: CagingScript;
@@ -24,9 +29,6 @@ export const mkSigninglessContext = (
     return {
         cagingScript,
         mkWallet,
-        txBuilder: () =>
-            new MeshTxBuilder({
-                fetcher: provider
-            })
+        txBuilder: () => getTxBuilder(provider)
     };
 };

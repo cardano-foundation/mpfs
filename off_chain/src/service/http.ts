@@ -1,11 +1,5 @@
 import express from 'express';
-import {
-    withContext,
-    ContextProvider,
-    TopUp,
-    getCagingScript,
-    Context
-} from '../context';
+import { withContext, ContextProvider, TopUp, Context } from '../context';
 import { boot } from '../transactions/boot';
 import { bootSigningless } from '../transactions/signing-less/boot';
 import { update } from '../transactions/update';
@@ -27,6 +21,7 @@ import {
     SigninglessContext,
     mkSigninglessContext
 } from '../transactions/signing-less/context';
+import { getCagingScript } from '../transactions/context/lib';
 
 // API Endpoints
 function mkAPI(

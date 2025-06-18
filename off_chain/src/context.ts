@@ -1,17 +1,11 @@
 import fs from 'node:fs';
 import {
-    applyParamsToScript,
     BlockfrostProvider,
-    deserializeAddress,
     MeshTxBuilder,
     MeshWallet,
-    resolveScriptHash,
-    serializePlutusScript,
-    UTxO,
     YaciProvider
 } from '@meshsdk/core';
 import { OutputLogger } from './logging';
-import blueprint from './plutus.json';
 import { CurrentToken } from './token';
 import { Indexer } from './indexer/indexer';
 import { Change } from './trie/change';
@@ -19,17 +13,19 @@ import { SafeTrie } from './trie/safeTrie';
 import { Token } from './indexer/state/tokens';
 import { State } from './indexer/state';
 import { TrieManager } from './trie';
+import {
+    getCagingScript,
+    getTxBuilder,
+    getWalletInfoForTx,
+    onTxConfirmedPromise,
+    Provider,
+    Wallet
+} from './transactions/context/lib';
 
 export type Log = (key: string, value: any) => void;
-export type Provider = BlockfrostProvider | YaciProvider;
+
 export type WithContext = (context: Context) => Promise<any>;
-export type Wallet = {
-    utxos: UTxO[];
-    firstUTxO: UTxO;
-    collateral: UTxO;
-    walletAddress: string;
-    signerHash: string;
-};
+
 export type TopUp = (address: string, amount: number) => Promise<void>;
 
 export class Context {
@@ -79,10 +75,7 @@ export class Context {
     }
 
     async wallet(): Promise<Wallet> {
-        return await getWalletInfoForTx(
-            this.log.bind(this),
-            this.walletInstance
-        );
+        return await getWalletInfoForTx(this.walletInstance);
     }
 
     newTxBuilder(): MeshTxBuilder {
@@ -138,12 +131,7 @@ export class Context {
     }
 
     async waitSettlement(txHash: string): Promise<string> {
-        return await onTxConfirmedPromise(
-            this.provider,
-            txHash,
-            this.progress,
-            50
-        );
+        return await onTxConfirmedPromise(this.provider, txHash, 50);
     }
 
     async facts(tokenId: string): Promise<Record<string, string>> {
@@ -183,33 +171,6 @@ export async function withContext(
     }
 }
 
-export type CagingScript = {
-    cbor: string;
-    address: string;
-    scriptHash: string;
-    policyId: string;
-};
-
-export function getCagingScript(): CagingScript {
-    const cbor = applyParamsToScript(
-        blueprint.validators[0].compiledCode, // crap
-        []
-    );
-    const address = serializePlutusScript({
-        code: cbor,
-        version: 'V3'
-    }).address;
-    const { scriptHash } = deserializeAddress(address);
-    const policyId = resolveScriptHash(cbor, 'V3');
-    const caging = {
-        cbor,
-        address,
-        scriptHash,
-        policyId
-    };
-    return caging;
-}
-
 export type ContextProvider = {
     provider: Provider;
     topup: TopUp | undefined;
@@ -245,81 +206,4 @@ export function blockfrostProvider(projectId: string): ContextProvider {
             await provider.evaluateTx(txHex);
         }
     };
-}
-
-export function getTxBuilder(provider: Provider) {
-    return new MeshTxBuilder({
-        fetcher: provider,
-        submitter: provider
-    });
-}
-
-export async function getWalletInfoForTx(
-    log: Log,
-    wallet: MeshWallet
-): Promise<Wallet> {
-    const utxos = await wallet.getUtxos();
-    const collateral = (await wallet.getCollateral())[0];
-    const walletAddress = wallet.getChangeAddress();
-
-    if (!walletAddress) {
-        throw new Error('No wallet address found');
-    }
-    const firstUTxO = utxos[0];
-    const signerHash = deserializeAddress(walletAddress).pubKeyHash;
-    const walletInfo = {
-        utxos,
-        firstUTxO,
-        collateral,
-        walletAddress,
-        signerHash
-    };
-    return walletInfo;
-}
-
-async function onTxConfirmedPromise(
-    provider,
-    txHash,
-    progress?,
-    limit = 100
-): Promise<string> {
-    const progressR = progress || (() => {});
-    return new Promise<string>((resolve, reject) => {
-        let attempts = 0;
-        const checkTx = setInterval(async () => {
-            if (attempts >= limit) {
-                clearInterval(checkTx);
-                reject(new Error('Transaction confirmation timed out'));
-            }
-            provider
-                .fetchTxInfo(txHash)
-                .then(txInfo => {
-                    if (txInfo.block === undefined) {
-                        clearInterval(checkTx);
-                        resolve('No block info available');
-                    } else {
-                        provider
-                            .fetchBlockInfo(txInfo.block)
-                            .then(blockInfo => {
-                                if (blockInfo?.confirmations > 0) {
-                                    clearInterval(checkTx);
-                                    resolve(blockInfo.hash); // Resolve the promise when confirmed
-                                }
-                            })
-                            .catch(error => {
-                                progressR(
-                                    `Still fetching block info for txHash: ${txHash}: ${error}`
-                                );
-                                attempts += 1;
-                            });
-                    }
-                })
-                .catch(error => {
-                    progressR(
-                        `Still fetching tx info for txHash: ${txHash}: ${error}`
-                    );
-                    attempts += 1;
-                });
-        }, 5000);
-    });
 }

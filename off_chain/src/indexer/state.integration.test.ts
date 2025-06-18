@@ -4,7 +4,7 @@ import { withLevelDB } from '../trie.test';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { createProcess } from './process';
-import { Context, getCagingScript, yaciProvider } from '../context';
+import { Context, yaciProvider } from '../context';
 import { createIndexer, withIndexer, Indexer } from './indexer';
 import {
     Checkpoint,
@@ -18,6 +18,7 @@ import { update } from '../transactions/update';
 import { nullHash, sleep, sleepMs, WithOrigin } from '../lib';
 import { end } from '../transactions/end';
 import { Level } from 'level';
+import { getCagingScript } from '../transactions/context/lib';
 
 describe('State and Indexer', () => {
     it('can restart with indexer', { timeout: 20000 }, async () => {

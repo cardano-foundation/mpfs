@@ -5,7 +5,7 @@ import { request } from './request';
 import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { Context, getCagingScript, yaciProvider } from '../context';
+import { Context, yaciProvider } from '../context';
 import { createIndexer } from '../indexer/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
@@ -14,6 +14,7 @@ import { createTrieManager } from '../trie';
 import { createState } from '../indexer/state';
 import { createProcess } from '../indexer/process';
 import { sleep, sleepMs } from '../lib';
+import { getCagingScript } from './context/lib';
 
 const txTest = (name: string, testFn: () => Promise<void>, timeout = 10000) =>
     it(name, { concurrent: true, timeout, retry: 3 }, testFn);
