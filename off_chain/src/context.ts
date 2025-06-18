@@ -31,7 +31,6 @@ export type Wallet = {
     signerHash: string;
 };
 export type TopUp = (address: string, amount: number) => Promise<void>;
-type Progress = (message: string) => void;
 
 export class Context {
     private logger: OutputLogger;
@@ -40,15 +39,13 @@ export class Context {
     private indexer: Indexer;
     private state: State;
     private tries: TrieManager;
-    private progress?: Progress;
 
     constructor(
         provider: Provider,
         wallet: MeshWallet,
         indexer: Indexer,
         state: State,
-        tries: TrieManager,
-        progress?: Progress
+        tries: TrieManager
     ) {
         this.logger = new OutputLogger();
         this.provider = provider;
@@ -56,7 +53,6 @@ export class Context {
         this.indexer = indexer;
         this.state = state;
         this.tries = tries;
-        this.progress = progress;
         this.state = state;
         this.tries = tries;
     }
@@ -133,6 +129,7 @@ export class Context {
     async waitBlocks(n) {
         await this.indexer.waitBlocks(n);
     }
+
     async tips(): Promise<{
         networkTip: number | null;
         indexerTip: number | null;
@@ -185,12 +182,14 @@ export async function withContext(
         throw error;
     }
 }
+
 export type CagingScript = {
     cbor: string;
     address: string;
     scriptHash: string;
     policyId: string;
 };
+
 export function getCagingScript(): CagingScript {
     const cbor = applyParamsToScript(
         blueprint.validators[0].compiledCode, // crap
