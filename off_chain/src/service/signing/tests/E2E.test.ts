@@ -1,6 +1,6 @@
 import { describe } from 'vitest';
-import { e2eTest as e2eVitest } from './E2E/fixtures';
-import { nullHash, OutputRef } from '../../lib';
+import { e2eTest as e2eVitest } from './fixtures';
+import { nullHash, OutputRef } from '../../../lib';
 import {
     createRequest,
     createToken,
@@ -12,8 +12,8 @@ import {
     getWallet,
     updateToken
 } from '../client';
-import { Runner, Wallets } from './E2E/fixtures';
-import { assertThrows, shouldFail } from './E2E/lib';
+import { Runner, Wallets } from './fixtures';
+import { assertThrows, shouldFail } from '../../test/E2E/lib';
 
 const canAccessWallets = async ({
     run,
@@ -438,7 +438,7 @@ const deleteCommutes = async ({
     await run(test, 'user can commute deletions');
 };
 
-describe('E2E Tests', () => {
+describe('E2E Signing Tests', () => {
     e2eVitest('can access wallets', canAccessWallets);
     e2eVitest('can retrieve tokens', canRetrieveTokens);
     e2eVitest('can create and delete a token', canCreateTokenAndDelete);

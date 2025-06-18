@@ -1,15 +1,15 @@
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { validatePort } from '../lib';
+import { validatePort } from '../../lib';
 import { withService } from './http';
 import fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { RollbackKey } from '../indexer/state/rollbackkey';
+import { RollbackKey } from '../../indexer/state/rollbackkey';
 import {
     blockfrostProvider,
     Provider,
     yaciProvider
-} from '../transactions/context/lib';
+} from '../../transactions/context/lib';
 
 async function setup() {
     try {

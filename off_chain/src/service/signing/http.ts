@@ -1,27 +1,27 @@
 import express from 'express';
-import { Context, mkContext } from '../transactions/context';
-import { boot, bootTransaction } from '../transactions/boot';
-import { update } from '../transactions/update';
-import { request, requestTx } from '../transactions/request';
-import { end, endTransaction } from '../transactions/end';
-import { retract } from '../transactions/retract';
+import { Context, mkContext } from '../../transactions/context';
+import { boot, bootTransaction } from '../../transactions/boot';
+import { update } from '../../transactions/update';
+import { request, requestTx } from '../../transactions/request';
+import { end, endTransaction } from '../../transactions/end';
+import { retract } from '../../transactions/retract';
 import { Server } from 'http';
-import { createTrieManager } from '../trie';
-import { createIndexer, Indexer } from '../indexer/indexer';
-import { unmkOutputRefId, mkOutputRefId } from '../outputRef';
+import { createTrieManager } from '../../trie';
+import { createIndexer, Indexer } from '../../indexer/indexer';
+import { unmkOutputRefId, mkOutputRefId } from '../../outputRef';
 import { Level } from 'level';
-import { Token } from '../indexer/state/tokens';
-import { createState } from '../indexer/state';
-import { createProcess } from '../indexer/process';
-import { sleep } from '../lib';
-import { Checkpoint } from '../indexer/state/checkpoints';
+import { Token } from '../../indexer/state/tokens';
+import { createState } from '../../indexer/state';
+import { createProcess } from '../../indexer/process';
+import { sleep } from '../../lib';
+import { Checkpoint } from '../../indexer/state/checkpoints';
 
 import {
     getCagingScript,
     Provider,
     topup,
     TopUp
-} from '../transactions/context/lib';
+} from '../../transactions/context/lib';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context: Context) {

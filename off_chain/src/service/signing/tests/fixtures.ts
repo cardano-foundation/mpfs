@@ -1,11 +1,11 @@
-import { Name, withServices } from '../../http';
+import { Name, withServices } from '../http';
 import getPort from 'get-port';
 import {
     deserializeAddress,
     generateMnemonic,
     MeshWallet
 } from '@meshsdk/core';
-import { sync, walletTopup } from '../../client';
+import { sync, walletTopup } from '../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
 import { OutputRef, validatePort } from '../../../lib';

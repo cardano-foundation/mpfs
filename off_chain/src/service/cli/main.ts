@@ -10,7 +10,7 @@ import {
     sync,
     updateToken,
     walletTopup
-} from '../client';
+} from '../signing/client';
 import fs from 'fs';
 import chalk from 'chalk';
 

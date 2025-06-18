@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { assertThrows } from './test/E2E/lib';
+import { assertThrows } from '../test/E2E/lib';
 
 type Log = (s: string) => void;
 
@@ -37,15 +37,6 @@ async function getTokens(log: Log, host: string, blocks = 2) {
     return response.data;
 }
 
-async function bootTokenTx(host: string, address, blocks = 2) {
-    await sync(host, blocks);
-    const response = await axios.get(
-        `${host}/transaction/${address}/boot-token`
-    );
-    assertThrows(response.status === 200, 'Failed to create token transaction');
-    return response.data;
-}
-
 async function createToken(log, host: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.post(`${host}/token`);
@@ -71,20 +62,6 @@ async function deleteToken(
     assertThrows(response.status === 200, 'Failed to delete token');
 
     return response.data.txHash;
-}
-
-async function endTokenTx(
-    host: string,
-    address: string,
-    tokenId: string,
-    blocks = 2
-) {
-    await sync(host, blocks);
-    const response = await axios.get(
-        `${host}/transaction/${address}/end-token/${tokenId}`
-    );
-    assertThrows(response.status === 200, 'Failed to end token transaction');
-    return response.data;
 }
 
 async function updateToken(
@@ -137,32 +114,6 @@ async function createRequest(
     return response.data;
 }
 
-async function createRequestTx(
-    host: string,
-    address: string,
-    tokenId: string,
-    key: string,
-    value: string,
-    op: 'insert' | 'delete',
-    blocks = 2
-): Promise<{ unsignedTransaction: string; value: null }> {
-    await sync(host, blocks);
-    const response = await axios.get(
-        `${host}/transaction/${address}/request/${tokenId}`,
-        {
-            params: {
-                key,
-                value,
-                operation: op
-            }
-        }
-    );
-    assertThrows(
-        response.status === 200,
-        'Failed to create request transaction'
-    );
-    return response.data;
-}
 async function deleteRequest(
     log: Log,
     host: string,
@@ -190,8 +141,5 @@ export {
     deleteToken,
     updateToken,
     getTokenFacts,
-    sync,
-    bootTokenTx,
-    endTokenTx,
-    createRequestTx
+    sync
 };
