@@ -3,7 +3,7 @@ import { Context, mkContext } from '../transactions/context';
 import { boot, bootTransaction } from '../transactions/boot';
 import { update } from '../transactions/update';
 import { request } from '../transactions/request';
-import { end } from '../transactions/end';
+import { end, endTransaction } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
 import { createTrieManager } from '../trie';
@@ -68,11 +68,10 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         });
     }
 
-    app.get('/transaction/boot-token/:walletAddress', async (req, res) => {
-        const { walletAddress } = req.params;
+    app.get('/transaction/:address/boot-token', async (req, res) => {
+        const { address } = req.params;
         try {
-            const result = await bootTransaction(context, walletAddress);
-            res.json(result);
+            res.json(await bootTransaction(context, address));
         } catch (error) {
             console.error('Error booting:', error);
             res.status(500).json({
@@ -161,6 +160,18 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         } catch (error) {
             res.status(500).json({
                 error: 'Error ending',
+                details: error.message
+            });
+        }
+    });
+
+    app.get('/transaction/:address/end-token/:tokenId', async (req, res) => {
+        const { tokenId, address } = req.params;
+        try {
+            res.json(await endTransaction(context, address, tokenId));
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error creating end transaction',
                 details: error.message
             });
         }

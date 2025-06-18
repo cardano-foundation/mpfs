@@ -40,10 +40,9 @@ async function getTokens(log: Log, host: string, blocks = 2) {
 async function bootTokenTx(host: string, address, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(
-        `${host}/transaction/boot-token/${address}`
+        `${host}/transaction/${address}/boot-token`
     );
     assertThrows(response.status === 200, 'Failed to create token transaction');
-
     return response.data;
 }
 
@@ -72,6 +71,20 @@ async function deleteToken(
     assertThrows(response.status === 200, 'Failed to delete token');
 
     return response.data.txHash;
+}
+
+async function endTokenTx(
+    host: string,
+    address: string,
+    tokenId: string,
+    blocks = 2
+) {
+    await sync(host, blocks);
+    const response = await axios.get(
+        `${host}/transaction/${address}/end-token/${tokenId}`
+    );
+    assertThrows(response.status === 200, 'Failed to end token transaction');
+    return response.data;
 }
 
 async function updateToken(
@@ -152,5 +165,6 @@ export {
     updateToken,
     getTokenFacts,
     sync,
-    bootTokenTx as createTokenTx
+    bootTokenTx,
+    endTokenTx
 };
