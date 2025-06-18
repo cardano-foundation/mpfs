@@ -5,7 +5,7 @@ import { request } from './request';
 import { update } from './update';
 import { retract } from './retract';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
-import { Context, yaciProvider } from '../context';
+import { Context } from '../context';
 import { createIndexer } from '../indexer/indexer';
 import { withTempDir } from '../test/lib';
 import { withLevelDB } from '../trie.test';
@@ -14,7 +14,7 @@ import { createTrieManager } from '../trie';
 import { createState } from '../indexer/state';
 import { createProcess } from '../indexer/process';
 import { sleep, sleepMs } from '../lib';
-import { getCagingScript } from './context/lib';
+import { getCagingScript, topup, yaciProvider } from './context/lib';
 
 const txTest = (name: string, testFn: () => Promise<void>, timeout = 10000) =>
     it(name, { concurrent: true, timeout, retry: 3 }, testFn);
@@ -320,14 +320,14 @@ export async function withContext(
         const yaciAdminPortNumber = yaciAdminPort
             ? parseInt(yaciAdminPort, 10)
             : 10000;
-        const ctxProvider = yaciProvider(
+        const provider = yaciProvider(
             `http://localhost:${yaciStorePortNumber}`,
             `http://localhost:${yaciAdminPortNumber}`
         );
         const ogmiosPort = process.env.OGMIOS_PORT;
         const ogmiosPortNumber = ogmiosPort ? parseInt(ogmiosPort, 10) : 1337;
 
-        const wallet = mkWallet(mnemonic)(ctxProvider.provider);
+        const wallet = mkWallet(mnemonic)(provider);
         const ogmios = `http://localhost:${ogmiosPortNumber}`;
         await withLevelDB(databaseDir, async db => {
             const tries = await createTrieManager(db);
@@ -338,27 +338,15 @@ export async function withContext(
             const indexer = await createIndexer(state, process, ogmios);
             try {
                 const context = await new Context(
-                    ctxProvider.provider,
+                    provider,
                     wallet,
                     indexer,
                     state,
                     tries
                 );
-                if (ctxProvider.topup) {
-                    const { walletAddress } = await context.wallet();
-                    const startTime = Date.now();
-                    const timeout = 60 * 1000; // 30 seconds
-
-                    while (Date.now() - startTime < timeout) {
-                        try {
-                            await ctxProvider.topup(walletAddress, 10_000);
-                            break;
-                        } catch (error) {
-                            await sleepMs(5000 * Math.random());
-                        }
-                    }
-                    await f(context);
-                }
+                const { walletAddress } = await context.wallet();
+                await topup(provider)(walletAddress, 10_000);
+                await f(context);
             } finally {
                 await indexer.close();
                 await sleep(1);

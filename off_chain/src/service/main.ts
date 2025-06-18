@@ -1,11 +1,15 @@
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { validatePort } from '../lib';
 import { withService } from './http';
-import { blockfrostProvider, ContextProvider, yaciProvider } from '../context';
 import fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { RollbackKey } from '../indexer/state/rollbackkey';
+import {
+    blockfrostProvider,
+    Provider,
+    yaciProvider
+} from '../transactions/context/lib';
 
 let servers;
 
@@ -93,7 +97,7 @@ async function setup() {
                 }
             });
 
-        let ctxProvider: ContextProvider;
+        let provider: Provider;
 
         switch (argv.provider) {
             case 'blockfrost':
@@ -101,7 +105,7 @@ async function setup() {
                 if (!blockfrostProjectId) {
                     throw new Error('Blockfrost project ID is required');
                 }
-                ctxProvider = blockfrostProvider(blockfrostProjectId);
+                provider = blockfrostProvider(blockfrostProjectId);
                 break;
             case 'yaci':
                 const yaciStoreHost = argv['yaci-store-host'];
@@ -110,14 +114,14 @@ async function setup() {
                     throw new Error('Yaci store host is required');
                 }
 
-                ctxProvider = yaciProvider(yaciStoreHost, yaciAdminHost);
+                provider = yaciProvider(yaciStoreHost, yaciAdminHost);
                 break;
             default:
                 throw new Error('Invalid provider specified');
         }
         return {
             portNumber,
-            ctxProvider,
+            provider,
             mkWallet,
             ogmios: argv['ogmios-host'],
             database: argv['database-path'],
@@ -137,13 +141,13 @@ async function setup() {
 }
 
 async function main() {
-    const { portNumber, ctxProvider, mkWallet, ogmios, database, logs, since } =
+    const { portNumber, provider, mkWallet, ogmios, database, logs, since } =
         await setup();
     await withService(
         portNumber,
         logs,
         database,
-        ctxProvider,
+        provider,
         mkWallet,
         ogmios,
         since,

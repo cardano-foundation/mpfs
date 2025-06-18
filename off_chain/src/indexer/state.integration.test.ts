@@ -4,7 +4,7 @@ import { withLevelDB } from '../trie.test';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { createProcess } from './process';
-import { Context, yaciProvider } from '../context';
+import { Context } from '../context';
 import { createIndexer, withIndexer, Indexer } from './indexer';
 import {
     Checkpoint,
@@ -18,7 +18,11 @@ import { update } from '../transactions/update';
 import { nullHash, sleep, sleepMs, WithOrigin } from '../lib';
 import { end } from '../transactions/end';
 import { Level } from 'level';
-import { getCagingScript } from '../transactions/context/lib';
+import {
+    getCagingScript,
+    topup,
+    yaciProvider
+} from '../transactions/context/lib';
 
 describe('State and Indexer', () => {
     it('can restart with indexer', { timeout: 20000 }, async () => {
@@ -320,12 +324,12 @@ const withSetup = async (
     ) => Promise<void>
 ): Promise<void> => {
     const { address, policyId } = getCagingScript();
-    const ctxProvider = yaciProvider(
+    const provider = yaciProvider(
         `http://localhost:8080`,
         `http://localhost:10000`
     );
     const mnemonic = maybeMnemonic ? maybeMnemonic : generateMnemonic();
-    const wallet = mkWallet(mnemonic)(ctxProvider.provider);
+    const wallet = mkWallet(mnemonic)(provider);
     await withLevelDB(tmpDir, async db => {
         await withTrieManager(db, async tries => {
             await withState(db, tries, checkpointsSize, null, async state => {
@@ -336,24 +340,14 @@ const withSetup = async (
                     'http://localhost:1337',
                     async indexer => {
                         const context = await new Context(
-                            ctxProvider.provider,
+                            provider,
                             wallet,
                             indexer,
                             state,
                             tries
                         );
                         const { walletAddress } = await context.wallet();
-
-                        while (true) {
-                            try {
-                                await ctxProvider.topup!(walletAddress, 10_000);
-                                break;
-                            } catch (error) {
-                                await sleepMs(
-                                    Math.floor(Math.random() * 5000) + 1000
-                                );
-                            }
-                        }
+                        await topup(provider)(walletAddress, 10_000);
                         await indexer.waitBlocks(0);
                         await f(db, tries, state, indexer, context);
                     }

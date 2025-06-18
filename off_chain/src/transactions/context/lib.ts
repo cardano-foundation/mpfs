@@ -10,6 +10,7 @@ import {
 } from '@meshsdk/core';
 import { deserializeAddress } from '@meshsdk/core';
 import blueprint from '../../plutus.json';
+import { retry } from '../../test/lib';
 
 export function getTxBuilder(provider: Provider) {
     return new MeshTxBuilder({
@@ -113,3 +114,35 @@ export type Wallet = {
 };
 
 export type Provider = BlockfrostProvider | YaciProvider;
+
+export const yaciProvider = (
+    storeHost: string,
+    adminHost?: string
+): Provider => {
+    return new YaciProvider(
+        `${storeHost}/api/v1/`,
+        adminHost ? `${adminHost}` : undefined
+    );
+};
+
+export const blockfrostProvider = (projectId: string): Provider => {
+    return new BlockfrostProvider(projectId);
+};
+
+export const hasTopup = (provider: Provider): provider is YaciProvider => {
+    return provider instanceof YaciProvider;
+};
+
+export type TopUp = (address: string, amount: number) => Promise<void>;
+export const topup =
+    (provider: Provider) => async (address: string, amount: number) => {
+        if (hasTopup(provider)) {
+            await retry(
+                30,
+                () => Math.random() * 6000 + 4000,
+                async () => {
+                    await provider.addressTopup(address, amount.toString());
+                }
+            );
+        }
+    };

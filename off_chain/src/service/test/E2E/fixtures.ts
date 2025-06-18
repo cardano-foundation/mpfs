@@ -1,12 +1,15 @@
 import { Name, withServices } from '../../http';
 import getPort from 'get-port';
-import { yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from '../../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
 import { validatePort } from '../../../lib';
-import { Provider } from '../../../transactions/context/lib';
+import {
+    Provider,
+    topup,
+    yaciProvider
+} from '../../../transactions/context/lib';
 
 function newWallet(provider: Provider) {
     const seed = crypto.getRandomValues(new Uint32Array(4)).join('');
@@ -74,7 +77,6 @@ export async function withRunner(test) {
     const charlie = await setupService('CHARLIE_PORT', 'charlie');
     const bob = await setupService('BOB_PORT', 'bob');
     const alice = await setupService('ALICE_PORT', 'alice');
-
     await withTempDir(async tmpDir => {
         await withServices(
             tmpDir,
@@ -90,7 +92,7 @@ export async function withRunner(test) {
                 const retryRemoteTopup = async (wallet: string) =>
                     await retry(
                         30,
-                        Math.random() * 10000 + 2000,
+                        () => Math.random() * 6000 + 4000,
                         async () => await walletTopup(wallet)
                     );
 
@@ -101,21 +103,15 @@ export async function withRunner(test) {
                 const mnemonics = generateMnemonic();
                 const clientWallet = new MeshWallet({
                     networkId: 0,
-                    fetcher: provider.provider,
-                    submitter: provider.provider,
+                    fetcher: provider,
+                    submitter: provider,
                     key: {
                         type: 'mnemonic',
                         words: mnemonics.split(' ')
                     }
                 });
-                await retry(30, Math.random() * 10000 + 2000, async () => {
-                    if (provider.topup) {
-                        await provider.topup(
-                            clientWallet.getChangeAddress(),
-                            1000000
-                        );
-                    }
-                });
+                await topup(provider)(clientWallet.getChangeAddress(), 10_000);
+
                 const walletAddress = clientWallet.getChangeAddress();
                 const runner: Runner = {
                     run: async (fn: () => Promise<void>, name: string) => {
@@ -145,11 +141,11 @@ export async function withRunner(test) {
 }
 
 export async function e2eTest(
-    name : string,
+    name: string,
     f: (runner: Runner) => Promise<void>,
-    secs = 60
+    secs = 120
 ) {
-    it(name, { concurrent: true, timeout: secs * 1000, retry: 3 }, async () => {
+    it(name, { concurrent: true, timeout: secs * 1000, retry: 0 }, async () => {
         await withRunner(f);
     });
 }

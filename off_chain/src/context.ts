@@ -20,10 +20,9 @@ import {
     Provider,
     Wallet
 } from './transactions/context/lib';
+import { retry } from './test/lib';
 
 export type WithContext = (context: Context) => Promise<any>;
-
-export type TopUp = (address: string, amount: number) => Promise<void>;
 
 export class Context {
     private provider: Provider;
@@ -122,41 +121,4 @@ export class Context {
         });
         return fs;
     }
-}
-
-export type ContextProvider = {
-    provider: Provider;
-    topup: TopUp | undefined;
-    evaluate: (txHex: string) => Promise<any>;
-};
-
-export function yaciProvider(
-    storeHost: string,
-    adminHost?: string
-): ContextProvider {
-    const provider = new YaciProvider(
-        `${storeHost}/api/v1/`,
-        adminHost ? `${adminHost}` : undefined
-    );
-    async function topup(address: string, amount: number) {
-        await provider.addressTopup(address, amount.toString());
-    }
-    return {
-        provider,
-        topup,
-        evaluate: async (txHex: string) => {
-            await provider.evaluateTx(txHex);
-        }
-    };
-}
-
-export function blockfrostProvider(projectId: string): ContextProvider {
-    const provider = new BlockfrostProvider(projectId);
-    return {
-        provider,
-        topup: undefined,
-        evaluate: async (txHex: string) => {
-            await provider.evaluateTx(txHex);
-        }
-    };
 }

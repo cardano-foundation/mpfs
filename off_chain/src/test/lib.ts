@@ -18,7 +18,7 @@ export async function withTempDir(f: (tmpDir: string) => Promise<void>) {
 
 export const retry = async (
     retries: number = 30,
-    delay: number = Math.random() * 10000 + 2000,
+    delay: (number) => number,
     f: () => Promise<void>
 ) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
@@ -29,7 +29,7 @@ export const retry = async (
             if (attempt === retries) {
                 throw error;
             }
-            await sleepMs(delay);
+            await sleepMs(delay(attempt));
         }
     }
 };

@@ -1,5 +1,5 @@
 import express from 'express';
-import { ContextProvider, TopUp, Context } from '../context';
+import { Context } from '../context';
 import { boot } from '../transactions/boot';
 import { bootSigningless } from '../transactions/signing-less/boot';
 import { update } from '../transactions/update';
@@ -21,7 +21,12 @@ import {
     SigninglessContext,
     mkSigninglessContext
 } from '../transactions/signing-less/context';
-import { getCagingScript } from '../transactions/context/lib';
+import {
+    getCagingScript,
+    Provider,
+    topup,
+    TopUp
+} from '../transactions/context/lib';
 
 // API Endpoints
 function mkAPI(
@@ -229,7 +234,7 @@ export async function withService(
     port: number,
     logsPath: string,
     dbPath: string,
-    ctxProvider: ContextProvider,
+    provider: Provider,
     mkWallet: (Provider) => MeshWallet,
     ogmios: string,
     since: Checkpoint | null = null,
@@ -242,7 +247,7 @@ export async function withService(
     await db.open();
 
     try {
-        const wallet = mkWallet(ctxProvider.provider);
+        const wallet = mkWallet(provider);
         const tries = await createTrieManager(db);
         const state = await createState(db, tries, 2160, since);
 
@@ -252,18 +257,18 @@ export async function withService(
         const indexer = await createIndexer(state, process, ogmios);
         try {
             const context = new Context(
-                ctxProvider.provider,
+                provider,
                 wallet,
                 indexer,
                 state,
                 tries
             );
-            const signinglessContext = mkSigninglessContext(
-                ctxProvider.provider
-            );
+            const signinglessContext = mkSigninglessContext(provider);
             const app = mkAPI(
                 logsPath,
-                ctxProvider.topup,
+                async (address: string, amount: number) => {
+                    await topup(provider)(address, amount);
+                },
                 context,
                 signinglessContext
             );
@@ -293,7 +298,7 @@ export async function withServices(
     logsPath: string,
     dbPath: string,
     names: Name[],
-    ctxProvider: ContextProvider,
+    provider: Provider,
     mkWallet: (Provider) => MeshWallet,
     ogmios: string,
     since: Checkpoint | null = null,
@@ -310,7 +315,7 @@ export async function withServices(
             port,
             logsPath,
             dbPath,
-            ctxProvider,
+            provider,
             mkWallet,
             ogmios,
             since,
