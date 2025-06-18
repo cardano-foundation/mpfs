@@ -4,7 +4,7 @@ import { withLevelDB } from '../trie.test';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { createProcess } from './process';
-import { Context, mkContext } from '../context';
+import { Context, mkContext } from '../transactions/context';
 import { createIndexer, withIndexer, Indexer } from './indexer';
 import {
     Checkpoint,

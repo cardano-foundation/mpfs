@@ -1,5 +1,5 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { Context } from '../context';
+import { Context } from './context';
 
 export async function end(context: Context, tokenId: string) {
     const { utxos, walletAddress, collateral, signerHash } =

@@ -1,5 +1,5 @@
 import { mConStr3 } from '@meshsdk/core';
-import { Context } from '../context';
+import { Context } from './context';
 import { OutputRef } from '../lib';
 import { mkOutputRefId } from '../outputRef';
 

@@ -1,11 +1,13 @@
-import { MeshTxBuilder, MeshWallet } from '@meshsdk/core';
-import { CurrentToken } from './token';
-import { Indexer } from './indexer/indexer';
-import { Change } from './trie/change';
-import { SafeTrie } from './trie/safeTrie';
-import { Token } from './indexer/state/tokens';
-import { State } from './indexer/state';
-import { TrieManager } from './trie';
+import {
+    MeshTxBuilder,
+    MeshWallet} from '@meshsdk/core';
+import { CurrentToken } from '../token';
+import { Indexer } from '../indexer/indexer';
+import { Change } from '../trie/change';
+import { SafeTrie } from '../trie/safeTrie';
+import { Token } from '../indexer/state/tokens';
+import { State } from '../indexer/state';
+import { TrieManager } from '../trie';
 import {
     getCagingScript,
     getTxBuilder,
@@ -13,8 +15,7 @@ import {
     onTxConfirmedPromise,
     Provider,
     Wallet
-} from './transactions/context/lib';
-import { retry } from './test/lib';
+} from './context/lib';
 
 export type Context = {
     cagingScript: {

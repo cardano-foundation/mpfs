@@ -1,5 +1,5 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
-import { Context } from '../context';
+import { Context } from './context';
 import { assetName, nullHash, OutputRef } from '../lib';
 
 export async function boot(context: Context) {

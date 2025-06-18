@@ -6,7 +6,7 @@ import {
     mOutputReference
 } from '@meshsdk/core';
 
-import { Context } from '../context';
+import { Context } from './context';
 import { Proof } from '../mpf/lib';
 import { serializeProof } from '../trie/proof';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
