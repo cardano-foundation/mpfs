@@ -2,8 +2,6 @@ import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from '../context';
 
 export async function end(context: Context, tokenId: string) {
-    context.log('token-id', tokenId);
-
     const { utxos, walletAddress, collateral, signerHash } =
         await context.wallet();
 
@@ -33,7 +31,6 @@ export async function end(context: Context, tokenId: string) {
 
     const signedTx = await context.signTx(tx);
     const txHash = await context.submitTx(signedTx);
-    context.log('txHash', txHash);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return txHash;

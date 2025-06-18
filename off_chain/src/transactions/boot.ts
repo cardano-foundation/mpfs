@@ -16,7 +16,6 @@ export async function boot(context: Context) {
     const uniquenessP = mConStr0([uniqueness.txHash, uniqueness.outputIndex]);
 
     const asset = assetName(uniqueness);
-    context.log('asset-name', asset);
 
     const {
         address: cageAddress,
@@ -41,7 +40,6 @@ export async function boot(context: Context) {
         .complete();
     const signedTx = await context.signTx(tx);
     const txHash = await context.submitTx(signedTx);
-    context.log('txHash', txHash);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return asset;

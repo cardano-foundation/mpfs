@@ -1,5 +1,5 @@
 import express from 'express';
-import { withContext, ContextProvider, TopUp, Context } from '../context';
+import { ContextProvider, TopUp, Context } from '../context';
 import { boot } from '../transactions/boot';
 import { bootSigningless } from '../transactions/signing-less/boot';
 import { update } from '../transactions/update';
@@ -31,14 +31,7 @@ function mkAPI(
     signingless: SigninglessContext
 ) {
     async function withTokens(f: (tokens: Token[]) => any): Promise<any> {
-        const tokens = await withContext(
-            `${tmp}/logs/tokens`,
-            'log',
-            context,
-            async context => {
-                return await context.fetchTokens();
-            }
-        );
+        const tokens = await context.fetchTokens();
         return f(tokens);
     }
 
@@ -47,14 +40,7 @@ function mkAPI(
     app.use(express.json()); // Ensure JSON parsing middleware is applied
 
     app.get('/wallet', async (req, res) => {
-        const wallet = await withContext(
-            `${tmp}/logs/wallet`,
-            'log',
-            context,
-            async context => {
-                return await context.wallet();
-            }
-        );
+        const wallet = await context.wallet();
         res.json({
             address: wallet.walletAddress,
             owner: wallet.signerHash,
@@ -93,12 +79,7 @@ function mkAPI(
 
     app.post('/token', async (req, res) => {
         try {
-            const tokenId = await withContext(
-                `${tmp}/logs/boot`,
-                'log',
-                context,
-                async context => await boot(context)
-            );
+            const tokenId = await boot(context);
             res.json({ tokenId });
         } catch (error) {
             console.error('Error booting:', error);
@@ -156,12 +137,7 @@ function mkAPI(
         const { requestIds } = req.body;
         const refs = requestIds.map(unmkOutputRefId);
         try {
-            const tx = await withContext(
-                `${tmp}/logs/update`,
-                'log',
-                context,
-                async context => await update(context, tokenId, refs)
-            );
+            const tx = await update(context, tokenId, refs);
             res.json({ txHash: tx });
         } catch (error) {
             res.status(500).json({
@@ -174,12 +150,7 @@ function mkAPI(
     app.delete('/token/:tokenId', async (req, res) => {
         const { tokenId } = req.params;
         try {
-            const tx = await withContext(
-                `${tmp}/logs/end`,
-                'log',
-                context,
-                async context => await end(context, tokenId)
-            );
+            const tx = await end(context, tokenId);
 
             res.json({ txHash: tx });
         } catch (error) {
@@ -195,22 +166,10 @@ function mkAPI(
         const { key, value, operation } = req.body;
 
         try {
-            const ref = await withContext(
-                `${tmp}/logs/request`,
-                'log',
-                context,
-                async context => {
-                    const ref = await request(
-                        context,
-                        tokenId,
-                        key,
-                        value,
-                        operation
-                    );
-                    return mkOutputRefId(ref);
-                }
-            );
-            res.json(ref);
+            const ref = await request(context, tokenId, key, value, operation);
+            const ref2 = mkOutputRefId(ref);
+
+            res.json(ref2);
         } catch (error) {
             res.status(500).json({
                 error: 'Error requesting',
@@ -223,12 +182,7 @@ function mkAPI(
         const { refId } = req.params;
         const { txHash, outputIndex } = unmkOutputRefId(refId);
         try {
-            const tx = await withContext(
-                `${tmp}/logs/retract`,
-                'log',
-                context,
-                async context => await retract(context, { txHash, outputIndex })
-            );
+            const tx = await retract(context, { txHash, outputIndex });
             res.json({ txHash: tx });
         } catch (error) {
             res.status(500).json({
@@ -241,12 +195,7 @@ function mkAPI(
     app.get('/token/:tokenId/facts', async (req, res) => {
         const { tokenId } = req.params;
         try {
-            const facts = await withContext(
-                `${tmp}/logs/facts`,
-                'log',
-                context,
-                async context => await context.facts(tokenId)
-            );
+            const facts = await context.facts(tokenId);
             res.json(facts);
         } catch (error) {
             res.status(500).json({

@@ -1,11 +1,12 @@
 import { Name, withServices } from '../../http';
 import getPort from 'get-port';
-import { Provider, yaciProvider } from '../../../context';
+import { yaciProvider } from '../../../context';
 import { generateMnemonic, MeshWallet } from '@meshsdk/core';
 import { walletTopup } from '../../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
-import { sleepMs, validatePort } from '../../../lib';
+import { validatePort } from '../../../lib';
+import { Provider } from '../../../transactions/context/lib';
 
 function newWallet(provider: Provider) {
     const seed = crypto.getRandomValues(new Uint32Array(4)).join('');
@@ -144,7 +145,7 @@ export async function withRunner(test) {
 }
 
 export async function e2eTest(
-    name,
+    name : string,
     f: (runner: Runner) => Promise<void>,
     secs = 60
 ) {

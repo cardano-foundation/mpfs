@@ -42,7 +42,6 @@ export async function retract(
     await tx.complete();
     const signedTx = await context.signTx(tx);
     const txHash = await context.submitTx(signedTx);
-    context.log('txHash', txHash);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return txHash;

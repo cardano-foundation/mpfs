@@ -27,8 +27,6 @@ export async function update(
     tokenId: string,
     requireds: OutputRef[]
 ): Promise<string> {
-    context.log('token-id', tokenId);
-
     const { utxos, walletAddress, collateral, signerHash } =
         await context.wallet();
 
@@ -109,7 +107,6 @@ export async function update(
             // const e = await evaluate(tx.txHex)
             // console.log('evaluate', JSON.stringify(e, null, 2));
             txHash = await context.submitTx(signedTx);
-            context.log('txHash', txHash);
             // const block = await context.waitSettlement(txHash);
             //context.log('block', block);
         } catch (error) {

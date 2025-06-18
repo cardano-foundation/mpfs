@@ -12,7 +12,6 @@ export async function request(
     if (!tokenId) {
         throw new Error('No token id provided');
     }
-    context.log('token-id', tokenId);
 
     const { walletAddress, utxos, signerHash } = await context.wallet();
     if (!utxos.length) {
@@ -22,7 +21,6 @@ export async function request(
     }
     const { policyId } = context.cagingScript;
     const tokenIdDatum = mConStr0([tokenId]);
-    context.log('token-id-datum', tokenIdDatum);
     let operation;
     switch (op) {
         case 'insert':
@@ -33,9 +31,7 @@ export async function request(
             break;
     }
     const requestDatum = mConStr0([tokenIdDatum, signerHash, key, operation]);
-    context.log('request-datum', requestDatum);
     const datum = mConStr0([requestDatum]);
-    context.log('datum', datum);
     const tx = context.newTxBuilder();
     await tx
         .txOut(context.cagingScript.address, [
@@ -47,7 +43,6 @@ export async function request(
         .complete();
     const signedTx = await context.signTx(tx);
     const txHash = await context.submitTx(signedTx);
-    context.log('txHash', txHash);
 
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);

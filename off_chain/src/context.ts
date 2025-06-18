@@ -5,7 +5,6 @@ import {
     MeshWallet,
     YaciProvider
 } from '@meshsdk/core';
-import { OutputLogger } from './logging';
 import { CurrentToken } from './token';
 import { Indexer } from './indexer/indexer';
 import { Change } from './trie/change';
@@ -22,17 +21,14 @@ import {
     Wallet
 } from './transactions/context/lib';
 
-export type Log = (key: string, value: any) => void;
-
 export type WithContext = (context: Context) => Promise<any>;
 
 export type TopUp = (address: string, amount: number) => Promise<void>;
 
 export class Context {
-    private logger: OutputLogger;
     private provider: Provider;
     private walletInstance: MeshWallet;
-    private indexer: Indexer;
+    public indexer: Indexer;
     private state: State;
     private tries: TrieManager;
 
@@ -43,7 +39,6 @@ export class Context {
         state: State,
         tries: TrieManager
     ) {
-        this.logger = new OutputLogger();
         this.provider = provider;
         this.walletInstance = wallet;
         this.indexer = indexer;
@@ -51,18 +46,6 @@ export class Context {
         this.tries = tries;
         this.state = state;
         this.tries = tries;
-    }
-
-    log(key: string, value: any): void {
-        this.logger.log(key, value);
-    }
-
-    logs(): any {
-        return this.logger.getLogs();
-    }
-
-    deleteLogs(): void {
-        this.logger.deleteLogs();
     }
 
     get cagingScript(): {
@@ -97,14 +80,12 @@ export class Context {
 
     async signTx(tx: MeshTxBuilder): Promise<string> {
         const unsignedTx = tx.txHex;
-        this.log('tx-hex', unsignedTx);
         const signedTx = await this.walletInstance.signTx(unsignedTx);
         return signedTx;
     }
 
     async submitTx(tx: string): Promise<string> {
         const txHash = await this.walletInstance.submitTx(tx);
-        this.log('tx-hash', txHash);
         return txHash;
     }
 
@@ -140,34 +121,6 @@ export class Context {
             fs = await trie.allFacts();
         });
         return fs;
-    }
-}
-
-export async function withContext(
-    baseDir: string,
-    name: string,
-    context: Context,
-    f: WithContext
-) {
-    const timestamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, '-')
-        .slice(0, 19);
-    const newBaseDir = `${baseDir}/${timestamp}`;
-    const newPath = `${newBaseDir}/${name}.json`;
-    fs.mkdirSync(newBaseDir, { recursive: true });
-    const write = () => {
-        const json = JSON.stringify(context.logs(), null, 2);
-        fs.writeFileSync(newPath, json, 'utf-8');
-    };
-
-    try {
-        const result = await f(context);
-        write();
-        return result;
-    } catch (error) {
-        write();
-        throw error;
     }
 }
 
