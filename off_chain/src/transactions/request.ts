@@ -9,12 +9,35 @@ export async function request(
     value: string,
     op: 'insert' | 'delete'
 ): Promise<OutputRef> {
-    if (!tokenId) {
-        throw new Error('No token id provided');
+    const signingWallet = context.signingWallet;
+    if (!signingWallet) {
+        throw new Error('No signing wallet found');
     }
+    const { info, signTx, submitTx } = signingWallet;
+    const { walletAddress, utxos, signerHash } = await info();
+    const { unsignedTransaction } = await requestTx(
+        context,
+        walletAddress,
+        tokenId,
+        key,
+        value,
+        op
+    );
+    const signedTx = await signTx(unsignedTransaction);
+    const txHash = await submitTx(signedTx);
 
-    const wallet = context.signingWallet!;
-    const { walletAddress, utxos, signerHash } = await wallet.info();
+    return { txHash, outputIndex: 0 };
+}
+
+export const requestTx = async (
+    context: Context,
+    walletAddress: string,
+    tokenId: string,
+    key: string,
+    value: string,
+    op: 'insert' | 'delete'
+): Promise<{ unsignedTransaction: string; value: null }> => {
+    const { utxos, signerHash } = await context.addressWallet(walletAddress);
     if (!utxos.length) {
         throw new Error(
             `No UTxO found. Please fund the wallet ${walletAddress}`
@@ -42,10 +65,8 @@ export async function request(
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
         .complete();
-    const signedTx = await wallet.signTx(tx.txHex);
-    const txHash = await wallet.submitTx(signedTx);
-
-    // const block = await context.waitSettlement(txHash);
-    // context.log('block', block);
-    return { txHash, outputIndex: 0 };
-}
+    return {
+        unsignedTransaction: tx.txHex,
+        value: null
+    };
+};

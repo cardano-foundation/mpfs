@@ -2,7 +2,7 @@ import express from 'express';
 import { Context, mkContext } from '../transactions/context';
 import { boot, bootTransaction } from '../transactions/boot';
 import { update } from '../transactions/update';
-import { request } from '../transactions/request';
+import { request, requestTx } from '../transactions/request';
 import { end, endTransaction } from '../transactions/end';
 import { retract } from '../transactions/retract';
 import { Server } from 'http';
@@ -189,6 +189,35 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         } catch (error) {
             res.status(500).json({
                 error: 'Error requesting',
+                details: error.message
+            });
+        }
+    });
+
+    app.get('/transaction/:address/request/:tokenId', async (req, res) => {
+        const { tokenId, address } = req.params;
+        const key = req.query.key as string;
+        const value = req.query.value as string;
+        const operation = req.query.operation as 'insert' | 'delete';
+        if (!key || !value || !operation) {
+            res.status(400).json({
+                error: 'Missing required query parameters: key, value, operation'
+            });
+            return;
+        }
+        try {
+            const { unsignedTransaction } = await requestTx(
+                context,
+                address,
+                tokenId,
+                key,
+                value,
+                operation
+            );
+            res.json({ unsignedTransaction });
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error creating request transaction',
                 details: error.message
             });
         }

@@ -137,6 +137,32 @@ async function createRequest(
     return response.data;
 }
 
+async function createRequestTx(
+    host: string,
+    address: string,
+    tokenId: string,
+    key: string,
+    value: string,
+    op: 'insert' | 'delete',
+    blocks = 2
+): Promise<{ unsignedTransaction: string; value: null }> {
+    await sync(host, blocks);
+    const response = await axios.get(
+        `${host}/transaction/${address}/request/${tokenId}`,
+        {
+            params: {
+                key,
+                value,
+                operation: op
+            }
+        }
+    );
+    assertThrows(
+        response.status === 200,
+        'Failed to create request transaction'
+    );
+    return response.data;
+}
 async function deleteRequest(
     log: Log,
     host: string,
@@ -166,5 +192,6 @@ export {
     getTokenFacts,
     sync,
     bootTokenTx,
-    endTokenTx
+    endTokenTx,
+    createRequestTx
 };
