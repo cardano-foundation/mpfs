@@ -1,12 +1,31 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
+import { deserializeAddress } from '@meshsdk/core';
+import { OutputRef, assetName, nullHash } from '../lib';
 import { Context } from './context';
-import { assetName, nullHash, OutputRef } from '../lib';
+import { WithUnsignedTransaction } from './context/lib';
 
 export async function boot(context: Context) {
-    const { utxos, walletAddress, collateral, signerHash } =
-        await context.signingWallet!.info();
+    const signingWallet = context.signingWallet;
+    if (!signingWallet) {
+        throw new Error('No signing wallet found');
+    }
+    const { info, signTx, submitTx } = signingWallet;
+    const { walletAddress } = await info();
+    const { unsignedTransaction, value: asset } = await bootTransaction(
+        context,
+        walletAddress
+    );
+    const signedTx = await signTx(unsignedTransaction);
+    await submitTx(signedTx);
+    return asset;
+}
 
-    const firstUTxO = utxos[0];
+export async function bootTransaction(
+    context: Context,
+    walletAddress: string
+): Promise<WithUnsignedTransaction<string>> {
+    const cagingScript = context.cagingScript;
+    const { utxos, firstUTxO } = await context.addressWallet(walletAddress);
     if (!firstUTxO) {
         throw new Error(
             `No UTxO found. Please fund the wallet ${walletAddress}`
@@ -21,11 +40,12 @@ export async function boot(context: Context) {
         address: cageAddress,
         cbor: cageCbor,
         policyId: mintPolicyId
-    } = context.cagingScript;
+    } = cagingScript;
 
     const unit = mintPolicyId + asset;
 
     const tx = context.newTxBuilder();
+    const signerHash = deserializeAddress(walletAddress).pubKeyHash;
     await tx
         .txIn(uniqueness.txHash, uniqueness.outputIndex)
         .mintPlutusScriptV3()
@@ -36,11 +56,11 @@ export async function boot(context: Context) {
         .txOutInlineDatumValue(mConStr1([mConStr0([signerHash, nullHash])]))
         .changeAddress(walletAddress)
         .selectUtxosFrom(utxos)
-        .txInCollateral(collateral.input.txHash, collateral.input.outputIndex)
+        .txInCollateral(firstUTxO.input.txHash, firstUTxO.input.outputIndex)
         .complete();
-    const signedTx = await context.signingWallet!.signTx(tx.txHex);
-    const txHash = await context.signingWallet!.submitTx(signedTx);
-    // const block = await context.waitSettlement(txHash);
-    // context.log('block', block);
-    return asset;
+
+    return {
+        unsignedTransaction: tx.txHex,
+        value: asset
+    };
 }

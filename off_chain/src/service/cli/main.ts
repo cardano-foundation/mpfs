@@ -30,7 +30,7 @@ const commands = [
     'topup-wallet',
     'get-tokens',
     'set-token',
-    'create-token',
+    'boot-token',
     'get-token',
     'delete-token',
     'update-token',
@@ -160,7 +160,7 @@ const promptUser = () => {
                     logColorfulJSON(await tokensResponse());
                     commandHistory.push(command);
                     break;
-                case 'create-token':
+                case 'boot-token':
                     const createTokenResponse = await createToken(
                         logConsole,
                         host,

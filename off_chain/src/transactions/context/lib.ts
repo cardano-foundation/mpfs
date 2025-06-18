@@ -140,3 +140,8 @@ export const topup =
             );
         }
     };
+
+export type WithUnsignedTransaction<T> = {
+    unsignedTransaction: string;
+    value: T;
+};

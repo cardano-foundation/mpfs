@@ -1,7 +1,6 @@
 import express from 'express';
 import { Context, mkContext } from '../transactions/context';
-import { boot } from '../transactions/boot';
-import { bootSigningless } from '../transactions/signing-less/boot';
+import { boot, bootTransaction } from '../transactions/boot';
 import { update } from '../transactions/update';
 import { request } from '../transactions/request';
 import { end } from '../transactions/end';
@@ -69,10 +68,10 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         });
     }
 
-    app.get('/transaction/create-token/:walletAddress', async (req, res) => {
+    app.get('/transaction/boot-token/:walletAddress', async (req, res) => {
         const { walletAddress } = req.params;
         try {
-            const result = await bootSigningless(context, walletAddress);
+            const result = await bootTransaction(context, walletAddress);
             res.json(result);
         } catch (error) {
             console.error('Error booting:', error);

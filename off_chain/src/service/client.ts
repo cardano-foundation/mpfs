@@ -37,10 +37,10 @@ async function getTokens(log: Log, host: string, blocks = 2) {
     return response.data;
 }
 
-async function createTokenTx(host: string, address, blocks = 2) {
+async function bootTokenTx(host: string, address, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(
-        `${host}/transaction/create-token/${address}`
+        `${host}/transaction/boot-token/${address}`
     );
     assertThrows(response.status === 200, 'Failed to create token transaction');
 
@@ -152,5 +152,5 @@ export {
     updateToken,
     getTokenFacts,
     sync,
-    createTokenTx
+    bootTokenTx as createTokenTx
 };
