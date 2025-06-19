@@ -16,4 +16,4 @@ COPY src .
 EXPOSE 3000
 
 # Start the application
-ENTRYPOINT ["npx", "tsx", "service/main.ts"]
+ENTRYPOINT ["npx", "tsx", "service/signing/main.ts"]

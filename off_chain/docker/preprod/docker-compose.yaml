@@ -1,8 +1,9 @@
 services:
-  mpfs:
+
+  mpfsw:
     build:
       context: /code/iohk/mpfs/off_chain
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.signing
 
     command:
       - --port
@@ -30,10 +31,51 @@ services:
       - yaci-store-preprod
 
     ports:
-      - "${MPFS_PORT:-3200}:3000"
+      - "${MPFSW_PORT:-3200}:3000"
     restart: on-failure
     volumes:
       - ${SECRETS_DIR}:/secrets
+      - ${MPFSW_DIR}:/data
+    labels:
+      - traefik.docker.network=${TRAEFIK_NETWORK}
+      - traefik.http.routers.mpfsw.rule=(Host(`${MPFSW_HOST}`))
+      - traefik.http.routers.mpfsw.tls=true
+      - traefik.http.services.mpfsw.loadbalancer.server.port=3000
+      - traefik.http.routers.mpfsw.tls.certresolver=le
+      - traefik.http.routers.mpfsw.middlewares=auth
+      - "traefik.http.middlewares.auth.basicauth.users=hal:$$2a$$12$$jVCNxmow9xpzSACsGj72J.1S.fkmHCpwJUEbjBRYm5spHKScY1kIW"
+  mpfs:
+    build:
+      context: /code/iohk/mpfs/off_chain
+      dockerfile: docker/Dockerfile.signingless
+
+    command:
+      - --port
+      - "3000"
+      - --provider
+      - yaci
+      - --yaci-store-host
+      - http://yaci-store-preprod:8080
+      - --ogmios-host
+      - "http://ogmios-preprod:1337"
+      - --database-path
+      - /data/mpfs.db
+      - --since-slot
+      - "89510366"
+      - --since-block-id
+      - "a15f8b07e3d5f5ff0d25eefa50b91f648038d4c36b9cc51ae06ec2e37def958a"
+    networks:
+      - ogmios-preprod # connect to ogmios-preprod
+      - yaci-store-preprod # connect to yaci-store-preprod
+      - ${TRAEFIK_NETWORK}
+    depends_on:
+      - ogmios-preprod
+      - yaci-store-preprod
+
+    ports:
+      - "${MPFS_PORT:-3210}:3000"
+    restart: on-failure
+    volumes:
       - ${MPFS_DIR}:/data
     labels:
       - traefik.docker.network=${TRAEFIK_NETWORK}
@@ -41,8 +83,6 @@ services:
       - traefik.http.routers.mpfs.tls=true
       - traefik.http.services.mpfs.loadbalancer.server.port=3000
       - traefik.http.routers.mpfs.tls.certresolver=le
-      - traefik.http.routers.mpfs.middlewares=auth
-      - "traefik.http.middlewares.auth.basicauth.users=hal:$$2a$$12$$jVCNxmow9xpzSACsGj72J.1S.fkmHCpwJUEbjBRYm5spHKScY1kIW"
 
   ogmios-preprod:
     image: cardanosolutions/ogmios:v6.12.0
