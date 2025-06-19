@@ -81,3 +81,7 @@ export const sleep = (seconds: number): Promise<void> => {
 };
 
 export type WithOrigin<T> = T | 'origin';
+
+export const firstOutputRef = (txHash: string) => {
+    return { txHash, outputIndex: 0 };
+};

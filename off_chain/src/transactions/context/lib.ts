@@ -11,6 +11,7 @@ import { deserializeAddress } from '@meshsdk/core';
 import blueprint from '../../plutus.json';
 import { retry } from '../../test/lib';
 import { WalletInfo } from './wallet';
+import { Context } from '../context';
 
 export function getTxBuilder(provider: Provider) {
     return new MeshTxBuilder({
@@ -145,3 +146,26 @@ export type WithUnsignedTransaction<T> = {
     unsignedTransaction: string;
     value: T;
 };
+
+export type WithTxHash<T> = {
+    txHash: string;
+    value: T;
+};
+
+export async function signAndSubmit<T>(
+    context: Context,
+    f: (walletAddress: string) => PromiseLike<WithUnsignedTransaction<T>>
+): Promise<WithTxHash<T>> {
+    const signingWallet = context.signingWallet;
+    if (!signingWallet) {
+        throw new Error('No signing wallet found');
+    }
+    const { info, signTx, submitTx } = signingWallet;
+    const { walletAddress } = await info();
+
+    const { unsignedTransaction, value } = await f(walletAddress);
+
+    const signedTx = await signTx(unsignedTransaction);
+    const txHash = await submitTx(signedTx);
+    return { txHash, value };
+}

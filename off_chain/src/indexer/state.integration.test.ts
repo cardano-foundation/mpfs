@@ -14,7 +14,7 @@ import { generateMnemonic } from 'bip39';
 import { boot } from '../transactions/boot';
 import { request } from '../transactions/request';
 import { update } from '../transactions/update';
-import { nullHash, sleep, WithOrigin } from '../lib';
+import { firstOutputRef, nullHash, sleep, WithOrigin } from '../lib';
 import { end } from '../transactions/end';
 import { Level } from 'level';
 import {
@@ -169,7 +169,7 @@ describe('State and Indexer', () => {
                     10, // checkpointsSize
                     tmpDir,
                     async (db, tries, state, indexer, context) => {
-                        tokenId = await boot(context);
+                        ({ value: tokenId } = await boot(context));
                         await indexer.waitBlocks(2);
                         await indexer.close(); // this is not very friendly with 'withIndexer', but we risk to lose the last checkpoint
                         const cps = await state.checkpoints.getAllCheckpoints();
@@ -265,15 +265,16 @@ describe('State and Indexer', () => {
                             release();
                         };
                         await pushCheckpoint();
-                        tokenId = await boot(context);
+                        ({ value: tokenId } = await boot(context));
                         await pushCheckpoint();
-                        const requestId = await request(
+                        const { txHash } = await request(
                             context,
                             tokenId,
                             'key-1',
                             'value-1',
                             'insert'
                         );
+                        const requestId = firstOutputRef(txHash);
                         await pushCheckpoint();
                         await update(context, tokenId, [requestId]);
                         await pushCheckpoint();

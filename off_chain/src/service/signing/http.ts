@@ -13,7 +13,7 @@ import { Level } from 'level';
 import { Token } from '../../indexer/state/tokens';
 import { createState } from '../../indexer/state';
 import { createProcess } from '../../indexer/process';
-import { sleep } from '../../lib';
+import { firstOutputRef, sleep } from '../../lib';
 import { Checkpoint } from '../../indexer/state/checkpoints';
 
 import {
@@ -83,7 +83,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
 
     app.post('/token', async (req, res) => {
         try {
-            const tokenId = await boot(context);
+            const { value: tokenId } = await boot(context);
             res.json({ tokenId });
         } catch (error) {
             console.error('Error booting:', error);
@@ -154,9 +154,9 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     app.delete('/token/:tokenId', async (req, res) => {
         const { tokenId } = req.params;
         try {
-            const tx = await end(context, tokenId);
+            const { txHash } = await end(context, tokenId);
 
-            res.json({ txHash: tx });
+            res.json({ txHash });
         } catch (error) {
             res.status(500).json({
                 error: 'Error ending',
@@ -182,10 +182,16 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         const { key, value, operation } = req.body;
 
         try {
-            const ref = await request(context, tokenId, key, value, operation);
-            const ref2 = mkOutputRefId(ref);
+            const { txHash } = await request(
+                context,
+                tokenId,
+                key,
+                value,
+                operation
+            );
+            const ref = mkOutputRefId(firstOutputRef(txHash));
 
-            res.json(ref2);
+            res.json(ref);
         } catch (error) {
             res.status(500).json({
                 error: 'Error requesting',
@@ -316,6 +322,7 @@ export async function withService(
                 await f();
             } catch (error) {
                 console.error(`Error in service on port ${port}:`, error);
+                throw error;
             } finally {
                 server.close();
             }

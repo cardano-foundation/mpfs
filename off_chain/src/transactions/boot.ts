@@ -2,22 +2,16 @@ import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { deserializeAddress } from '@meshsdk/core';
 import { OutputRef, assetName, nullHash } from '../lib';
 import { Context } from './context';
-import { WithUnsignedTransaction } from './context/lib';
+import {
+    signAndSubmit,
+    WithTxHash,
+    WithUnsignedTransaction
+} from './context/lib';
 
-export async function boot(context: Context) {
-    const signingWallet = context.signingWallet;
-    if (!signingWallet) {
-        throw new Error('No signing wallet found');
-    }
-    const { info, signTx, submitTx } = signingWallet;
-    const { walletAddress } = await info();
-    const { unsignedTransaction, value: asset } = await bootTransaction(
-        context,
-        walletAddress
-    );
-    const signedTx = await signTx(unsignedTransaction);
-    await submitTx(signedTx);
-    return asset;
+export async function boot(context: Context): Promise<WithTxHash<string>> {
+    return await signAndSubmit(context, async walletAddress => {
+        return await bootTransaction(context, walletAddress);
+    });
 }
 
 export async function bootTransaction(

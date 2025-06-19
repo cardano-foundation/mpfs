@@ -1,30 +1,18 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from './context';
+import { signAndSubmit, WithUnsignedTransaction } from './context/lib';
 
 export async function end(context: Context, tokenId: string) {
-    const signingWallet = context.signingWallet;
-    if (!signingWallet) {
-        throw new Error('No signing wallet found');
-    }
-    const { info, signTx, submitTx } = signingWallet;
-    const { walletAddress } = await info();
-
-    const { unsignedTransaction } = await endTransaction(
-        context,
-        walletAddress,
-        tokenId
-    );
-
-    const signedTx = await signTx(unsignedTransaction);
-    const txHash = await submitTx(signedTx);
-    return txHash;
+    return await signAndSubmit(context, async walletAddress => {
+        return await endTransaction(context, walletAddress, tokenId);
+    });
 }
 
 export async function endTransaction(
     context: Context,
     walletAddress: string,
     tokenId: string
-) {
+): Promise<WithUnsignedTransaction<null>> {
     const { cbor: cageCbor, policyId } = context.cagingScript;
     const { utxos, collateral, signerHash } =
         await context.addressWallet(walletAddress);

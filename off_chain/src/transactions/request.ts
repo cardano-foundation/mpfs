@@ -1,6 +1,6 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from './context';
-import { OutputRef } from '../lib';
+import { signAndSubmit, WithTxHash } from './context/lib';
 
 export async function request(
     context: Context,
@@ -8,25 +8,10 @@ export async function request(
     key: string,
     value: string,
     op: 'insert' | 'delete'
-): Promise<OutputRef> {
-    const signingWallet = context.signingWallet;
-    if (!signingWallet) {
-        throw new Error('No signing wallet found');
-    }
-    const { info, signTx, submitTx } = signingWallet;
-    const { walletAddress, utxos, signerHash } = await info();
-    const { unsignedTransaction } = await requestTx(
-        context,
-        walletAddress,
-        tokenId,
-        key,
-        value,
-        op
-    );
-    const signedTx = await signTx(unsignedTransaction);
-    const txHash = await submitTx(signedTx);
-
-    return { txHash, outputIndex: 0 };
+): Promise<WithTxHash<null>> {
+    return await signAndSubmit(context, async walletAddress => {
+        return await requestTx(context, walletAddress, tokenId, key, value, op);
+    });
 }
 
 export const requestTx = async (
