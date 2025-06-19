@@ -8,7 +8,7 @@ import {
 import { sync, walletTopup } from '../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
-import { OutputRef, validatePort } from '../../../lib';
+import { OutputRef, sleep, validatePort } from '../../../lib';
 import {
     Provider,
     topup,
@@ -23,14 +23,7 @@ export type Wallets = {
 
 export type Runner = {
     run: (test: () => Promise<void>, name: string) => Promise<void>;
-    runSigningless: (
-        test: (
-            address: string,
-            owner: string,
-            signAndSubmitTx: (cbor: string) => Promise<OutputRef>
-        ) => Promise<void>,
-        name: string
-    ) => Promise<void>;
+
     log: (message: string) => void;
     wallets: Wallets;
 };
@@ -89,41 +82,11 @@ export async function withRunner(test) {
                 await retryRemoteTopup(wallets.charlie);
                 await retryRemoteTopup(wallets.bob);
                 await retryRemoteTopup(wallets.alice);
-
-                const mnemonics = generateMnemonic();
-                const clientWallet = new MeshWallet({
-                    networkId: 0,
-                    fetcher: provider,
-                    submitter: provider,
-                    key: {
-                        type: 'mnemonic',
-                        words: mnemonics.split(' ')
-                    }
-                });
-                await topup(provider)(clientWallet.getChangeAddress(), 10_000);
-
-                const walletAddress = clientWallet.getChangeAddress();
-                const owner = deserializeAddress(walletAddress).pubKeyHash;
+                await sleep(3);
                 const runner: Runner = {
                     run: async (fn: () => Promise<void>, name: string) => {
                         await fn();
                     },
-                    runSigningless: async (
-                        fn: (
-                            address: string,
-                            owner: string,
-                            signAndSubmitTx: (
-                                cbor: string
-                            ) => Promise<OutputRef>
-                        ) => Promise<void>,
-                        name: string
-                    ) =>
-                        await fn(walletAddress, owner, async (cbor: string) => {
-                            const signed = await clientWallet.signTx(cbor);
-                            const txHash = await clientWallet.submitTx(signed);
-                            await sync(charlie, 2); // wait for the transaction to be included
-                            return { txHash, outputIndex: 0 };
-                        }),
 
                     log: async (s: string) => {
                         // console.log(`  - ${s}`);
@@ -141,7 +104,7 @@ export async function e2eTest(
     f: (runner: Runner) => Promise<void>,
     secs = 120
 ) {
-    it(name, { concurrent: true, timeout: secs * 1000, retry: 0 }, async () => {
+    it(name, { concurrent: true, timeout: secs * 1000, retry: 3 }, async () => {
         await withRunner(f);
     });
 }

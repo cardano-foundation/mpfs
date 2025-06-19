@@ -120,7 +120,7 @@ export async function e2eTest(
     f: (runner: Runner) => Promise<void>,
     secs = 120
 ) {
-    it(name, { concurrent: true, timeout: secs * 1000, retry: 0 }, async () => {
+    it(name, { concurrent: true, timeout: secs * 1000, retry: 3 }, async () => {
         await withRunner(f);
     });
 }

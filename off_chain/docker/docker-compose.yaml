@@ -2,7 +2,7 @@ x-mpfs-template:
   &mpfs-common
   build:
     context: ..
-    dockerfile: docker/Dockerfile
+    dockerfile: docker/Dockerfile.signing
   command:
     - --port
     - "3000"
@@ -22,7 +22,6 @@ x-mpfs-template:
 
 services:
   yaci-cli:
-    container_name: yaci-cli
     image: bloxbean/yaci-cli:0.10.6-beta
     volumes:
       - cluster-data:/clusters

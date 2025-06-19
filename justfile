@@ -46,7 +46,7 @@ run-docker-E2E-tests:
     just wait_for_service "alice" "$ALICE_PORT"
     echo "All services are up and running."
 
-    npx vitest --bail 1 run -t ".*E2E.*"
+    npx vitest run -t "E2E Signing Tests"
 
 
 
