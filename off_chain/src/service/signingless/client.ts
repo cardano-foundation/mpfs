@@ -101,7 +101,7 @@ export async function updateTokenTx(
     const params = new URLSearchParams();
     requireds.forEach(item => params.append('request', item));
     const response = await axios.get(
-        `${host}/transaction/${address}/update/${tokenId}`,
+        `${host}/transaction/${address}/update-token/${tokenId}`,
         { params }
     );
     assertThrows(

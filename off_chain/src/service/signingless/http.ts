@@ -134,35 +134,38 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     });
 
-    app.get('/transaction/:address/request-change/:tokenId', async (req, res) => {
-        const { tokenId, address } = req.params;
-        const key = req.query.key as string;
-        const value = req.query.value as string;
-        const operation = req.query.operation as 'insert' | 'delete';
-        if (!key || !value || !operation) {
-            res.status(400).json({
-                error: 'Missing required query parameters: key, value, operation'
-            });
-            return;
+    app.get(
+        '/transaction/:address/request-change/:tokenId',
+        async (req, res) => {
+            const { tokenId, address } = req.params;
+            const key = req.query.key as string;
+            const value = req.query.value as string;
+            const operation = req.query.operation as 'insert' | 'delete';
+            if (!key || !value || !operation) {
+                res.status(400).json({
+                    error: 'Missing required query parameters: key, value, operation'
+                });
+                return;
+            }
+            try {
+                const { unsignedTransaction } = await requestTx(
+                    context,
+                    address,
+                    tokenId,
+                    key,
+                    value,
+                    operation
+                );
+                res.json({ unsignedTransaction });
+            } catch (error) {
+                res.status(500).json({
+                    error: 'Error creating request transaction',
+                    details: error.message
+                });
+            }
         }
-        try {
-            const { unsignedTransaction } = await requestTx(
-                context,
-                address,
-                tokenId,
-                key,
-                value,
-                operation
-            );
-            res.json({ unsignedTransaction });
-        } catch (error) {
-            res.status(500).json({
-                error: 'Error creating request transaction',
-                details: error.message
-            });
-        }
-    });
-    app.get('/transaction/:address/update/:tokenId', async (req, res) => {
+    );
+    app.get('/transaction/:address/update-token/:tokenId', async (req, res) => {
         const { tokenId, address } = req.params;
         const requests = req.query.request;
         const requireds = (
@@ -170,13 +173,17 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         ) as string[];
 
         try {
-            const result = await updateTransaction(
-                context,
-                address,
-                tokenId,
-                requireds.map(ref => unmkOutputRefId(ref))
-            );
-            res.json(result);
+            const { unsignedTransaction, value: mpfRoot } =
+                await updateTransaction(
+                    context,
+                    address,
+                    tokenId,
+                    requireds.map(ref => unmkOutputRefId(ref))
+                );
+            res.json({
+                unsignedTransaction,
+                mpfRoot
+            });
         } catch (error) {
             res.status(500).json({
                 error: 'Error creating update transaction',
