@@ -90,6 +90,27 @@ export async function createRequestTx(
     return response.data;
 }
 
+export async function updateTokenTx(
+    host: string,
+    address: string,
+    tokenId: string,
+    requireds: string[] = [],
+    blocks = 2
+): Promise<{ unsignedTransaction: string; value: null }> {
+    await sync(host, blocks);
+    const params = new URLSearchParams();
+    requireds.forEach(item => params.append('request', item));
+    const response = await axios.get(
+        `${host}/transaction/${address}/update/${tokenId}`,
+        { params }
+    );
+    assertThrows(
+        response.status === 200,
+        'Failed to create update transaction'
+    );
+    return response.data;
+}
+
 export async function submitTx(
     host: string,
     signedTransaction: string

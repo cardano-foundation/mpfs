@@ -18,6 +18,8 @@ import {
     topup,
     TopUp
 } from '../../transactions/context/lib';
+import { updateTransaction } from '../../transactions/update';
+import { unmkOutputRefId } from '../../outputRef';
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context: Context) {
@@ -122,6 +124,28 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         } catch (error) {
             res.status(500).json({
                 error: 'Error creating request transaction',
+                details: error.message
+            });
+        }
+    });
+    app.get('/transaction/:address/update/:tokenId', async (req, res) => {
+        const { tokenId, address } = req.params;
+        const requests = req.query.request;
+        const requireds = (
+            Array.isArray(requests) ? requests : [requests].filter(Boolean)
+        ) as string[];
+
+        try {
+            const result = await updateTransaction(
+                context,
+                address,
+                tokenId,
+                requireds.map(ref => unmkOutputRefId(ref))
+            );
+            res.json(result);
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error creating update transaction',
                 details: error.message
             });
         }

@@ -6,7 +6,9 @@ import {
     getTokens,
     createRequestTx,
     getToken,
-    submitTx
+    submitTx,
+    updateTokenTx,
+    getTokenFacts
 } from '../client';
 import { assertThrows } from '../../test/E2E/lib';
 import { mkOutputRefId } from '../../../outputRef';
@@ -103,6 +105,52 @@ const canRequestAChangeToAtToken = async ({
     };
     await run(test, 'Charlie requests a change to a token');
 };
+const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
+    const test = async ({ address, owner, signTx }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(charlie, address);
+        const signedBootTx = await signTx(bootTx);
+        await submitTx(charlie, signedBootTx);
+        const { unsignedTransaction: requestTx } = await createRequestTx(
+            charlie,
+            address,
+            tokenId,
+            'key1',
+            'value1',
+            'insert'
+        );
+        const signedRequestTx = await signTx(requestTx);
+        const { txHash } = await submitTx(charlie, signedRequestTx);
+        const requestOutputRef = mkOutputRefId({ txHash, outputIndex: 0 });
+        const { unsignedTransaction: updateTx, value: root } =
+            await updateTokenTx(
+                charlie,
+                address,
+                tokenId,
+                [requestOutputRef] // requireds
+            );
+        const signedUpdateTx = await signTx(updateTx);
+        const { txHash: updateTxHash } = await submitTx(
+            charlie,
+            signedUpdateTx
+        );
+        const { requests } = await getToken(log, charlie, tokenId, 2);
+        assertThrows(
+            requests.length === 0,
+            'Request was not updated or still exists after update'
+        );
+        const facts = await getTokenFacts(log, charlie, tokenId);
+        assertThrows(
+            Object.keys(facts).length === 1,
+            'Token facts were not updated or multiple facts found'
+        );
+        assertThrows(
+            facts.key1 === 'value1',
+            'Token facts key1 does not match expected value'
+        );
+    };
+    await run(test, 'Charlie updates a token');
+};
 
 describe('E2E Signingless', () => {
     e2eVitest('can boot a token', canBootAToken, 60);
@@ -112,4 +160,5 @@ describe('E2E Signingless', () => {
         canRequestAChangeToAtToken,
         60
     );
+    e2eVitest('can update a token', canUpdateAToken, 60);
 });

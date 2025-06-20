@@ -142,7 +142,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         const refs = requestIds.map(unmkOutputRefId);
         try {
             const tx = await update(context, tokenId, refs);
-            res.json({ txHash: tx });
+            res.json(tx);
         } catch (error) {
             res.status(500).json({
                 error: 'Error updating',

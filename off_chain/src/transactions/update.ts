@@ -11,6 +11,11 @@ import { Proof } from '../mpf/lib';
 import { serializeProof } from '../trie/proof';
 import { nullHash, OutputRef, outputRefEqual, toHex } from '../lib';
 import { unmkOutputRefId } from '../outputRef';
+import {
+    signAndSubmit,
+    WithTxHash,
+    WithUnsignedTransaction
+} from './context/lib';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -25,11 +30,26 @@ const guessingRequestCost = {
 export async function update(
     context: Context,
     tokenId: string,
+    requireds: OutputRef[] = []
+): Promise<WithTxHash<string | null>> {
+    return await signAndSubmit(context, async walletAddress => {
+        return await updateTransaction(
+            context,
+            walletAddress,
+            tokenId,
+            requireds
+        );
+    });
+}
+
+export async function updateTransaction(
+    context: Context,
+    walletAddress: string,
+    tokenId: string,
     requireds: OutputRef[]
-): Promise<string> {
-    const wallet = context.signingWallet!;
-    const { utxos, walletAddress, collateral, signerHash } =
-        await wallet.info();
+): Promise<WithUnsignedTransaction<string | null>> {
+    const { utxos, collateral, signerHash } =
+        await context.addressWallet(walletAddress);
 
     const { address: cageAddress, cbor: cageCbor } = context.cagingScript;
 
@@ -55,6 +75,7 @@ export async function update(
 
     let proofs: Proof[] = [];
     let txHash: string = 'not defined';
+    let newRoot: string | null = null;
     const tx = context.newTxBuilder();
     const releaseIndexer = await context.pauseIndexer();
     const { policyId } = context.cagingScript;
@@ -80,7 +101,7 @@ export async function update(
                 throw new Error('No requests found');
             }
             const root = trie.root();
-            const newRoot = root ? toHex(root) : nullHash;
+            newRoot = root ? toHex(root) : nullHash;
             const newStateDatum = mConStr1([mConStr0([signerHash, newRoot])]);
             const jsonProofs: Data[] = proofs.map(serializeProof);
             tx.selectUtxosFrom(utxos) // select the remaining UTXOs
@@ -103,13 +124,6 @@ export async function update(
                 );
 
             await tx.complete();
-            const signedTx = await wallet.signTx(tx.txHex);
-
-            // const e = await evaluate(tx.txHex)
-            // console.log('evaluate', JSON.stringify(e, null, 2));
-            txHash = await wallet.submitTx(signedTx);
-            // const block = await context.waitSettlement(txHash);
-            //context.log('block', block);
         } catch (error) {
             trie.rollback();
             await releaseIndexer();
@@ -121,5 +135,8 @@ export async function update(
     }
     await context.trie(tokenId, onTrie);
     await releaseIndexer();
-    return txHash;
+    return {
+        unsignedTransaction: tx.txHex,
+        value: newRoot
+    };
 }
