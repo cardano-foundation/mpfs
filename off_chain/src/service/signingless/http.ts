@@ -20,6 +20,27 @@ import {
 } from '../../transactions/context/lib';
 import { updateTransaction } from '../../transactions/update';
 import { unmkOutputRefId } from '../../outputRef';
+import swaggerUi from 'swagger-ui-express';
+import * as openApiSpec from './public/openapi.json';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const swagger = app => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    app.use(
+        '/api-docs',
+        swaggerUi.serve,
+        swaggerUi.setup(openApiSpec, {
+            customCssUrl: '../public/swagger.css'
+        })
+    );
+    app.use('/public', express.static(path.join(__dirname, 'public')));
+    app.get('/', (req, res) => {
+        res.redirect('/api-docs');
+    });
+};
 
 // API Endpoints
 function mkAPI(topup: TopUp | undefined, context: Context) {
@@ -31,6 +52,8 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     const app = express();
 
     app.use(express.json()); // Ensure JSON parsing middleware is applied
+
+    swagger(app);
 
     app.get('/transaction/:address/boot-token', async (req, res) => {
         const { address } = req.params;

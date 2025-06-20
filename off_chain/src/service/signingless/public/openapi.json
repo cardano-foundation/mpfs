@@ -1,0 +1,280 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Token",
+        "version": "1.0.0",
+        "description": ""
+    },
+    "servers": [
+        {
+            "url": "https://mpfs.plutimus.com"
+        }
+    ],
+    "paths": {
+        "/tokens": {
+            "parameters": [],
+            "get": {
+                "summary": "get tokens",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with token data and indexer status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokensResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/token/{tokenId}": {
+            "parameters": [
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token we want to inspect",
+                    "example": "bac25301f5d8955439d374e6d5b6c7c2dc60e2783fa9fb61be7f128425e4572f",
+                    "schema": {
+                        "type": "string",
+                        "minLength": 64,
+                        "maxLength": 64,
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "get a token",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with token data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Token not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Token not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "TokenResponse": {
+                "type": "object",
+                "required": [
+                    "outputRef",
+                    "state",
+                    "requests"
+                ],
+                "properties": {
+                    "outputRef": {
+                        "$ref": "#/components/schemas/OutputRef"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/State"
+                    },
+                    "requests": {
+                        "type": "array",
+                        "description": "List of requests associated with the token",
+                        "items": {
+                            "$ref": "#/components/schemas/Request"
+                        }
+                    }
+                }
+            },
+            "Request": {
+                "type": "object",
+                "required": [
+                    "outputRef",
+                    "change",
+                    "owner"
+                ],
+                "properties": {
+                    "outputRef": {
+                        "$ref": "#/components/schemas/OutputRefId"
+                    },
+                    "change": {
+                        "type": "object",
+                        "required": [
+                            "key",
+                            "value",
+                            "operation"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "Key of the change"
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "Value of the change"
+                            },
+                            "operation": {
+                                "type": "string",
+                                "enum": [
+                                    "insert",
+                                    "update",
+                                    "delete"
+                                ],
+                                "description": "Operation type for the change"
+                            }
+                        }
+                    },
+                    "owner": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{66}$",
+                        "example": "42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403",
+                        "description": "Address of the owner of the request (66-character hexadecimal string)"
+                    }
+                }
+            },
+            "OutputRefId": {
+                "type": "string"
+            },
+            "TokensResponse": {
+                "type": "object",
+                "required": [
+                    "tokens",
+                    "indexerStatus"
+                ],
+                "properties": {
+                    "tokens": {
+                        "type": "array",
+                        "description": "List of tokens with their current state and output reference",
+                        "items": {
+                            "$ref": "#/components/schemas/Token"
+                        }
+                    },
+                    "indexerStatus": {
+                        "$ref": "#/components/schemas/IndexerStatus"
+                    }
+                }
+            },
+            "Token": {
+                "type": "object",
+                "required": [
+                    "tokenId",
+                    "current"
+                ],
+                "properties": {
+                    "tokenId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$",
+                        "example": "8056bb70a889b1e89164cb67a38cd349e1f8486c27ea0f1ab578c3b8ab58bcb6",
+                        "description": "Unique identifier for the token (64-character hexadecimal string)"
+                    },
+                    "current": {
+                        "$ref": "#/components/schemas/TokenState"
+                    }
+                }
+            },
+            "TokenState": {
+                "type": "object",
+                "required": [
+                    "outputRef",
+                    "state"
+                ],
+                "properties": {
+                    "outputRef": {
+                        "$ref": "#/components/schemas/OutputRef"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/State"
+                    }
+                }
+            },
+            "OutputRef": {
+                "type": "object",
+                "required": [
+                    "txHash",
+                    "outputIndex"
+                ],
+                "properties": {
+                    "txHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$",
+                        "example": "5f341532dcd0b43e683744a44a6e416530e677f83e70bab586d15e348cbe512e",
+                        "description": "Transaction hash referencing the token output (64-character hexadecimal string)"
+                    },
+                    "outputIndex": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 0,
+                        "description": "Index of the output in the transaction"
+                    }
+                }
+            },
+            "State": {
+                "type": "object",
+                "required": [
+                    "owner",
+                    "root"
+                ],
+                "properties": {
+                    "owner": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{66}$",
+                        "example": "42d965308b42b2f62934cec8e33458ad0c6a37353d817cafaab1f403",
+                        "description": "Address of the token owner (66-character hexadecimal string)"
+                    },
+                    "root": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$",
+                        "example": "51142f22ba3576be090b2dca505687be816e7829352ef97d3671bf974bc43719",
+                        "description": "Root hash associated with the token state (64-character hexadecimal string)"
+                    }
+                }
+            },
+            "IndexerStatus": {
+                "type": "object",
+                "required": [
+                    "ready",
+                    "networkTip",
+                    "indexerTip"
+                ],
+                "properties": {
+                    "ready": {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "Indicates if the indexer is ready"
+                    },
+                    "networkTip": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 94729461,
+                        "description": "Latest block height known to the network"
+                    },
+                    "indexerTip": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 94729461,
+                        "description": "Latest block height processed by the indexer"
+                    }
+                }
+            }
+        }
+    }
+}
