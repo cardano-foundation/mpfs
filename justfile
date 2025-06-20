@@ -114,3 +114,8 @@ format:
         echo "Formatting changed files. Please commit the changes." >&2
         exit 1
     fi
+
+plutimus-mpfs:
+    #!/usr/bin/env bash
+    cd off_chain/docker/preprod
+    docker compose up -d --build
