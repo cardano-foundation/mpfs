@@ -4,7 +4,7 @@ import {
     bootTokenTx,
     endTokenTx,
     getTokens,
-    createRequestTx,
+    requestChangeTx,
     getToken,
     submitTx,
     updateTokenTx,
@@ -74,7 +74,7 @@ const canRequestAChangeToAtToken = async ({
             await bootTokenTx(charlie, address);
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
-        const { unsignedTransaction: requestTx } = await createRequestTx(
+        const { unsignedTransaction: requestTx } = await requestChangeTx(
             charlie,
             address,
             tokenId,
@@ -112,7 +112,7 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
             await bootTokenTx(charlie, address);
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
-        const { unsignedTransaction: requestTx } = await createRequestTx(
+        const { unsignedTransaction: requestTx } = await requestChangeTx(
             charlie,
             address,
             tokenId,

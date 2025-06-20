@@ -185,6 +185,95 @@
                 }
             }
         },
+        "/transaction/{address}/request-change/{tokenId}": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the token to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                },
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token identifier to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/TokenId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will request a change for the given token",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "required": true,
+                        "description": "The key of the change to request",
+                        "schema": {
+                            "type": "string",
+                            "example": "newKey"
+                        }
+                    },
+                    {
+                        "name": "value",
+                        "in": "query",
+                        "required": true,
+                        "description": "The value of the change to request",
+                        "schema": {
+                            "type": "string",
+                            "example": "newValue"
+                        }
+                    },
+                    {
+                        "name": "operation",
+                        "in": "query",
+                        "required": true,
+                        "description": "The operation type for the change (insert, delete)",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "insert",
+                                "delete"
+                            ],
+                            "example": "insert"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with unsigned transaction data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, missing or invalid parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Missing or invalid parameters"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/transaction": {
             "post": {
                 "summary": "Submit a signed transaction to the Cardano network",

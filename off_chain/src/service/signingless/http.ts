@@ -134,7 +134,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     });
 
-    app.get('/transaction/:address/request/:tokenId', async (req, res) => {
+    app.get('/transaction/:address/request-change/:tokenId', async (req, res) => {
         const { tokenId, address } = req.params;
         const key = req.query.key as string;
         const value = req.query.value as string;

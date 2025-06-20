@@ -63,7 +63,7 @@ export async function getTokenFacts(
     return response.data;
 }
 
-export async function createRequestTx(
+export async function requestChangeTx(
     host: string,
     address: string,
     tokenId: string,
@@ -74,7 +74,7 @@ export async function createRequestTx(
 ): Promise<{ unsignedTransaction: string; value: null }> {
     await sync(host, blocks);
     const response = await axios.get(
-        `${host}/transaction/${address}/request/${tokenId}`,
+        `${host}/transaction/${address}/request-change/${tokenId}`,
         {
             params: {
                 key,
