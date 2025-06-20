@@ -17,7 +17,7 @@ import { firstOutputRef } from '../../../lib';
 const canBootAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
     const test = async ({ address, signTx }) => {
         // calling the mpfs http endpoint to create a token
-        const { unsignedTransaction, value: tokenId } = await bootTokenTx(
+        const { unsignedTransaction, tokenId } = await bootTokenTx(
             charlie,
             address
         );
@@ -44,7 +44,7 @@ const canEndABootedToken = async ({
     wallets: { charlie }
 }: Runner) => {
     const test = async ({ address, signTx }) => {
-        const { unsignedTransaction: bootTx, value: tokenId } =
+        const { unsignedTransaction: bootTx, tokenId } =
             await bootTokenTx(charlie, address);
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
@@ -70,7 +70,7 @@ const canRequestAChangeToAtToken = async ({
     wallets: { charlie }
 }: Runner) => {
     const test = async ({ address, owner, signTx }) => {
-        const { unsignedTransaction: bootTx, value: tokenId } =
+        const { unsignedTransaction: bootTx, tokenId } =
             await bootTokenTx(charlie, address);
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
@@ -108,7 +108,7 @@ const canRequestAChangeToAtToken = async ({
 };
 const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
     const test = async ({ address, owner, signTx }) => {
-        const { unsignedTransaction: bootTx, value: tokenId } =
+        const { unsignedTransaction: bootTx, tokenId } =
             await bootTokenTx(charlie, address);
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);

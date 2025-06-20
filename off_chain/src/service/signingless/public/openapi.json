@@ -119,10 +119,59 @@
                     }
                 }
             }
+        },
+        "/transaction/{address}/boot-token": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the boot token",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will boot a token for the given address, together with the new token identifier",
+                "responses": {
+                    "200": {
+                        "description": "Successful response with boot token data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WithUnsignedTransaction"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
         "schemas": {
+            "Address": {
+                "type": "string",
+                "example": "addr_test1qppdjefs3dpt9a3fxn8v3ce5tzksc63hx57czl9042clgqezw3mh2t8xqryhplp4pj74xz03m6ydqr6lrsdahc3md92sgap2dm",
+                "description": "Address of the owner of the token, in Bech32 format",
+                "pattern": "^addr_test1[a-z0-9]+$"
+            },
+            "WithUnsignedTransaction": {
+                "type": "object",
+                "required": [
+                    "unsignedTransaction"
+                ],
+                "properties": {
+                    "unsignedTransaction": {
+                        "type": "string",
+                        "description": "Base64 encoded unsigned transaction",
+                        "example": "84a600d9010281825820de110c0ef7caed6cd6eefea0da5a03c420......",
+                        "pattern": "^[a-z0-9]+$"
+
+                    }
+                }
+            },
             "TokenId": {
                 "type": "string",
                 "pattern": "^[0-9a-fA-F]{64}$",
