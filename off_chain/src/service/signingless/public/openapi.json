@@ -37,12 +37,8 @@
                     "in": "path",
                     "required": true,
                     "description": "The token we want to inspect",
-                    "example": "bac25301f5d8955439d374e6d5b6c7c2dc60e2783fa9fb61be7f128425e4572f",
                     "schema": {
-                        "type": "string",
-                        "minLength": 64,
-                        "maxLength": 64,
-                        "pattern": "^[0-9a-fA-F]{64}$"
+                        "$ref": "#/components/schemas/TokenId"
                     }
                 }
             ],
@@ -78,10 +74,68 @@
                     }
                 }
             }
+        },
+        "/token/{tokenId}/facts": {
+            "parameters": [
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token we want to inspect for requests",
+                    "schema": {
+                        "$ref": "#/components/schemas/TokenId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "get requests for a token",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with token facts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FactsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Token not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Token not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
         "schemas": {
+            "TokenId": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "example": "bac25301f5d8955439d374e6d5b6c7c2dc60e2783fa9fb61be7f128425e4572f",
+                "description": "Unique identifier for the token (64-character hexadecimal string)"
+            },
+            "FactsResponse": {
+                "type": "object",
+                "example": {
+                    "key1": "value1",
+                    "key2": "value2"
+                }
+            },
             "TokenResponse": {
                 "type": "object",
                 "required": [
@@ -209,7 +263,6 @@
                     }
                 }
             },
-
             "State": {
                 "type": "object",
                 "required": [
