@@ -42,7 +42,7 @@ export async function retract(
 
     await tx.complete();
     const signedTx = await wallet.signTx(tx.txHex);
-    const txHash = await wallet.submitTx(signedTx);
+    const txHash = await context.submitTx(signedTx);
     // const block = await context.waitSettlement(txHash);
     // context.log('block', block);
     return txHash;

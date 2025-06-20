@@ -1,4 +1,4 @@
-import { MeshTxBuilder, MeshWallet } from '@meshsdk/core';
+import { MeshTxBuilder } from '@meshsdk/core';
 import { CurrentToken } from '../token';
 import { Indexer } from '../indexer/indexer';
 import { Change } from '../trie/change';
@@ -9,7 +9,6 @@ import { TrieManager } from '../trie';
 import {
     getCagingScript,
     getTxBuilder,
-    getWalletInfoForTx,
     onTxConfirmedPromise,
     Provider
 } from './context/lib';
@@ -19,7 +18,7 @@ import {
     SigningWallet,
     WalletInfo
 } from './context/wallet';
-import { OgmiosProvider } from '@meshsdk/core';
+import { submitTransaction } from '../submitter';
 
 export type Context = {
     cagingScript: {
@@ -64,8 +63,6 @@ export const mkContext = (
         signingWallet = undefined;
     }
     const observingWallet = mkObservingWallet(provider);
-
-    const ogmiosProvider = new OgmiosProvider(ogmios);
     return {
         cagingScript: getCagingScript(),
         signingWallet: signingWallet,
@@ -102,7 +99,7 @@ export const mkContext = (
         },
         pauseIndexer: async () => indexer.pause(),
         submitTx: async (txHex: string) => {
-            return await ogmiosProvider.submitTx(txHex);
+            return await submitTransaction(ogmios, txHex);
         }
     };
 };

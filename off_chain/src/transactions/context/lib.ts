@@ -160,12 +160,12 @@ export async function signAndSubmit<T>(
     if (!signingWallet) {
         throw new Error('No signing wallet found');
     }
-    const { info, signTx, submitTx } = signingWallet;
+    const { info, signTx } = signingWallet;
     const { walletAddress } = await info();
 
     const { unsignedTransaction, value } = await f(walletAddress);
 
     const signedTx = await signTx(unsignedTransaction);
-    const txHash = await submitTx(signedTx);
+    const txHash = await context.submitTx(signedTx);
     return { txHash, value };
 }

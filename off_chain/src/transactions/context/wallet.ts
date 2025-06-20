@@ -13,7 +13,6 @@ export type WalletInfo = {
 export type SigningWallet = {
     info: () => Promise<WalletInfo>;
     signTx: (tx: string) => Promise<string>;
-    submitTx: (tx: string) => Promise<string>;
 };
 
 export const mkSigningWallet = (mnemonic, provider) => {
@@ -29,8 +28,7 @@ export const mkSigningWallet = (mnemonic, provider) => {
 
     return {
         info: async () => await getWalletInfoForTx(wallet),
-        signTx: async tx => await wallet.signTx(tx),
-        submitTx: async tx => await wallet.submitTx(tx)
+        signTx: async tx => await wallet.signTx(tx)
     };
 };
 export const mkObservingWallet = provider => async (walletAddress: string) => {
