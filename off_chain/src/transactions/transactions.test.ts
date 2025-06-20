@@ -63,7 +63,7 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const requests = await context.fetchRequests(tokenId);
-                if (!requests.some(req => req.outputRef === refId)) {
+                if (!requests.some(req => req.outputRefId === refId)) {
                     throw new Error(
                         `Request ID ${refId} not found in requests`
                     );

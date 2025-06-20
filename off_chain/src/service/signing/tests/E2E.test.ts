@@ -168,7 +168,7 @@ const canInspectRequestsForAToken = async ({
             'Request operation is not insert'
         );
         log('bob inspected charlie mpf token');
-        await deleteRequest(log, bob, requests[0].outputRef);
+        await deleteRequest(log, bob, requests[0].outputRefId);
         log('bob retracted his request');
         const { requests: requests2 } = await getToken(log, alice, tk);
         assertThrows(requests2.length === 0, 'Request still found');

@@ -85,13 +85,13 @@
             "TokenResponse": {
                 "type": "object",
                 "required": [
-                    "outputRef",
+                    "outputRefId",
                     "state",
                     "requests"
                 ],
                 "properties": {
-                    "outputRef": {
-                        "$ref": "#/components/schemas/OutputRef"
+                    "outputRefId": {
+                        "$ref": "#/components/schemas/OutputRefId"
                     },
                     "state": {
                         "$ref": "#/components/schemas/State"
@@ -108,12 +108,12 @@
             "Request": {
                 "type": "object",
                 "required": [
-                    "outputRef",
+                    "outputRefId",
                     "change",
                     "owner"
                 ],
                 "properties": {
-                    "outputRef": {
+                    "outputRefId": {
                         "$ref": "#/components/schemas/OutputRefId"
                     },
                     "change": {
@@ -152,7 +152,10 @@
                 }
             },
             "OutputRefId": {
-                "type": "string"
+                "type": "string",
+                "description": "Unique identifier for the output reference, composed of the transaction hash and output index",
+                "example": "8056bb70a889b1e89164cb67a38cd349e1f8486c27ea0f1ab578c3b8ab58bcb6-0",
+                "pattern": "^[0-9a-fA-F]{64}-[0-9]+$"
             },
             "TokensResponse": {
                 "type": "object",
@@ -194,39 +197,19 @@
             "TokenState": {
                 "type": "object",
                 "required": [
-                    "outputRef",
+                    "outputRefId",
                     "state"
                 ],
                 "properties": {
-                    "outputRef": {
-                        "$ref": "#/components/schemas/OutputRef"
+                    "outputRefId": {
+                        "$ref": "#/components/schemas/OutputRefId"
                     },
                     "state": {
                         "$ref": "#/components/schemas/State"
                     }
                 }
             },
-            "OutputRef": {
-                "type": "object",
-                "required": [
-                    "txHash",
-                    "outputIndex"
-                ],
-                "properties": {
-                    "txHash": {
-                        "type": "string",
-                        "pattern": "^[0-9a-fA-F]{64}$",
-                        "example": "5f341532dcd0b43e683744a44a6e416530e677f83e70bab586d15e348cbe512e",
-                        "description": "Transaction hash referencing the token output (64-character hexadecimal string)"
-                    },
-                    "outputIndex": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "example": 0,
-                        "description": "Index of the output in the transaction"
-                    }
-                }
-            },
+
             "State": {
                 "type": "object",
                 "required": [

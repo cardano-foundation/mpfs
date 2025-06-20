@@ -1,10 +1,21 @@
 import { CurrentToken, TokenState } from '../../token';
 import { AbstractSublevel } from 'abstract-level';
 import { levelHash } from '../level-hash';
+import { mkOutputRefId } from '../../outputRef';
 
 export type Token = {
     current: CurrentToken;
     tokenId: string;
+};
+
+export const withRefIds = (token: Token) => {
+    return {
+        tokenId: token.tokenId,
+        current: {
+            state: token.current.state,
+            outputRefId: mkOutputRefId(token.current.outputRef)
+        }
+    };
 };
 
 export type Tokens = {

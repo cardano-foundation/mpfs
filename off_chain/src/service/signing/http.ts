@@ -10,7 +10,7 @@ import { createTrieManager } from '../../trie';
 import { createIndexer, Indexer } from '../../indexer/indexer';
 import { unmkOutputRefId, mkOutputRefId } from '../../outputRef';
 import { Level } from 'level';
-import { Token } from '../../indexer/state/tokens';
+import { Token, withRefIds } from '../../indexer/state/tokens';
 import { createState } from '../../indexer/state';
 import { createProcess } from '../../indexer/process';
 import { firstOutputRef, sleep } from '../../lib';
@@ -99,7 +99,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             const indexerStatus = await context.tips();
             const tokens = await withTokens(tokens => tokens);
             res.json({
-                tokens,
+                tokens: tokens.map(withRefIds),
                 indexerStatus
             });
         } catch (error) {
@@ -126,7 +126,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             }
             const requests = await context.fetchRequests(tokenId);
             res.json({
-                ...token.current,
+                ...withRefIds(token).current,
                 requests
             });
         } catch (error) {

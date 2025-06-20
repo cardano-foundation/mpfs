@@ -34,7 +34,7 @@ export type Context = {
     fetchToken: (tokenId: string) => Promise<CurrentToken | undefined>;
     fetchRequests: (
         tokenId: string | null
-    ) => Promise<{ outputRef: string; change: Change; owner: string }[]>;
+    ) => Promise<{ outputRefId: string; change: Change; owner: string }[]>;
     evaluate: (txHex: string) => Promise<any>;
     trie: (
         tokenId: string,

@@ -4,12 +4,12 @@ import { AbstractSublevel } from 'abstract-level';
 import { levelHash } from '../level-hash';
 
 export type Requests = {
-    get(outputRef: string): Promise<RequestCore | undefined>;
-    put(outputRef: string, value: RequestCore): Promise<void>;
-    delete(outputRef: string): Promise<void>;
+    get(outputRefId: string): Promise<RequestCore | undefined>;
+    put(outputRefId: string, value: RequestCore): Promise<void>;
+    delete(outputRefId: string): Promise<void>;
     byToken(
         tokenId: string | null
-    ): Promise<{ outputRef: string; change: Change; owner: string }[]>;
+    ): Promise<{ outputRefId: string; change: Change; owner: string }[]>;
     close(): Promise<void>;
     hash(): Promise<string>;
 };
@@ -23,27 +23,29 @@ export async function createRequests(
         });
     await requestStore.open();
     return {
-        get: async (outputRef: string): Promise<RequestCore | undefined> => {
-            return await requestStore.get(outputRef);
+        get: async (outputRefId: string): Promise<RequestCore | undefined> => {
+            return await requestStore.get(outputRefId);
         },
-        put: async (outputRef: string, value: RequestCore): Promise<void> => {
-            await requestStore.put(outputRef, value);
+        put: async (outputRefId: string, value: RequestCore): Promise<void> => {
+            await requestStore.put(outputRefId, value);
         },
-        delete: async (outputRef: string): Promise<void> => {
-            await requestStore.del(outputRef);
+        delete: async (outputRefId: string): Promise<void> => {
+            await requestStore.del(outputRefId);
         },
         byToken: async (
             tokenId: string | null
-        ): Promise<{ outputRef: string; change: Change; owner: string }[]> => {
+        ): Promise<
+            { outputRefId: string; change: Change; owner: string }[]
+        > => {
             const requests: {
-                outputRef: string;
+                outputRefId: string;
                 change: Change;
                 owner: string;
             }[] = [];
             for await (const [key, value] of requestStore.iterator()) {
                 if (!tokenId || value.tokenId === tokenId) {
                     requests.push({
-                        outputRef: key,
+                        outputRefId: key,
                         change: value.change,
                         owner: value.owner
                     });

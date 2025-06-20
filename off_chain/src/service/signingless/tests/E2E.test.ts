@@ -12,6 +12,7 @@ import {
 } from '../client';
 import { assertThrows } from '../../test/E2E/lib';
 import { mkOutputRefId } from '../../../outputRef';
+import { firstOutputRef } from '../../../lib';
 
 const canBootAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
     const test = async ({ address, signTx }) => {
@@ -89,7 +90,7 @@ const canRequestAChangeToAtToken = async ({
             'Request was not created or multiple requests found'
         );
         assertThrows(
-            requests[0].outputRef === mkOutputRefId({ txHash, outputIndex: 0 }),
+            requests[0].outputRefId === mkOutputRefId(firstOutputRef(txHash)),
             'Request was not found after creation'
         );
         assertThrows(

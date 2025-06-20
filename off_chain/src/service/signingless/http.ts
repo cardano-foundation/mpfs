@@ -7,7 +7,7 @@ import { Server } from 'http';
 import { createTrieManager } from '../../trie';
 import { createIndexer, Indexer } from '../../indexer/indexer';
 import { Level } from 'level';
-import { Token } from '../../indexer/state/tokens';
+import { Token, withRefIds } from '../../indexer/state/tokens';
 import { createState } from '../../indexer/state';
 import { createProcess } from '../../indexer/process';
 import { sleep } from '../../lib';
@@ -19,7 +19,7 @@ import {
     TopUp
 } from '../../transactions/context/lib';
 import { updateTransaction } from '../../transactions/update';
-import { unmkOutputRefId } from '../../outputRef';
+import { mkOutputRefId, unmkOutputRefId } from '../../outputRef';
 import swaggerUi from 'swagger-ui-express';
 import * as openApiSpec from './public/openapi.json';
 import { fileURLToPath } from 'url';
@@ -33,7 +33,8 @@ const swagger = app => {
         '/api-docs',
         swaggerUi.serve,
         swaggerUi.setup(openApiSpec, {
-            customCssUrl: '../public/swagger.css'
+            customCssUrl: '../public/swagger.css',
+            customSiteTitle: 'MPFS API Documentation'
         })
     );
     app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -73,7 +74,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             const indexerStatus = await context.tips();
             const tokens = await withTokens(tokens => tokens);
             res.json({
-                tokens,
+                tokens: tokens.map(withRefIds),
                 indexerStatus
             });
         } catch (error) {
@@ -100,7 +101,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             }
             const requests = await context.fetchRequests(tokenId);
             res.json({
-                ...token.current,
+                ...withRefIds(token).current,
                 requests
             });
         } catch (error) {

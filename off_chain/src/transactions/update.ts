@@ -65,7 +65,7 @@ export async function updateTransaction(
     const presents = await context.fetchRequests(tokenId);
     const resolvedPresents = presents.map(present => ({
         ...present,
-        resolvedRef: unmkOutputRefId(present.outputRef)
+        resolvedRef: unmkOutputRefId(present.outputRefId)
     }));
     const promoteds = resolvedPresents.filter(present =>
         requireds.some(required =>
