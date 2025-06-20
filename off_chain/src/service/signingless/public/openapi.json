@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Token",
-        "version": "1.0.0",
+        "title": "MPFS Signingless API documentation",
+        "version": "0.0.1",
         "description": ""
     },
     "servers": [
@@ -140,7 +140,51 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/WithUnsignedTransaction"
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction": {
+            "post": {
+                "summary": "Submit a signed transaction to the Cardano network",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+
+                                "$ref": "#/components/schemas/SignedTransaction"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful submission of the unsigned transaction",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TxHashResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, invalid transaction format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Invalid transaction format"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -151,24 +195,52 @@
     },
     "components": {
         "schemas": {
+            "TxHashResponse": {
+                "type": "object",
+                "required": [
+                    "txHash"
+                ],
+                "properties": {
+                    "txHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$",
+                        "example": "8056bb70a889b1e89164cb67a38cd349e1f8486c27ea0f1ab578c3b8ab58bcb6",
+                        "description": "Transaction hash of the submitted transaction (64-character hexadecimal string)"
+                    }
+                }
+            },
+            "SignedTransaction": {
+                "type": "object",
+                "required": [
+                    "signedTransaction"
+                ],
+                "properties": {
+                    "signedTransaction": {
+                        "$ref": "#/components/schemas/Transaction"
+                    }
+                },
+                "description": "Object containing the signed transaction to be submitted"
+            },
+            "Transaction": {
+                "type": "string",
+                "description": "Base64 encoded unsigned transaction",
+                "example": "84a600d9010281825820de110c0ef7caed6cd6eefea0da5a03c420......",
+                "pattern": "^[a-z0-9]+$"
+            },
             "Address": {
                 "type": "string",
                 "example": "addr_test1qppdjefs3dpt9a3fxn8v3ce5tzksc63hx57czl9042clgqezw3mh2t8xqryhplp4pj74xz03m6ydqr6lrsdahc3md92sgap2dm",
                 "description": "Address of the owner of the token, in Bech32 format",
                 "pattern": "^addr_test1[a-z0-9]+$"
             },
-            "WithUnsignedTransaction": {
+            "UnsignedTransaction": {
                 "type": "object",
                 "required": [
                     "unsignedTransaction"
                 ],
                 "properties": {
                     "unsignedTransaction": {
-                        "type": "string",
-                        "description": "Base64 encoded unsigned transaction",
-                        "example": "84a600d9010281825820de110c0ef7caed6cd6eefea0da5a03c420......",
-                        "pattern": "^[a-z0-9]+$"
-
+                        "$ref": "#/components/schemas/Transaction"
                     }
                 }
             },
