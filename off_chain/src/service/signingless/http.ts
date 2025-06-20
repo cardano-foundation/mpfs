@@ -24,6 +24,7 @@ import swaggerUi from 'swagger-ui-express';
 import * as openApiSpec from './public/openapi.json';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import blueprint from '../../plutus.json';
 
 const swagger = app => {
     const __filename = fileURLToPath(import.meta.url);
@@ -34,12 +35,73 @@ const swagger = app => {
         swaggerUi.serve,
         swaggerUi.setup(openApiSpec, {
             customCssUrl: '../public/swagger.css',
-            customSiteTitle: 'MPFS API Documentation'
+            customSiteTitle: 'MPFS API Documentation',
+            customfavIcon: '../public/logo.png'
         })
     );
     app.use('/public', express.static(path.join(__dirname, 'public')));
     app.get('/', (req, res) => {
-        res.redirect('/api-docs');
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MPFS</title>
+            <style>
+                body {
+                 max-width: 500px;
+                 margin: 0 auto;
+                background-color: rgb(22, 26, 34);
+                color: white;
+                text-align: center;
+                font-family: Arial, sans-serif;
+                margin-top: 20px;
+                }
+                a {
+                color: lightblue;
+                }
+                li {
+                list-style: none;
+                }
+                h1 {
+                font-size: 42px;
+                margin-bottom: 20px;
+                text-shadow: 2px 2px 4px rgba(51, 42, 42, 0.5);
+                }
+                footer {
+                border-top: 1px solid gray;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: gray;
+                }
+                .links {
+                border-top: 1px solid gray;
+                padding-top: 10px;
+                }
+            </style>
+            </head>
+            <body>
+            <img src="/public/logo.png" alt="Logo" style="width: 310px; height: auto;">
+            <h1>MPFS</h1>
+            <h4>Merkle Patricia Forestry Service</h4>
+            <div class="links">
+                <p>A project by <a href="https://www.cardanofoundation.org/" target="_blank">Cardano Foundation</a></p>
+                <p>Open sourced on <a href="https://app.radicle.xyz/nodes/ash.radicle.garden/rad:zpZ4szHxvnyVyDiy2acfcVEzxza9" target="_blank">Radicle</a></p>
+                <p>API documentation <a href="/api-docs">Swagger</a></p>
+            </div>
+            <footer>
+                <p>Powered by:</p>
+                <ul>
+                <li><a href="https://github.com/MeshJS/mesh" target="_blank">Mesh SDK</a> - A JavaScript SDK for Cardano</li>
+                <li><a href="https://ogmios.dev/" target="_blank">Ogmios</a> - A Cardano node web-socket interface</li>
+                <li><a href="https://github.com/aiken-lang/merkle-patricia-forestry" target="_blank">Merkle Patricia Forestry</a> - A library for managing Merkle Patricia trees</li>
+                <li><a href="https://github.com/bloxbean/yaci-store" target="_blank">Yaci Store</a> - A node-to-node indexer for the Cardano network</li>
+                </ul>
+            </footer>
+            </body>
+            </html>
+        `);
     });
 };
 
@@ -223,6 +285,14 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
                 details: error.message
             });
         }
+    });
+
+    app.get('/config', async (req, res) => {
+        res.json({
+            address: context.cagingScript.address,
+            policyId: context.cagingScript.policyId,
+            plutus: blueprint
+        });
     });
 
     return app;

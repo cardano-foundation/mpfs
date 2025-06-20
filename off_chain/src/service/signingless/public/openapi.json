@@ -11,10 +11,27 @@
         }
     ],
     "paths": {
+        "/config": {
+            "get": {
+                "summary": "Retrieve the mpfs configuration",
+                "responses": {
+                    "200": {
+                        "description": "Successful response with configuration data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MpfsConfig"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tokens": {
             "parameters": [],
             "get": {
-                "summary": "get tokens",
+                "summary": "Retrieve all mpfs tokens",
                 "parameters": [],
                 "responses": {
                     "200": {
@@ -43,7 +60,7 @@
                 }
             ],
             "get": {
-                "summary": "get a token",
+                "summary": "Retrieve the online state of a token and its pending requests",
                 "parameters": [],
                 "responses": {
                     "200": {
@@ -88,7 +105,7 @@
                 }
             ],
             "get": {
-                "summary": "get requests for a token",
+                "summary": "Retrieve all facts from an mpfs token database",
                 "parameters": [],
                 "responses": {
                     "200": {
@@ -369,6 +386,31 @@
     },
     "components": {
         "schemas": {
+            "MpfsConfig": {
+                "type": "object",
+                "required": [
+                    "address",
+                    "policyId",
+                    "blueprint"
+                ],
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "description": "Address of the MPFS contract in Bech32 format",
+                        "example": "addr_test1qppdjefs3dpt9a3fxn8v3ce5tzksc63hx57czl9042clgqezw3mh2t8xqryhplp4pj74xz03m6ydqr6lrsdahc3md92sgap2dm",
+                        "pattern": "^addr_test1[a-z0-9]+$"
+                    },
+                    "policyId": {
+                        "type": "string",
+                        "description": "Policy ID of all mpfs tokens",
+                        "example": "84a600d9010281825820de110c0ef7caed6cd6eefea0da5a03c4206ef70a8"
+                    },
+                    "blueprint": {
+                        "type": "object",
+                        "description": "Blueprint of the MPFS smart contract"
+                    }
+                }
+            },
             "TxHashResponse": {
                 "type": "object",
                 "required": [

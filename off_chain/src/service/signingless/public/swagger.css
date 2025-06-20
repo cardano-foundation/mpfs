@@ -11,20 +11,20 @@
     embed[type="application/pdf"] { filter: invert(90%); }
 
     html {
-        background: #1f1f1f !important;
+        background: rgb(22, 26, 34) !important;
         box-sizing: border-box;
         filter: contrast(100%) brightness(100%) saturate(100%);
         overflow-y: scroll;
     }
 
     body {
-        background: #1f1f1f;
+        background: rgb(22, 26, 34) !important;
         background-color: #1f1f1f;
         background-image: none !important;
     }
 
     button, input, select, textarea {
-        background-color: #1f1f1f;
+        background-color: rgb(22, 26, 34) !important;
         color: #bfbfbf;
     }
 
@@ -636,7 +636,7 @@
     }
 
     .swagger-ui textarea[disabled] {
-        background-color: #41444e;
+        background-color: rgb(20, 24, 32) !important;
         color: #fff;
     }
 
@@ -774,7 +774,7 @@
     .swagger-ui .download-url-wrapper .failed, .swagger-ui .filter .failed, .swagger-ui .model-deprecated-warning, .swagger-ui .parameter__deprecated, .swagger-ui .parameter__name.required span, .swagger-ui table.model tr.property-row .star { color: #e69999; }
 
     .swagger-ui .opblock-body pre.microlight, .swagger-ui textarea.curl {
-        background: #41444e;
+        background: rgb(20, 24, 32);
         border-radius: 4px;
         color: #fff;
     }
