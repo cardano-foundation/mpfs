@@ -19,7 +19,7 @@ import {
     TopUp
 } from '../../transactions/context/lib';
 import { updateTransaction } from '../../transactions/update';
-import { mkOutputRefId, unmkOutputRefId } from '../../outputRef';
+import { unmkOutputRefId } from '../../outputRef';
 import swaggerUi from 'swagger-ui-express';
 import * as openApiSpec from './public/openapi.json';
 import { fileURLToPath } from 'url';
@@ -120,7 +120,12 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     app.get('/transaction/:address/end-token/:tokenId', async (req, res) => {
         const { tokenId, address } = req.params;
         try {
-            res.json(await endTransaction(context, address, tokenId));
+            const { unsignedTransaction } = await endTransaction(
+                context,
+                address,
+                tokenId
+            );
+            res.json({ unsignedTransaction });
         } catch (error) {
             res.status(500).json({
                 error: 'Error creating end transaction',

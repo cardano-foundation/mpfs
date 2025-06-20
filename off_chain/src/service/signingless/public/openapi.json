@@ -1,7 +1,7 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "MPFS Signingless API documentation",
+        "title": "MPFS signing-less API documentation",
         "version": "0.0.1",
         "description": ""
     },
@@ -148,6 +148,43 @@
                 }
             }
         },
+        "/transaction/{address}/end-token/{tokenId}": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the token to end",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                },
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token identifier to end",
+                    "schema": {
+                        "$ref": "#/components/schemas/TokenId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will end a token for the given address",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/transaction": {
             "post": {
                 "summary": "Submit a signed transaction to the Cardano network",
@@ -156,7 +193,6 @@
                     "content": {
                         "application/json": {
                             "schema": {
-
                                 "$ref": "#/components/schemas/SignedTransaction"
                             }
                         }
