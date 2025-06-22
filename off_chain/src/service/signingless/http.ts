@@ -25,6 +25,7 @@ import * as openApiSpec from './public/openapi.json';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import blueprint from '../../plutus.json';
+import { retractTransaction } from '../../transactions/retract';
 
 const swagger = app => {
     const __filename = fileURLToPath(import.meta.url);
@@ -294,6 +295,28 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             plutus: blueprint
         });
     });
+
+    app.get(
+        '/transaction/:address/retract-change/:requestId',
+        async (req, res) => {
+            const { address, requestId } = req.params;
+            try {
+                const outputRef = unmkOutputRefId(requestId);
+                const { unsignedTransaction } = await retractTransaction(
+                    context,
+                    address,
+                    outputRef
+                );
+                res.json({ unsignedTransaction });
+            } catch (error) {
+                console.error('Error creating retract transaction:', error);
+                res.status(500).json({
+                    error: 'Error creating retract transaction',
+                    details: error.message
+                });
+            }
+        }
+    );
 
     return app;
 }

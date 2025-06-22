@@ -340,6 +340,60 @@
                 }
             }
         },
+        "/transaction/{address}/retract-change/{requestId}": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the token to retract a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                },
+                {
+                    "name": "requestId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The request identifier to retract",
+                    "example": "de110c0ef7caed6cd6eefea0da5a03c4206ef70a8c9f0b89f6938cb9b45afb34-0",
+                    "schema": {
+                        "$ref": "#/components/schemas/OutputRefId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will retract a change for the given request ID",
+                "responses": {
+                    "200": {
+                        "description": "Successful response with unsigned transaction data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Request not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Request not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/transaction": {
             "post": {
                 "summary": "Submit a signed transaction to the Cardano network",

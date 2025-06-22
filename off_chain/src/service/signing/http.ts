@@ -231,10 +231,10 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
 
     app.delete('/request/:refId/', async (req, res) => {
         const { refId } = req.params;
-        const { txHash, outputIndex } = unmkOutputRefId(refId);
+        const outputRef = unmkOutputRefId(refId);
         try {
-            const tx = await retract(context, { txHash, outputIndex });
-            res.json({ txHash: tx });
+            const tx = await retract(context, outputRef);
+            res.json(tx);
         } catch (error) {
             res.status(500).json({
                 error: 'Error retracting',

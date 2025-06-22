@@ -2,6 +2,11 @@ import { mConStr3 } from '@meshsdk/core';
 import { Context } from './context';
 import { OutputRef } from '../lib';
 import { mkOutputRefId } from '../outputRef';
+import {
+    signAndSubmit,
+    WithTxHash,
+    WithUnsignedTransaction
+} from './context/lib';
 
 const guessingLowCost = {
     mem: 1_000_000,
@@ -11,10 +16,23 @@ const guessingLowCost = {
 export async function retract(
     context: Context,
     requestOutputRef: OutputRef
-): Promise<string> {
-    const wallet = context.signingWallet!;
-    const { walletAddress, collateral, signerHash } = await wallet.info();
+): Promise<WithTxHash<null>> {
+    return await signAndSubmit(context, async walletAddress => {
+        return await retractTransaction(
+            context,
+            walletAddress,
+            requestOutputRef
+        );
+    });
+}
 
+export async function retractTransaction(
+    context: Context,
+    walletAddress: string,
+    requestOutputRef: OutputRef
+): Promise<WithUnsignedTransaction<null>> {
+    const { utxos, collateral, signerHash } =
+        await context.addressWallet(walletAddress);
     const { cbor: cageCbor } = context.cagingScript;
     const requests = await context.fetchRequests(null);
     const ouputRefId = mkOutputRefId(requestOutputRef);
@@ -43,9 +61,8 @@ export async function retract(
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
 
     await tx.complete();
-    const signedTx = await wallet.signTx(tx.txHex);
-    const txHash = await context.submitTx(signedTx);
-    // const block = await context.waitSettlement(txHash);
-    // context.log('block', block);
-    return txHash;
+    return {
+        unsignedTransaction: tx.txHex,
+        value: null
+    };
 }

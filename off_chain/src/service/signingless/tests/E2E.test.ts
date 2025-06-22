@@ -8,7 +8,8 @@ import {
     getToken,
     submitTx,
     updateTokenTx,
-    getTokenFacts
+    getTokenFacts,
+    retractChangeTx
 } from '../client';
 import { assertThrows } from '../../test/E2E/lib';
 import { mkOutputRefId } from '../../../outputRef';
@@ -44,8 +45,10 @@ const canEndABootedToken = async ({
     wallets: { charlie }
 }: Runner) => {
     const test = async ({ address, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } =
-            await bootTokenTx(charlie, address);
+        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
+            charlie,
+            address
+        );
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
         const { unsignedTransaction } = await endTokenTx(
@@ -70,8 +73,10 @@ const canRequestAChangeToAtToken = async ({
     wallets: { charlie }
 }: Runner) => {
     const test = async ({ address, owner, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } =
-            await bootTokenTx(charlie, address);
+        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
+            charlie,
+            address
+        );
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
         const { unsignedTransaction: requestTx } = await requestChangeTx(
@@ -108,8 +113,10 @@ const canRequestAChangeToAtToken = async ({
 };
 const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
     const test = async ({ address, owner, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } =
-            await bootTokenTx(charlie, address);
+        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
+            charlie,
+            address
+        );
         const signedBootTx = await signTx(bootTx);
         await submitTx(charlie, signedBootTx);
         const { unsignedTransaction: requestTx } = await requestChangeTx(
@@ -153,6 +160,50 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
     await run(test, 'Charlie updates a token');
 };
 
+const canRetractAChangeForAToken = async ({
+    run,
+    log,
+    wallets: { charlie }
+}: Runner) => {
+    const test = async ({ address, owner, signTx }) => {
+        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
+            charlie,
+            address
+        );
+        const signedBootTx = await signTx(bootTx);
+        await submitTx(charlie, signedBootTx);
+        const { unsignedTransaction: requestTx } = await requestChangeTx(
+            charlie,
+            address,
+            tokenId,
+            'key1',
+            'value1',
+            'insert'
+        );
+        const signedRequestTx = await signTx(requestTx);
+        const { txHash } = await submitTx(charlie, signedRequestTx);
+        const requestOutputRefId = mkOutputRefId(firstOutputRef(txHash));
+        const { unsignedTransaction: retractTx } = await retractChangeTx(
+            charlie,
+            address,
+            requestOutputRefId
+        );
+        const signedRetractTx = await signTx(retractTx);
+        await submitTx(charlie, signedRetractTx);
+        const { requests } = await getToken(log, charlie, tokenId, 2);
+        assertThrows(
+            requests.length === 0,
+            'Request was not retracted or still exists after retraction'
+        );
+        const facts = await getTokenFacts(log, charlie, tokenId);
+        assertThrows(
+            Object.keys(facts).length === 0,
+            'Token facts were not retracted or still exist after retraction'
+        );
+    };
+    await run(test, 'Charlie retracts a change for a token');
+};
+
 describe('E2E Signingless', () => {
     e2eVitest('can boot a token', canBootAToken, 60);
     e2eVitest('can end a booted token', canEndABootedToken, 60);
@@ -162,4 +213,9 @@ describe('E2E Signingless', () => {
         60
     );
     e2eVitest('can update a token', canUpdateAToken, 60);
+    e2eVitest(
+        'can retract a change for a token',
+        canRetractAChangeForAToken,
+        60
+    );
 });

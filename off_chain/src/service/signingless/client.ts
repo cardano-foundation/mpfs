@@ -111,6 +111,23 @@ export async function updateTokenTx(
     return response.data;
 }
 
+export async function retractChangeTx(
+    host: string,
+    address: string,
+    outputRefId: string,
+    blocks = 2
+): Promise<{ unsignedTransaction: string; value: null }> {
+    await sync(host, blocks);
+    const response = await axios.get(
+        `${host}/transaction/${address}/retract-change/${outputRefId}`
+    );
+    assertThrows(
+        response.status === 200,
+        'Failed to create delete request transaction'
+    );
+    return response.data;
+}
+
 export async function submitTx(
     host: string,
     signedTransaction: string
