@@ -91,7 +91,7 @@ services:
       options:
         max-size: "400k"
         max-file: "20"
-    restart: on-failure
+    restart: always
     volumes:
       - ${NODE_DIR}/node.socket:/node/node.socket
       - ${NODE_DIR}/configs:/node/configs
