@@ -116,6 +116,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     const app = express();
 
     app.use(express.json()); // Ensure JSON parsing middleware is applied
+    // Middleware to log HTTP requests
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+        next();
+    });
 
     swagger(app);
 
@@ -204,7 +209,8 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             const key = req.query.key as string;
             const value = req.query.value as string;
             const operation = req.query.operation as 'insert' | 'delete';
-            if (!key || !value || !operation) {
+            console.log(req.query);
+            if (!key || !operation) {
                 res.status(400).json({
                     error: 'Missing required query parameters: key, value, operation'
                 });
@@ -275,9 +281,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     });
 
     app.post('/transaction', async (req, res) => {
+        console.log('Received transaction submission request', req.body);
         const { signedTransaction } = req.body;
         try {
             const txHash = await context.submitTx(signedTransaction);
+            console.log('Signed transaction submitted:', txHash);
             res.status(200).json({ txHash });
         } catch (error) {
             console.error('Error submitting transaction:', error);
