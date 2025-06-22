@@ -1,17 +1,13 @@
 import { Name, withServices } from '../http';
 import getPort from 'get-port';
 import {
-    deserializeAddress,
-    generateMnemonic,
-    MeshWallet
-} from '@meshsdk/core';
-import { sync, walletTopup } from '../client';
+    generateMnemonic} from '@meshsdk/core';
+import { walletTopup } from '../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
-import { OutputRef, sleep, validatePort } from '../../../lib';
+import { sleep, validatePort } from '../../../lib';
 import {
     Provider,
-    topup,
     yaciProvider
 } from '../../../transactions/context/lib';
 

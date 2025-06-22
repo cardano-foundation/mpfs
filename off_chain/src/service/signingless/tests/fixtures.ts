@@ -5,12 +5,11 @@ import {
     generateMnemonic,
     MeshWallet
 } from '@meshsdk/core';
-import { sync, walletTopup } from '../../signing/client';
+import { sync } from '../../signing/client';
 import { it } from 'vitest';
-import { retry, withTempDir } from '../../../test/lib';
-import { OutputRef, validatePort } from '../../../lib';
+import { withTempDir } from '../../../test/lib';
+import { validatePort } from '../../../lib';
 import {
-    Provider,
     topup,
     yaciProvider
 } from '../../../transactions/context/lib';
