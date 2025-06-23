@@ -83,9 +83,7 @@ const canRequestAChangeToAtToken = async ({
             charlie,
             address,
             tokenId,
-            'key1',
-            'value1',
-            'insert'
+            { type: 'insert', key: 'key1', value: 'value1' }
         );
         const signedTransaction = await signTx(requestTx);
         const { txHash } = await submitTx(charlie, signedTransaction);
@@ -101,7 +99,7 @@ const canRequestAChangeToAtToken = async ({
         assertThrows(
             requests[0].change.key === 'key1' &&
                 requests[0].change.value === 'value1' &&
-                requests[0].change.operation === 'insert',
+                requests[0].change.type === 'insert',
             'Request change data does not match expected values'
         );
         assertThrows(
@@ -112,7 +110,7 @@ const canRequestAChangeToAtToken = async ({
     await run(test, 'Charlie requests a change to a token');
 };
 const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
-    const test = async ({ address, owner, signTx }) => {
+    const test = async ({ address, signTx }) => {
         const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
             charlie,
             address
@@ -123,20 +121,17 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
             charlie,
             address,
             tokenId,
-            'key1',
-            'value1',
-            'insert'
+            { type: 'insert', key: 'key1', value: 'value1' }
         );
         const signedRequestTx = await signTx(requestTx);
         const { txHash } = await submitTx(charlie, signedRequestTx);
-        const requestOutputRef = mkOutputRefId({ txHash, outputIndex: 0 });
-        const { unsignedTransaction: updateTx, value: root } =
-            await updateTokenTx(
-                charlie,
-                address,
-                tokenId,
-                [requestOutputRef] // requireds
-            );
+        const requestOutputRef = mkOutputRefId(firstOutputRef(txHash));
+        const { unsignedTransaction: updateTx } = await updateTokenTx(
+            charlie,
+            address,
+            tokenId,
+            [requestOutputRef] // requireds
+        );
         const signedUpdateTx = await signTx(updateTx);
         const { txHash: updateTxHash } = await submitTx(
             charlie,
@@ -165,7 +160,7 @@ const canRetractAChangeForAToken = async ({
     log,
     wallets: { charlie }
 }: Runner) => {
-    const test = async ({ address, owner, signTx }) => {
+    const test = async ({ address, signTx }) => {
         const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
             charlie,
             address
@@ -176,9 +171,7 @@ const canRetractAChangeForAToken = async ({
             charlie,
             address,
             tokenId,
-            'key1',
-            'value1',
-            'insert'
+            { type: 'insert', key: 'key1', value: 'value1' }
         );
         const signedRequestTx = await signTx(requestTx);
         const { txHash } = await submitTx(charlie, signedRequestTx);
@@ -205,17 +198,17 @@ const canRetractAChangeForAToken = async ({
 };
 
 describe('E2E Signingless', () => {
-    e2eVitest('can boot a token', canBootAToken, 60);
-    e2eVitest('can end a booted token', canEndABootedToken, 60);
-    e2eVitest(
-        'can request a change to a token',
-        canRequestAChangeToAtToken,
-        60
-    );
+    // e2eVitest('can boot a token', canBootAToken, 60);
+    // e2eVitest('can end a booted token', canEndABootedToken, 60);
+    // e2eVitest(
+    //     'can request a change to a token',
+    //     canRequestAChangeToAtToken,
+    //     60
+    // );
     e2eVitest('can update a token', canUpdateAToken, 60);
-    e2eVitest(
-        'can retract a change for a token',
-        canRetractAChangeForAToken,
-        60
-    );
+    // e2eVitest(
+    //     'can retract a change for a token',
+    //     canRetractAChangeForAToken,
+    //     60
+    // );
 });

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
-import { Operation } from '../../trie/change';
+import { Change } from '../../trie/change';
 
 type Log = (s: string) => void;
 
@@ -68,22 +68,40 @@ export async function requestChangeTx(
     host: string,
     address: string,
     tokenId: string,
-    key: string,
-    value: string,
-    op: Operation,
+    change: Change,
+
     blocks = 2
 ): Promise<{ unsignedTransaction: string; value: null }> {
     await sync(host, blocks);
-    const response = await axios.get(
-        `${host}/transaction/${address}/request-change/${tokenId}`,
-        {
-            params: {
-                key,
-                value,
-                operation: op
-            }
-        }
-    );
+    let url;
+    let params;
+    switch (change.type) {
+        case 'insert':
+            url = `${host}/transaction/${address}/request-insert/${tokenId}`;
+            params = {
+                key: change.key,
+                value: change.value
+            };
+            break;
+        case 'delete':
+            url = `${host}/transaction/${address}/request-delete/${tokenId}`;
+            params = {
+                key: change.key,
+                value: change.value
+            };
+            break;
+        case 'update':
+            url = `${host}/transaction/${address}/request-update/${tokenId}`;
+            params = {
+                key: change.key,
+                value: change.newValue,
+                oldValue: change.oldValue
+            };
+            break;
+    }
+
+    const response = await axios.get(url, { params });
+
     assertThrows(
         response.status === 200,
         'Failed to create request transaction'

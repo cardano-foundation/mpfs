@@ -26,7 +26,6 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import blueprint from '../../plutus.json';
 import { retractTransaction } from '../../transactions/retract';
-import { Operation } from '../../trie/change';
 
 const swagger = app => {
     const __filename = fileURLToPath(import.meta.url);
@@ -204,37 +203,74 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     });
 
     app.get(
-        '/transaction/:address/request-change/:tokenId',
+        '/transaction/:address/request-insert/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
             const key = req.query.key as string;
             const value = req.query.value as string;
-            const operation = req.query.operation as Operation;
-            console.log(req.query);
-            if (!key || !operation) {
-                res.status(400).json({
-                    error: 'Missing required query parameters: key, value, operation'
-                });
-                return;
-            }
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
                     address,
                     tokenId,
-                    key,
-                    value,
-                    operation
+                    { key, value, type: 'insert' }
                 );
                 res.json({ unsignedTransaction });
             } catch (error) {
                 res.status(500).json({
-                    error: 'Error creating request transaction',
+                    error: 'Error creating request-insert transaction',
                     details: error.message
                 });
             }
         }
     );
+    app.get(
+        '/transaction/:address/request-delete/:tokenId',
+        async (req, res) => {
+            const { tokenId, address } = req.params;
+            const key = req.query.key as string;
+            const value = req.query.value as string;
+            try {
+                const { unsignedTransaction } = await requestTx(
+                    context,
+                    address,
+                    tokenId,
+                    { key, value, type: 'delete' }
+                );
+                res.json({ unsignedTransaction });
+            } catch (error) {
+                res.status(500).json({
+                    error: 'Error creating request-delete transaction',
+                    details: error.message
+                });
+            }
+        }
+    );
+
+    app.get(
+        '/transaction/:address/request-update/:tokenId',
+        async (req, res) => {
+            const { tokenId, address } = req.params;
+            const key = req.query.key as string;
+            const oldValue = req.query.oldValue as string;
+            const newValue = req.query.newValue as string;
+            try {
+                const { unsignedTransaction } = await requestTx(
+                    context,
+                    address,
+                    tokenId,
+                    { key, oldValue, newValue, type: 'update' }
+                );
+                res.json({ unsignedTransaction });
+            } catch (error) {
+                res.status(500).json({
+                    error: 'Error creating request-update transaction',
+                    details: error.message
+                });
+            }
+        }
+    );
+
     app.get('/transaction/:address/update-token/:tokenId', async (req, res) => {
         const { tokenId, address } = req.params;
         const requests = req.query.request;
