@@ -19,15 +19,35 @@ export function parseRequestCbor(cbor: string): RequestCore | undefined {
         const tokenIdP = stateDatum.fields[0];
         const tokenId = tokenIdP.fields[0].bytes;
         const op = stateDatum.fields[3].constructor as number;
-        const opname = op == 0 ? 'insert' : 'delete';
-        const value = fromHex(stateDatum.fields[3].fields[0].bytes);
         const key = fromHex(stateDatum.fields[2].bytes);
         const owner = stateDatum.fields[1].bytes;
-        const change: Change = {
-            key,
-            value,
-            operation: opname
-        };
+        let change: Change;
+        switch (op) {
+            case 0:
+                change = {
+                    type: 'insert',
+                    key,
+                    value: fromHex(stateDatum.fields[3].fields[0].bytes)
+                };
+                break;
+            case 1:
+                change = {
+                    type: 'delete',
+                    key,
+                    value: fromHex(stateDatum.fields[3].fields[0].bytes)
+                };
+                break;
+            case 2:
+                change = {
+                    type: 'update',
+                    key,
+                    oldValue: fromHex(stateDatum.fields[3].fields[0].bytes),
+                    newValue: fromHex(stateDatum.fields[3].fields[1].bytes)
+                };
+                break;
+            default:
+                throw new Error(`Unknown operation: ${op}`);
+        }
         return { tokenId, change, owner };
     } catch (error) {
         return undefined;
