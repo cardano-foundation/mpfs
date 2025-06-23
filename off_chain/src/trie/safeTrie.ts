@@ -44,22 +44,18 @@ export const createSafeTrie = async (
             tempChanges = [];
         },
         update: async (change: Change): Promise<Proof> => {
-            const { key, value, operation } = change;
-            const proof = await updateTrie(loaded.trie, change);
-            switch (change.operation) {
-                case 'insert': {
-                    await facts.set(key, value);
+            switch (change.type) {
+                case 'insert':
+                    await facts.set(change.key, change.value);
                     break;
-                }
-                case 'delete': {
-                    await facts.delete(key);
+                case 'delete':
+                    await facts.delete(change.key);
                     break;
-                }
-                default: {
-                    throw new Error(`Unknown operation type: ${operation}`);
-                }
+                case 'update':
+                    await facts.set(change.key, change.newValue);
+                    break;
             }
-            return proof;
+            return await updateTrie(loaded.trie, change);
         },
         root: (): Buffer => {
             return loaded.trie.hash;
