@@ -26,6 +26,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import blueprint from '../../plutus.json';
 import { retractTransaction } from '../../transactions/retract';
+import { Operation } from '../../trie/change';
 
 const swagger = app => {
     const __filename = fileURLToPath(import.meta.url);
@@ -117,10 +118,10 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
 
     app.use(express.json()); // Ensure JSON parsing middleware is applied
     // Middleware to log HTTP requests
-    app.use((req, res, next) => {
-        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-        next();
-    });
+    // app.use((req, res, next) => {
+    //     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    //     next();
+    // });
 
     swagger(app);
 
@@ -208,7 +209,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             const { tokenId, address } = req.params;
             const key = req.query.key as string;
             const value = req.query.value as string;
-            const operation = req.query.operation as 'insert' | 'delete';
+            const operation = req.query.operation as Operation;
             console.log(req.query);
             if (!key || !operation) {
                 res.status(400).json({

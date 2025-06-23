@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
+import { Operation } from '../../trie/change';
 
 type Log = (s: string) => void;
 
@@ -101,7 +102,7 @@ async function createRequest(
     tokenId: string,
     key: string,
     value: string,
-    op: 'insert' | 'delete',
+    op: Operation,
     blocks = 2
 ) {
     await sync(host, blocks);

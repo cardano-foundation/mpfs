@@ -204,7 +204,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         const { tokenId, address } = req.params;
         const key = req.query.key as string;
         const value = req.query.value as string;
-        const operation = req.query.operation as 'insert' | 'delete';
+        const operation = req.query.operation as Operation;
         if (!key || !value || !operation) {
             res.status(400).json({
                 error: 'Missing required query parameters: key, value, operation'

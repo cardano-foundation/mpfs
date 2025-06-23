@@ -1,13 +1,14 @@
 import { mConStr0, mConStr1 } from '@meshsdk/core';
 import { Context } from './context';
 import { signAndSubmit, WithTxHash } from './context/lib';
+import { Operation } from '../trie/change';
 
 export async function request(
     context: Context,
     tokenId: string,
     key: string,
     value: string,
-    op: 'insert' | 'delete'
+    op: Operation
 ): Promise<WithTxHash<null>> {
     return await signAndSubmit(context, async walletAddress => {
         return await requestTx(context, walletAddress, tokenId, key, value, op);
@@ -20,7 +21,7 @@ export const requestTx = async (
     tokenId: string,
     key: string,
     value: string,
-    op: 'insert' | 'delete'
+    op: Operation
 ): Promise<{ unsignedTransaction: string; value: null }> => {
     const { utxos, signerHash } = await context.addressWallet(walletAddress);
     if (!utxos.length) {

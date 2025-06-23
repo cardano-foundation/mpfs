@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
+import { Operation } from '../../trie/change';
 
 type Log = (s: string) => void;
 
@@ -69,7 +70,7 @@ export async function requestChangeTx(
     tokenId: string,
     key: string,
     value: string,
-    op: 'insert' | 'delete',
+    op: Operation,
     blocks = 2
 ): Promise<{ unsignedTransaction: string; value: null }> {
     await sync(host, blocks);

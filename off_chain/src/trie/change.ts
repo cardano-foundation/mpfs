@@ -1,7 +1,9 @@
 import { Proof, Trie } from '../mpf/lib/trie';
 
+export type Operation = 'insert' | 'delete';
+
 export type Change = {
-    operation: 'insert' | 'delete';
+    operation: Operation;
     key: string;
     value: string;
 };
