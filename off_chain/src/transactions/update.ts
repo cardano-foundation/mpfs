@@ -74,7 +74,6 @@ export async function updateTransaction(
     );
 
     let proofs: Proof[] = [];
-    let txHash: string = 'not defined';
     let newRoot: string | null = null;
     const tx = context.newTxBuilder();
     const releaseIndexer = await context.pauseIndexer();
@@ -126,7 +125,7 @@ export async function updateTransaction(
             await tx.complete();
         } catch (error) {
             trie.rollback();
-            await releaseIndexer();
+            releaseIndexer();
             throw new Error(
                 `Failed to create or submit a transaction: ${error}`
             );
@@ -134,7 +133,7 @@ export async function updateTransaction(
         await trie.rollback(); // Rollback the trie to the previous state
     }
     await context.trie(tokenId, onTrie);
-    await releaseIndexer();
+    releaseIndexer();
     return {
         unsignedTransaction: tx.txHex,
         value: newRoot
