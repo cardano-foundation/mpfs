@@ -200,35 +200,6 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     });
 
-    app.get('/transaction/:address/request/:tokenId', async (req, res) => {
-        const { tokenId, address } = req.params;
-        const key = req.query.key as string;
-        const value = req.query.value as string;
-        const operation = req.query.operation as Operation;
-        if (!key || !value || !operation) {
-            res.status(400).json({
-                error: 'Missing required query parameters: key, value, operation'
-            });
-            return;
-        }
-        try {
-            const { unsignedTransaction } = await requestTx(
-                context,
-                address,
-                tokenId,
-                key,
-                value,
-                operation
-            );
-            res.json({ unsignedTransaction });
-        } catch (error) {
-            res.status(500).json({
-                error: 'Error creating request transaction',
-                details: error.message
-            });
-        }
-    });
-
     app.delete('/request/:refId/', async (req, res) => {
         const { refId } = req.params;
         const outputRef = unmkOutputRefId(refId);
