@@ -9,10 +9,7 @@ import { sync } from '../../signing/client';
 import { it } from 'vitest';
 import { withTempDir } from '../../../test/lib';
 import { validatePort } from '../../../lib';
-import {
-    topup,
-    yaciProvider
-} from '../../../transactions/context/lib';
+import { topup, yaciProvider } from '../../../transactions/context/lib';
 
 export type Wallets = {
     charlie: string;

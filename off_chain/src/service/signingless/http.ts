@@ -281,14 +281,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     });
 
     app.post('/transaction', async (req, res) => {
-        console.log('Received transaction submission request', req.body);
         const { signedTransaction } = req.body;
         try {
             const txHash = await context.submitTx(signedTransaction);
-            console.log('Signed transaction submitted:', txHash);
             res.status(200).json({ txHash });
         } catch (error) {
-            console.error('Error submitting transaction:', error);
             res.status(500).json({
                 error: 'Error submitting transaction',
                 details: error.message

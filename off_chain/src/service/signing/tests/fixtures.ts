@@ -1,15 +1,11 @@
 import { Name, withServices } from '../http';
 import getPort from 'get-port';
-import {
-    generateMnemonic} from '@meshsdk/core';
+import { generateMnemonic } from '@meshsdk/core';
 import { walletTopup } from '../client';
 import { it } from 'vitest';
 import { retry, withTempDir } from '../../../test/lib';
 import { sleep, validatePort } from '../../../lib';
-import {
-    Provider,
-    yaciProvider
-} from '../../../transactions/context/lib';
+import { Provider, yaciProvider } from '../../../transactions/context/lib';
 
 export type Wallets = {
     charlie: string;
