@@ -1,17 +1,15 @@
-import { mConStr0, mConStr1 } from '@meshsdk/core';
+import { mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import { Context } from './context';
 import { signAndSubmit, WithTxHash } from './context/lib';
-import { Operation } from '../trie/change';
+import { Change } from '../trie/change';
 
 export async function request(
     context: Context,
     tokenId: string,
-    key: string,
-    value: string,
-    op: Operation
+    change: Change
 ): Promise<WithTxHash<null>> {
     return await signAndSubmit(context, async walletAddress => {
-        return await requestTx(context, walletAddress, tokenId, key, value, op);
+        return await requestTx(context, walletAddress, tokenId, change);
     });
 }
 
@@ -19,9 +17,7 @@ export const requestTx = async (
     context: Context,
     walletAddress: string,
     tokenId: string,
-    key: string,
-    value: string,
-    op: Operation
+    change: Change
 ): Promise<{ unsignedTransaction: string; value: null }> => {
     const { utxos, signerHash } = await context.addressWallet(walletAddress);
     if (!utxos.length) {
@@ -29,18 +25,24 @@ export const requestTx = async (
             `No UTxO found. Please fund the wallet ${walletAddress}`
         );
     }
-    const { policyId } = context.cagingScript;
     const tokenIdDatum = mConStr0([tokenId]);
     let operation;
-    switch (op) {
+    switch (change.type) {
         case 'insert':
-            operation = mConStr0([value]);
+            operation = mConStr0([change.value]);
             break;
         case 'delete':
-            operation = mConStr1([value]);
+            operation = mConStr1([change.value]);
             break;
+        case 'update':
+            operation = mConStr2([change.oldValue, change.newValue]);
     }
-    const requestDatum = mConStr0([tokenIdDatum, signerHash, key, operation]);
+    const requestDatum = mConStr0([
+        tokenIdDatum,
+        signerHash,
+        change.key,
+        operation
+    ]);
     const datum = mConStr0([requestDatum]);
     const tx = context.newTxBuilder();
     await tx
