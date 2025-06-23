@@ -45,7 +45,7 @@ export async function bootTransaction(
         .mintPlutusScriptV3()
         .mint('1', mintPolicyId, asset)
         .mintingScript(cageCbor)
-        .mintRedeemerValue(mConStr0([mConStr0([uniquenessP, signerHash])]))
+        .mintRedeemerValue(mConStr0([mConStr0([uniquenessP])]))
         .txOut(cageAddress, [{ unit, quantity: '1' }])
         .txOutInlineDatumValue(mConStr1([mConStr0([signerHash, nullHash])]))
         .changeAddress(walletAddress)
