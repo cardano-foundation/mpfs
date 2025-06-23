@@ -21,7 +21,7 @@ pub type UpdateRedeemer {
   // Accept a request for the token at the reference
   Contribute(OutputReference)
   // Update the state of the token
-  Update(List<Proof>)
+  Modify(List<Proof>)
   // Request owner takes it back
   Retract
 
@@ -40,6 +40,7 @@ pub type State {
 pub type Operation {
   Insert(ByteArray)
   Delete(ByteArray)
+  Update(ByteArray, ByteArray)
 }
 
 pub type Request {

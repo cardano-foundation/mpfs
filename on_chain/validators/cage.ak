@@ -28,7 +28,7 @@ use cardano/transaction.{
 use lib.{TokenId, assetName, quantity, tokenFromValue, valueFromToken}
 use types.{
   Burning, CageDatum, Contribute, Delete, End, Insert, Mint, MintRedeemer, Minting,
-  Request, RequestDatum, Retract, State, StateDatum, Update, UpdateRedeemer,
+  Modify, Request, RequestDatum, Retract, State, StateDatum, Update, UpdateRedeemer,
 }
 
 validator mpfCage {
@@ -74,7 +74,7 @@ validator mpfCage {
         expect validateOwnership(state, tx)
         let (input, tokenId) = extractToken(self, tx)
         when redeemer is {
-          Update(proofs) -> validRootUpdate(state, input, tokenId, tx, proofs)
+          Modify(proofs) -> validRootUpdate(state, input, tokenId, tx, proofs)
           End -> validateEnd(tokenId, tx)
           _ -> fail
         }
@@ -145,8 +145,9 @@ fn mkUpdate(tokenId) {
               when requestValue is {
                 Insert(value) -> mpf.insert(root, requestKey, value, proof)
                 Delete(value) -> mpf.delete(root, requestKey, value, proof)
+                Update(oldValue, newValue) ->
+                  mpf.update(root, requestKey, proof, oldValue, newValue)
               }
-
             (newRoot, proofsTail)
           } else {
             acc
@@ -281,7 +282,7 @@ const output =
 test canCage() {
   mpfCage.spend(
     stateDatum,
-    Update([[]]),
+    Modify([[]]),
     testStateRef,
     Transaction {
       ..transaction.placeholder,
