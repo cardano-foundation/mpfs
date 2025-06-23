@@ -202,7 +202,7 @@
                 }
             }
         },
-        "/transaction/{address}/request-change/{tokenId}": {
+        "/transaction/{address}/request-insert/{tokenId}": {
             "parameters": [
                 {
                     "name": "address",
@@ -224,13 +224,13 @@
                 }
             ],
             "get": {
-                "summary": "Returns an unsigned transaction that will request a change for the given token",
+                "summary": "Returns an unsigned transaction that will request an insertion on the given token",
                 "parameters": [
                     {
                         "name": "key",
                         "in": "query",
                         "required": true,
-                        "description": "The key of the change to request",
+                        "description": "The key where the value should be inserted",
                         "schema": {
                             "type": "string",
                             "example": "newKey"
@@ -240,24 +240,170 @@
                         "name": "value",
                         "in": "query",
                         "required": true,
-                        "description": "The value of the change to request",
+                        "description": "The value to insert for the given key",
                         "schema": {
                             "type": "string",
                             "example": "newValue"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with unsigned transaction data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
                     },
+                    "400": {
+                        "description": "Bad request, missing or invalid parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Missing or invalid parameters"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction/{address}/request-delete/{tokenId}": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the token to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                },
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token identifier to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/TokenId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will request a deletion on the given token",
+                "parameters": [
                     {
-                        "name": "operation",
+                        "name": "key",
                         "in": "query",
                         "required": true,
-                        "description": "The operation type for the change (insert, delete)",
+                        "description": "The key where the value should be deleted",
                         "schema": {
                             "type": "string",
-                            "enum": [
-                                "insert",
-                                "delete"
-                            ],
-                            "example": "insert"
+                            "example": "oldKey"
+                        }
+                    },
+                    {
+                        "name": "value",
+                        "in": "query",
+                        "required": true,
+                        "description": "The value to delete",
+                        "schema": {
+                            "type": "string",
+                            "example": "oldValue"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with unsigned transaction data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedTransaction"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, missing or invalid parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Missing or invalid parameters"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/transaction/{address}/request-update/{tokenId}": {
+            "parameters": [
+                {
+                    "name": "address",
+                    "in": "path",
+                    "required": true,
+                    "description": "The address of the owner of the token to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/Address"
+                    }
+                },
+                {
+                    "name": "tokenId",
+                    "in": "path",
+                    "required": true,
+                    "description": "The token identifier to request a change for",
+                    "schema": {
+                        "$ref": "#/components/schemas/TokenId"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Returns an unsigned transaction that will request an update on the given token",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "query",
+                        "required": true,
+                        "description": "The key where the value should be changed",
+                        "schema": {
+                            "type": "string",
+                            "example": "oldKey"
+                        }
+                    },
+                    {
+                        "name": "oldValue",
+                        "in": "query",
+                        "required": true,
+                        "description": "The old value to be replaced",
+                        "schema": {
+                            "type": "string",
+                            "example": "oldValue"
+                        }
+                    },
+                    {
+                        "name": "newValue",
+                        "in": "query",
+                        "required": true,
+                        "description": "The new value to set for the given key",
+                        "schema": {
+                            "type": "string",
+                            "example": "newValue"
                         }
                     }
                 ],
