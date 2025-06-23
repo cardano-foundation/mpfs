@@ -179,16 +179,10 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
 
     app.post('/token/:tokenId/request', async (req, res) => {
         const { tokenId } = req.params;
-        const { key, value, operation } = req.body;
+        const change = req.body;
 
         try {
-            const { txHash } = await request(
-                context,
-                tokenId,
-                key,
-                value,
-                operation
-            );
+            const { txHash } = await request(context, tokenId, change);
             const ref = mkOutputRefId(firstOutputRef(txHash));
 
             res.json(ref);

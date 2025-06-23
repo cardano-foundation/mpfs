@@ -14,6 +14,7 @@ import {
 } from '../client';
 import { Runner, Wallets } from './fixtures';
 import { assertThrows, shouldFail } from '../../test/E2E/lib';
+import { Change } from '../../../trie/change';
 
 const canAccessWallets = async ({
     run,
@@ -85,14 +86,11 @@ const canRetractRequest = async ({ run, log, wallets: { charlie, bob } }) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const request = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const request = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         await deleteRequest(log, bob, request);
         log('bob retracted his request');
@@ -110,14 +108,11 @@ const cannotRetractAnotherUsersRequest = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const request = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const request = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         await shouldFail(deleteRequest(log, charlie, request));
         log('charlie failed to retract bob request as expected');
@@ -151,7 +146,11 @@ const canInspectRequestsForAToken = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        await createRequest(log, bob, tk, 'abc', 'value', 'insert');
+        await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         const { state, requests } = await getToken(log, bob, tk);
         const { signerHash: charlieSig } = await getWallet(charlie);
@@ -164,7 +163,7 @@ const canInspectRequestsForAToken = async ({
             'Request value is not value'
         );
         assertThrows(
-            requests[0].change.operation === 'insert',
+            requests[0].change.type === 'insert',
             'Request operation is not insert'
         );
         log('bob inspected charlie mpf token');
@@ -183,14 +182,11 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const request = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const request = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         await updateToken(log, charlie, tk, [request]);
         log('charlie updated the mpf token');
@@ -213,10 +209,18 @@ export const canUpdateATokenTwice = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const ref1 = await createRequest(log, bob, tk, 'a', 'a', 'insert');
+        const ref1 = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'a',
+            value: 'a'
+        });
         log('bob created a request to insert a fact');
         await updateToken(log, charlie, tk, [ref1]);
-        const ref2 = await createRequest(log, bob, tk, 'b', 'b', 'insert');
+        const ref2 = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'b',
+            value: 'b'
+        });
         log('bob created a second request to insert a fact');
         await updateToken(log, charlie, tk, [ref2]);
         log('charlie updated the mpf token');
@@ -242,14 +246,11 @@ const cannotUpdateAnotherUsersToken = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const request = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const request = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         await shouldFail(updateToken(log, bob, tk, [request]));
         log('bob failed to update charlie token as expected');
@@ -269,25 +270,19 @@ const canDeleteFacts = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const bobRequest = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const bobRequest = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
         await updateToken(log, charlie, tk, [bobRequest]);
         log('charlie updated the mpf token');
-        const aliceRequest = await createRequest(
-            log,
-            alice,
-            tk,
-            'abc',
-            'value',
-            'delete'
-        );
+        const aliceRequest = await createRequest(log, alice, tk, {
+            type: 'delete',
+            key: 'abc',
+            value: 'value'
+        });
         log('alice created a request to delete a fact');
         await updateToken(log, charlie, tk, [aliceRequest]);
         const facts = await getTokenFacts(log, charlie, tk);
@@ -309,23 +304,17 @@ const canBatchUpdate = async ({
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
-        const bobRequest = await createRequest(
-            log,
-            bob,
-            tk,
-            'abc',
-            'value',
-            'insert'
-        );
+        const bobRequest = await createRequest(log, bob, tk, {
+            type: 'insert',
+            key: 'abc',
+            value: 'value'
+        });
         log('bob created a request to insert a fact');
-        const aliceRequest = await createRequest(
-            log,
-            alice,
-            tk,
-            'abd',
-            'value',
-            'insert'
-        );
+        const aliceRequest = await createRequest(log, alice, tk, {
+            type: 'insert',
+            key: 'abd',
+            value: 'value'
+        });
         log('alice created a request to insert a fact');
         await updateToken(log, charlie, tk, [bobRequest, aliceRequest]);
         log('charlie updated the mpf token');
@@ -343,12 +332,11 @@ const requestAndUpdate = async (
     log,
     owner,
     tk,
-    requests: { author; key; value; op }[]
+    requests: { author; change: Change }[]
 ) => {
     let refs: string[] = [];
-    for (const { author, key, value, op } of requests) {
-        const req = await createRequest(log, author, tk, key, value, op);
-        log(`request created for ${key} = ${value}`);
+    for (const { author, change } of requests) {
+        const req = await createRequest(log, author, tk, change);
         refs.push(req);
     }
     await updateToken(log, owner, tk, refs);
@@ -365,24 +353,42 @@ const insertCommutes = async ({
         const tk = await createToken(log, bob);
         log('bob created an mpf token');
         await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'insert' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'insert' }
+            }
         ]);
         log('charlie got a token insertion for a = value1');
         const root1 = await requestAndUpdate(log, bob, tk, [
-            { author: alice, key: 'b', value: 'value2', op: 'insert' }
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'insert' }
+            }
         ]);
         log('alice got a token insertion for b = value2');
         await requestAndUpdate(log, bob, tk, [
-            { author: bob, key: 'a', value: 'value1', op: 'delete' },
-            { author: bob, key: 'b', value: 'value2', op: 'delete' }
+            {
+                author: bob,
+                change: { key: 'a', value: 'value1', type: 'delete' }
+            },
+            {
+                author: bob,
+                change: { key: 'b', value: 'value2', type: 'delete' }
+            }
         ]);
         log('bob got a token deletion for a = value1 and b = value2');
         await requestAndUpdate(log, bob, tk, [
-            { author: alice, key: 'b', value: 'value2', op: 'insert' }
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'insert' }
+            }
         ]);
         log('alice got a token insertion for b = value2');
         const root2 = await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'insert' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'insert' }
+            }
         ]);
         log('charlie got a token insertion for a = value1');
         assertThrows(root1 === root2, 'Token state is not the same');
@@ -401,34 +407,58 @@ const deleteCommutes = async ({
         const tk = await createToken(log, bob);
         log('bob created an mpf token');
         await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'insert' },
-            { author: alice, key: 'b', value: 'value2', op: 'insert' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'insert' }
+            },
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'insert' }
+            }
         ]);
         log(
             'charlie and alice got token insertions for a = value1 and b = value2'
         );
         await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'delete' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'delete' }
+            }
         ]);
         log('charlie got a token deletion for a = value1');
         const root1 = await requestAndUpdate(log, bob, tk, [
-            { author: alice, key: 'b', value: 'value2', op: 'delete' }
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'delete' }
+            }
         ]);
         log('alice got a token deletion for b = value2');
         assertThrows(root1 === nullHash, 'Token root is not null');
         await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'insert' },
-            { author: alice, key: 'b', value: 'value2', op: 'insert' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'insert' }
+            },
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'insert' }
+            }
         ]);
         log(
             'charlie and alice got token insertions for a = value1 and b = value2'
         );
         await requestAndUpdate(log, bob, tk, [
-            { author: alice, key: 'b', value: 'value2', op: 'delete' }
+            {
+                author: alice,
+                change: { key: 'b', value: 'value2', type: 'delete' }
+            }
         ]);
         log('alice got a token deletion for b = value2');
         const root2 = await requestAndUpdate(log, bob, tk, [
-            { author: charlie, key: 'a', value: 'value1', op: 'delete' }
+            {
+                author: charlie,
+                change: { key: 'a', value: 'value1', type: 'delete' }
+            }
         ]);
         log('charlie got a token deletion for a = value1');
         assertThrows(root1 === root2, 'Token state is not the same');

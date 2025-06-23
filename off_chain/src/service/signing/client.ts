@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
-import { Operation } from '../../trie/change';
+import { Change } from '../../trie/change';
 
 type Log = (s: string) => void;
 
@@ -100,17 +100,13 @@ async function createRequest(
     log,
     host: string,
     tokenId: string,
-    key: string,
-    value: string,
-    op: Operation,
+    change: Change,
     blocks = 2
 ) {
     await sync(host, blocks);
-    const response = await axios.post(`${host}/token/${tokenId}/request`, {
-        key,
-        value,
-        operation: op
-    });
+
+    const url = `${host}/token/${tokenId}/request`;
+    const response = await axios.post(url, change);
     assertThrows(response.status === 200, 'Failed to create request');
     return response.data;
 }
