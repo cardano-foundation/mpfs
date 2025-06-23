@@ -7,9 +7,7 @@ pub type Mint {
   // The asset name is the hash of the output reference. This must be one of the
   // transaction inputs.
   asset: OutputReference,
-  // The owner is the public key of the owner of the token. This is not used
-  // in the validator, but is used to create the datum.
-  owner: VerificationKeyHash,
+
 }
 
 pub type MintRedeemer {

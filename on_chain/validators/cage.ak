@@ -188,7 +188,7 @@ fn validRootUpdate(
 }
 
 pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
-  let Mint { asset, owner } = minting
+  let Mint { asset } = minting
   let Transaction { outputs, mint, inputs, .. } = tx
   let tokenId = TokenId { assetName: assetName(asset) }
   // Source of uniqueness for the asset name
@@ -208,9 +208,8 @@ pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
   // The output datum is inline
   expect InlineDatum(tokenState) = output.datum
   // The output datum is respecting requested owner (redeemer) and root (context)
-  expect StateDatum(State { root: tokenRoot, owner: tokenOwner }) = tokenState
+  expect StateDatum(State { root: tokenRoot, owner: _ }) = tokenState
   expect tokenRoot == root(empty)
-  expect tokenOwner == owner
   True
 }
 
@@ -303,7 +302,7 @@ const reference =
 
 const token = TokenId { assetName: assetName(reference) }
 
-const minting = Mint { asset: reference, owner: "public_key" }
+const minting = Mint { asset: reference}
 
 const minted_value = valueFromToken("policy_id", token)
 
@@ -314,7 +313,7 @@ const minted =
     address: output_address,
     value: minted_value,
     datum: InlineDatum(
-      StateDatum(State { owner: minting.owner, root: root(empty) }),
+      StateDatum(State { owner: "owner", root: root(empty) }),
     ),
     reference_script: None,
   }
