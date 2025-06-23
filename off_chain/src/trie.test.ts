@@ -103,7 +103,7 @@ describe('TrieManager', () => {
                     await trie.update({
                         key: 'testKey',
                         value: 'testValue',
-                        operation: 'insert'
+                        type: 'insert'
                     });
                     expect(trie.root()).toBeDefined();
                     expect(await trie.allFacts()).toEqual({
@@ -153,7 +153,7 @@ describe('TrieManager', () => {
                     await trie.update({
                         key: 'testKey',
                         value: 'testValue',
-                        operation: 'insert'
+                        type: 'insert'
                     });
                 }
                 await trieManager.trie('testTokenId', onTrie);

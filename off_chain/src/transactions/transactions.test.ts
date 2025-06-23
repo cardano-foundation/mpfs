@@ -23,7 +23,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can create and delete a token 1',
         async () => {
-            await withTempDir(async tmpDir => {
+            await withTempDir(async () => {
                 await withContext(null, null, async context => {
                     await sync(context);
 
@@ -51,14 +51,11 @@ describe('Submitting transactions we', () => {
                 const { value: tokenId } = await boot(context);
 
                 await sync(context);
-                const tokenBooted = await context.fetchToken(tokenId);
-                const { txHash } = await request(
-                    context,
-                    tokenId,
-                    'key',
-                    'value',
-                    'insert'
-                );
+                const { txHash } = await request(context, tokenId, {
+                    type: 'insert',
+                    key: 'key1',
+                    value: 'value1'
+                });
                 const refId = mkOutputRefId(firstOutputRef(txHash));
 
                 await sync(context);
@@ -84,13 +81,11 @@ describe('Submitting transactions we', () => {
                 const { value: tokenId } = await boot(context);
 
                 await sync(context);
-                const { txHash } = await request(
-                    context,
-                    tokenId,
-                    'key',
-                    'value',
-                    'insert'
-                );
+                const { txHash } = await request(context, tokenId, {
+                    type: 'insert',
+                    key: 'key',
+                    value: 'value'
+                });
                 const req = firstOutputRef(txHash);
                 const reqId = mkOutputRefId(req);
 
@@ -118,13 +113,11 @@ describe('Submitting transactions we', () => {
                 const { value: tokenId } = await boot(context);
 
                 await sync(context);
-                const { txHash } = await request(
-                    context,
-                    tokenId,
-                    'key',
-                    'value',
-                    'insert'
-                );
+                const { txHash } = await request(context, tokenId, {
+                    type: 'insert',
+                    key: 'key',
+                    value: 'value'
+                });
                 const requestRef = firstOutputRef(txHash);
                 const requestRefId = mkOutputRefId(requestRef);
 
@@ -162,12 +155,9 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash1 } = await request(
                     context,
                     tokenId,
-                    'key1',
-                    'value1',
-                    'insert'
+                    { type: 'insert', key: 'key1', value: 'value1' }
                 );
                 const requestRef1 = firstOutputRef(requestTxHash1);
-                const requestRefId1 = mkOutputRefId(requestRef1);
 
                 await sync(context);
                 await update(context, tokenId, [requestRef1]);
@@ -176,18 +166,14 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash2 } = await request(
                     context,
                     tokenId,
-                    'key2',
-                    'value2',
-                    'insert'
+                    { type: 'insert', key: 'key2', value: 'value2' }
                 );
                 const requestRef2 = firstOutputRef(requestTxHash2);
-                const requestRefId2 = mkOutputRefId(requestRef2);
 
                 await sync(context);
                 await update(context, tokenId, [requestRef2]);
 
                 await sync(context);
-                const requests = await context.fetchRequests(tokenId);
 
                 await sync(context);
                 const facts = await context.facts(tokenId);
@@ -213,9 +199,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash1 } = await request(
                     context,
                     tokenId,
-                    'key1',
-                    'value1',
-                    'insert'
+                    { type: 'insert', key: 'key1', value: 'value1' }
                 );
                 const requestRef1 = firstOutputRef(requestTxHash1);
                 const requestRefId1 = mkOutputRefId(requestRef1);
@@ -224,9 +208,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash2 } = await request(
                     context,
                     tokenId,
-                    'key2',
-                    'value2',
-                    'insert'
+                    { type: 'insert', key: 'key2', value: 'value2' }
                 );
                 const requestRef2 = firstOutputRef(requestTxHash2);
                 const requestRefId2 = mkOutputRefId(requestRef2);
@@ -271,13 +253,11 @@ describe('Restarting the service', () => {
                     const { value: tokenId } = await boot(context1);
                     expect(tokenId).toBeDefined();
                     await sync(context1);
-                    const { txHash } = await request(
-                        context1,
-                        tokenId,
-                        'key1',
-                        'value1',
-                        'insert'
-                    );
+                    const { txHash } = await request(context1, tokenId, {
+                        type: 'insert',
+                        key: 'key1',
+                        value: 'value1'
+                    });
                     const rq1 = firstOutputRef(txHash);
                     await sync(context1);
                     await update(context1, tokenId, [rq1]);

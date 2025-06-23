@@ -212,7 +212,7 @@ describe('State', () => {
                     change: {
                         key: 'key-1',
                         value: 'value-2',
-                        operation: 'insert'
+                        type: 'insert'
                     }
                 }
             });
@@ -242,7 +242,7 @@ describe('State', () => {
                     change: {
                         key: 'key-1',
                         value: 'value-2',
-                        operation: 'insert'
+                        type: 'insert'
                     }
                 }
             });
