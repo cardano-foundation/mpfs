@@ -100,7 +100,7 @@ export async function requestChangeTx(
             break;
     }
 
-    const response = await axios.get(url, { params });
+    const response = await axios.post(url, params);
 
     assertThrows(
         response.status === 200,

@@ -198,17 +198,17 @@ const canRetractAChangeForAToken = async ({
 };
 
 describe('E2E Signingless', () => {
-    // e2eVitest('can boot a token', canBootAToken, 60);
-    // e2eVitest('can end a booted token', canEndABootedToken, 60);
-    // e2eVitest(
-    //     'can request a change to a token',
-    //     canRequestAChangeToAtToken,
-    //     60
-    // );
+    e2eVitest('can boot a token', canBootAToken, 60);
+    e2eVitest('can end a booted token', canEndABootedToken, 60);
+    e2eVitest(
+        'can request a change to a token',
+        canRequestAChangeToAtToken,
+        60
+    );
     e2eVitest('can update a token', canUpdateAToken, 60);
-    // e2eVitest(
-    //     'can retract a change for a token',
-    //     canRetractAChangeForAToken,
-    //     60
-    // );
+    e2eVitest(
+        'can retract a change for a token',
+        canRetractAChangeForAToken,
+        60
+    );
 });

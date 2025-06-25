@@ -223,30 +223,18 @@
                     }
                 }
             ],
-            "get": {
+            "post": {
                 "summary": "Returns an unsigned transaction that will request an insertion on the given token",
-                "parameters": [
-                    {
-                        "name": "key",
-                        "in": "query",
-                        "required": true,
-                        "description": "The key where the value should be inserted",
-                        "schema": {
-                            "type": "string",
-                            "example": "newKey"
-                        }
-                    },
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "required": true,
-                        "description": "The value to insert for the given key",
-                        "schema": {
-                            "type": "string",
-                            "example": "newValue"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/KeyValueBody"
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Successful response with unsigned transaction data",
@@ -298,30 +286,18 @@
                     }
                 }
             ],
-            "get": {
+            "post": {
                 "summary": "Returns an unsigned transaction that will request a deletion on the given token",
-                "parameters": [
-                    {
-                        "name": "key",
-                        "in": "query",
-                        "required": true,
-                        "description": "The key where the value should be deleted",
-                        "schema": {
-                            "type": "string",
-                            "example": "oldKey"
-                        }
-                    },
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "required": true,
-                        "description": "The value to delete",
-                        "schema": {
-                            "type": "string",
-                            "example": "oldValue"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/KeyValueBody"
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Successful response with unsigned transaction data",
@@ -373,40 +349,18 @@
                     }
                 }
             ],
-            "get": {
+            "post": {
                 "summary": "Returns an unsigned transaction that will request an update on the given token",
-                "parameters": [
-                    {
-                        "name": "key",
-                        "in": "query",
-                        "required": true,
-                        "description": "The key where the value should be changed",
-                        "schema": {
-                            "type": "string",
-                            "example": "oldKey"
-                        }
-                    },
-                    {
-                        "name": "oldValue",
-                        "in": "query",
-                        "required": true,
-                        "description": "The old value to be replaced",
-                        "schema": {
-                            "type": "string",
-                            "example": "oldValue"
-                        }
-                    },
-                    {
-                        "name": "newValue",
-                        "in": "query",
-                        "required": true,
-                        "description": "The new value to set for the given key",
-                        "schema": {
-                            "type": "string",
-                            "example": "newValue"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequestUpdateBody"
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Successful response with unsigned transaction data",
@@ -510,6 +464,7 @@
             ],
             "get": {
                 "summary": "Returns an unsigned transaction that will retract a change for the given request ID",
+                "description": "This endpoint allows the owner of a request to retract it. You will need its output reference ID to create the transaction. You can find it querying the token state.",
                 "responses": {
                     "200": {
                         "description": "Successful response with unsigned transaction data",
@@ -586,6 +541,54 @@
     },
     "components": {
         "schemas": {
+            "RequestUpdateBody": {
+                "type": "object",
+                "required": [
+                    "key",
+                    "oldValue",
+                    "newValue"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "The key where the value should be changed"
+                    },
+                    "oldValue": {
+                        "type": "string",
+                        "description": "The old value to be replaced"
+                    },
+                    "newValue": {
+                        "type": "string",
+                        "description": "The new value to set for the given key"
+                    }
+                },
+                "example": {
+                    "key": "exampleKey",
+                    "oldValue": "oldValue",
+                    "newValue": "newValue"
+                }
+            },
+            "KeyValueBody": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "The key as a string"
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "The value as a string"
+                    }
+                },
+                "required": [
+                    "key",
+                    "value"
+                ],
+                "example": {
+                    "key": "exampleKey",
+                    "value": "exampleValue"
+                }
+            },
             "MpfsConfig": {
                 "type": "object",
                 "required": [

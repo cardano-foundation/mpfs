@@ -202,12 +202,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     });
 
-    app.get(
+    app.post(
         '/transaction/:address/request-insert/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
-            const key = req.query.key as string;
-            const value = req.query.value as string;
+            const { key, value } = req.body;
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
@@ -224,12 +223,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             }
         }
     );
-    app.get(
+    app.post(
         '/transaction/:address/request-delete/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
-            const key = req.query.key as string;
-            const value = req.query.value as string;
+            const { key, value } = req.body;
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
@@ -247,13 +245,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     );
 
-    app.get(
+    app.post(
         '/transaction/:address/request-update/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
-            const key = req.query.key as string;
-            const oldValue = req.query.oldValue as string;
-            const newValue = req.query.newValue as string;
+            const { key, oldValue, newValue } = req.body;
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
