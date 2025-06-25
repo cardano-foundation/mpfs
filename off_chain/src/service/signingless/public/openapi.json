@@ -537,6 +537,58 @@
                     }
                 }
             }
+        },
+        "/wait/{nBlocks}": {
+            "parameters": [
+                {
+                    "name": "nBlocks",
+                    "in": "path",
+                    "required": true,
+                    "description": "The number of blocks to wait for",
+                    "schema": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 1
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Wait for a specified number of blocks to be processed",
+                "responses": {
+                    "200": {
+                        "description": "Successfully waited for the specified number of blocks",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Waited for 10 blocks"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, unable to wait for blocks",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {

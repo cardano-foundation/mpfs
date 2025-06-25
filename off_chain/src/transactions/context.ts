@@ -40,7 +40,7 @@ export type Context = {
         tokenId: string,
         f: (trie: SafeTrie) => Promise<any>
     ) => Promise<void>;
-    waitBlocks(n: number): Promise<void>;
+    waitBlocks(n: number): Promise<number>;
     tips(): Promise<{ networkTip: number | null; indexerTip: number | null }>;
     waitSettlement(txHash: string): Promise<string>;
     facts(tokenId: string): Promise<Record<string, string>>;
@@ -82,7 +82,7 @@ export const mkContext = (
             return await tries.trie(tokenId, f);
         },
         waitBlocks: async n => {
-            await indexer.waitBlocks(n);
+            return await indexer.waitBlocks(n);
         },
         tips: async () => {
             return await indexer.tips();

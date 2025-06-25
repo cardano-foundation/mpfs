@@ -373,6 +373,19 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             }
         }
     );
+    app.get('/wait/:n', async (req, res) => {
+        const { n } = req.params;
+        try {
+            const height = await context.waitBlocks(parseInt(n, 10));
+            res.json({ height });
+        } catch (error) {
+            console.error('Error waiting for blocks:', error);
+            res.status(500).json({
+                error: 'Error waiting for blocks',
+                details: error.message
+            });
+        }
+    });
 
     return app;
 }
