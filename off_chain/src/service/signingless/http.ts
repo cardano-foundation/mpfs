@@ -48,6 +48,7 @@ const swagger = app => {
             <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="icon" type="image/png" href="/public/logo.png">
             <title>MPFS</title>
             <style>
                 body {
@@ -80,12 +81,29 @@ const swagger = app => {
                 border-top: 1px solid gray;
                 padding-top: 10px;
                 }
+                .disclaimer {
+                background-color: rgba(110, 15, 15, 0.1);
+                padding: 10px;
+                border: 1px solid rgba(175, 42, 42, 0.3);
+                border-radius: 1px;
+                margin: 20px 0;
+                }
             </style>
             </head>
             <body>
             <img src="/public/logo.png" alt="Logo" style="width: 310px; height: auto;">
             <h1>MPFS</h1>
             <h4>Merkle Patricia Forestry Service</h4>
+            <div class="disclaimer">
+                <p>This service is a proof of concept and is not intended for production use.</p>
+                <p>It is designed to demonstrate the capabilities of the Merkle Patricia Forestry protocol.</p>
+                <p>Currently only preprod is supported.</p>
+                <p>This service is just exposed to ease getting dirty. You should host your own instance especially if you intend to control MPF tokens.</p>
+                <p><b>Use at your own risk.</b></p>
+            </div>
+
+
+
             <div class="links">
                 <p>A project by <a href="https://www.cardanofoundation.org/" target="_blank">Cardano Foundation</a></p>
                 <p>Open sourced on <a href="https://app.radicle.xyz/nodes/ash.radicle.garden/rad:zpZ4szHxvnyVyDiy2acfcVEzxza9" target="_blank">Radicle</a></p>
