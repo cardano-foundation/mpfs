@@ -496,6 +496,54 @@
             }
         },
         "/transaction": {
+            "get": {
+                "summary": "Retrieve transaction details by transaction hash",
+                "parameters": [
+                    {
+                        "name": "txHash",
+                        "in": "query",
+                        "required": true,
+                        "description": "Transaction hash to retrieve details for",
+                        "schema": {
+                            "$ref": "#/components/schemas/TxHashResponse/properties/txHash"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with transaction details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "transactionDetails": {
+                                            "type": "object",
+                                            "description": "Details of the transaction"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Transaction not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Transaction not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "summary": "Submit a signed transaction to the Cardano network",
                 "requestBody": {

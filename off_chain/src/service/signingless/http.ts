@@ -387,6 +387,31 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         }
     });
 
+    app.get('/transaction', async (req, res) => {
+        const { txHash } = req.query;
+        if (!txHash) {
+            res.status(400).json({
+                error: 'Missing txHash query parameter'
+            });
+            return;
+        }
+        try {
+            const txInfo = await context.txInfo(txHash as string);
+            if (!txInfo) {
+                res.status(404).json({
+                    error: `Transaction ${txHash} not found`
+                });
+                return;
+            }
+            res.json(txInfo);
+        } catch (error) {
+            res.status(500).json({
+                error: 'Error fetching transaction info',
+                details: error.message
+            });
+        }
+    });
+
     return app;
 }
 

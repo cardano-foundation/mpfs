@@ -46,6 +46,7 @@ export type Context = {
     facts(tokenId: string): Promise<Record<string, string>>;
     pauseIndexer: () => Promise<() => void>;
     submitTx: (txHex: string) => Promise<string>;
+    txInfo: (txHash: string) => Promise<any | null>;
 };
 
 export const mkContext = (
@@ -100,6 +101,15 @@ export const mkContext = (
         pauseIndexer: async () => indexer.pause(),
         submitTx: async (txHex: string) => {
             return await submitTransaction(ogmios, txHex);
+        },
+        txInfo: async (txHash: string ) => {
+            try {
+                return await provider.fetchTxInfo(txHash);
+            }
+            catch (e) {
+                return null
+            }
+
         }
     };
 };
