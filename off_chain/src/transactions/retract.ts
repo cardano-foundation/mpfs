@@ -58,9 +58,11 @@ export async function retractTransaction(
 
     tx.requiredSignerHash(signerHash)
         .changeAddress(walletAddress)
+        .selectUtxosFrom(utxos)
         .txInCollateral(collateral.input.txHash, collateral.input.outputIndex);
-
+    console.log(`Retracting request ${ouputRefId} for owner ${owner}`);
     await tx.complete();
+    console.log(`Transaction hex: ${tx.txHex}`);
     return {
         unsignedTransaction: tx.txHex,
         value: null
