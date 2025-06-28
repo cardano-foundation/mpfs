@@ -19,9 +19,9 @@ services:
       - --database-path
       - /data/mpfs.db
       - --since-slot
-      - "89510366"
+      - "94898393"
       - --since-block-id
-      - "a15f8b07e3d5f5ff0d25eefa50b91f648038d4c36b9cc51ae06ec2e37def958a"
+      - "ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc1"
     networks:
       - ogmios-preprod # connect to ogmios-preprod
       - yaci-store-preprod # connect to yaci-store-preprod
@@ -61,9 +61,9 @@ services:
       - --database-path
       - /data/mpfs.db
       - --since-slot
-      - "89510366"
+      - "94898393"
       - --since-block-id
-      - "a15f8b07e3d5f5ff0d25eefa50b91f648038d4c36b9cc51ae06ec2e37def958a"
+      - "ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc1"
     networks:
       - ogmios-preprod # connect to ogmios-preprod
       - yaci-store-preprod # connect to yaci-store-preprod
