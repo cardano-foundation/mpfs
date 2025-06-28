@@ -2,12 +2,13 @@
 FROM node:18-alpine
 
 # Set the working directory inside the container
-
+RUN apk add --no-cache tree
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
+# COPY node_modules/@meshsdk ./node_modules/@meshsdk
 
 # Copy the rest of the application code to the working directory
 COPY src .
