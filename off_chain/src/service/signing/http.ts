@@ -247,7 +247,6 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     });
 
     return app;
-
 }
 
 export type Service = {

@@ -102,14 +102,12 @@ export const mkContext = (
         submitTx: async (txHex: string) => {
             return await submitTransaction(ogmios, txHex);
         },
-        txInfo: async (txHash: string ) => {
+        txInfo: async (txHash: string) => {
             try {
                 return await provider.fetchTxInfo(txHash);
+            } catch (e) {
+                return null;
             }
-            catch (e) {
-                return null
-            }
-
         }
     };
 };
