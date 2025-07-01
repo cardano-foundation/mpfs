@@ -22,6 +22,5 @@ config/application.properties
 off_chain/node_modules/
 
 .direnv
-off_chain/mpfs-indexer.txt
-off_chain/test.json
 .vscode/settings.json
+off_chain/secrets
