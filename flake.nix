@@ -1,6 +1,9 @@
 {
   description = "MPF Aiken DevShell";
-
+  nixConfig = {
+    extra-substituters = ["https://cache.iog.io"];
+    extra-trusted-public-keys = ["hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="];
+  };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -12,10 +15,13 @@
         "https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6-beta/yaci-cli-0.10.6-beta-linux-X64.zip";
       flake = false;
     };
+    cardano-addresses = {
+      url = "github:intersectMBO/cardano-addresses?ref=4.0.0";
+    };
 
   };
 
-  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli, ... }:
+  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli, cardano-addresses }:
     let
       mkOutputs = system:
         let
@@ -24,6 +30,7 @@
           cardano-node = node-pkgs.cardano-node;
           cardano-cli = node-pkgs.cardano-cli;
           cardano-submit-api = node-pkgs.cardano-submit-api;
+          cardano-address = cardano-addresses.packages.${system}."cardano-addresses:exe:cardano-address";
         in {
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
@@ -35,6 +42,7 @@
               just
               nodePackages.npm
               asciinema
+              cardano-address
             ];
             shellHook = ''
 
@@ -52,6 +60,7 @@
               chmod -R +w ./config
             '';
           };
+
 
         };
     in flake-utils.lib.eachDefaultSystem (mkOutputs);
