@@ -1,4 +1,8 @@
-import { generateMnemonic, MeshWallet } from '@meshsdk/core';
+import {
+    deserializeAddress,
+    generateMnemonic,
+    MeshWallet
+} from '@meshsdk/core';
 import * as fs from 'fs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -18,6 +22,27 @@ const createWallet = async filename => {
     const data = { mnemonics: mnemonics, address: address };
 
     fs.writeFileSync(filename, JSON.stringify(data), 'utf8');
+};
+
+const revealAddress = async filename => {
+    if (!fs.existsSync(filename)) {
+        throw new Error(`Wallet file ${filename} does not exist.`);
+    }
+    const walletData = JSON.parse(fs.readFileSync(filename, 'utf8'));
+    const clientWallet = new MeshWallet({
+        networkId: 0,
+        key: {
+            type: 'mnemonic',
+            words: walletData.mnemonics.split(' ')
+        }
+    });
+    const { enterpriseAddressBech32 } = clientWallet.getAddresses();
+    if (!enterpriseAddressBech32) {
+        throw new Error('No enterprise address found in the wallet.');
+    }
+    const signerHash = deserializeAddress(enterpriseAddressBech32).pubKeyHash;
+
+    return { enterpriseAddressBech32, signerHash };
 };
 
 const signTransaction = async (filename, transaction) => {
@@ -48,6 +73,20 @@ yargs(hideBin(process.argv))
         },
         async argv => {
             await createWallet(argv.filename);
+        }
+    )
+    .command(
+        'reveal-address <filename>',
+        'Reveal the address of the wallet stored in the file',
+        yargs => {
+            yargs.positional('filename', {
+                describe: 'The filename of the wallet data',
+                type: 'string'
+            });
+        },
+        async argv => {
+            const address = await revealAddress(argv.filename);
+            console.log(JSON.stringify(address, null, 2));
         }
     )
     .command(
