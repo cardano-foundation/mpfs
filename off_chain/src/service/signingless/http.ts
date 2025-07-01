@@ -145,11 +145,13 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     app.get('/transaction/:address/boot-token', async (req, res) => {
         const { address } = req.params;
         try {
-            const { unsignedTransaction, value: tokenId } =
-                await bootTransaction(context, address);
+            const { unsignedTransaction, value } = await bootTransaction(
+                context,
+                address
+            );
             res.json({
                 unsignedTransaction,
-                tokenId
+                value
             });
         } catch (error) {
             console.error('Error booting:', error);
