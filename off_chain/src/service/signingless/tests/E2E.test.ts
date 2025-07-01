@@ -15,79 +15,67 @@ import { assertThrows } from '../../test/E2E/lib';
 import { mkOutputRefId } from '../../../outputRef';
 import { firstOutputRef } from '../../../lib';
 
-const canBootAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
-    const test = async ({ address, signTx }) => {
+const canBootAToken = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle }) => {
         // calling the mpfs http endpoint to create a token
-        const { unsignedTransaction, tokenId } = await bootTokenTx(
-            charlie,
-            address
+        const { unsignedTransaction, value: tokenId } = await bootTokenTx(
+            mpfs,
+            oracle.address
         );
         // using a local wallet with a freshly created mnemonics
-        const signedTransaction = await signTx(unsignedTransaction);
+        const signedTransaction = await oracle.signTx(unsignedTransaction);
 
         // submitting the transaction to the mpfs http endpoint
-        await submitTx(charlie, signedTransaction);
+        await submitTx(mpfs, signedTransaction);
         // fetching the tokens from the mpfs http endpoint
 
         // checking if the token was created by the mpfs http endpoint
-        const { tokens } = await getTokens(log, charlie, 2);
+        const { tokens } = await getTokens(log, mpfs, 2);
         assertThrows(
             tokens.some(token => token.tokenId === tokenId),
             'Token was not found after creation'
         );
     };
-    await run(test, 'Charlie creates a token');
+    await run(test, 'mpfs creates a token');
 };
 
-const canEndABootedToken = async ({
-    run,
-    log,
-    wallets: { charlie }
-}: Runner) => {
-    const test = async ({ address, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
-            charlie,
-            address
-        );
-        const signedBootTx = await signTx(bootTx);
-        await submitTx(charlie, signedBootTx);
+const canEndABootedToken = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(mpfs, oracle.address);
+        const signedBootTx = await oracle.signTx(bootTx);
+        await submitTx(mpfs, signedBootTx);
         const { unsignedTransaction } = await endTokenTx(
-            charlie,
-            address,
+            mpfs,
+            oracle.address,
             tokenId
         );
-        const signedTransaction = await signTx(unsignedTransaction);
-        await submitTx(charlie, signedTransaction);
-        const { tokens } = await getTokens(log, charlie, 2);
+        const signedTransaction = await oracle.signTx(unsignedTransaction);
+        await submitTx(mpfs, signedTransaction);
+        const { tokens } = await getTokens(log, mpfs, 2);
         assertThrows(
             !tokens.some(token => token.tokenId === tokenId),
             'Token was not deleted after ending'
         );
     };
-    await run(test, 'Charlie ends a booted token');
+    await run(test, 'mpfs ends a booted token');
 };
 
-const canRequestAChangeToAtToken = async ({
-    run,
-    log,
-    wallets: { charlie }
-}: Runner) => {
-    const test = async ({ address, owner, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
-            charlie,
-            address
-        );
-        const signedBootTx = await signTx(bootTx);
-        await submitTx(charlie, signedBootTx);
+const canRequestAChangeToAtToken = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle, user }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(mpfs, oracle.address);
+        const signedBootTx = await oracle.signTx(bootTx);
+        await submitTx(mpfs, signedBootTx);
         const { unsignedTransaction: requestTx } = await requestChangeTx(
-            charlie,
-            address,
+            mpfs,
+            user.address,
             tokenId,
             { type: 'insert', key: 'key1', value: 'value1' }
         );
-        const signedTransaction = await signTx(requestTx);
-        const { txHash } = await submitTx(charlie, signedTransaction);
-        const { requests } = await getToken(log, charlie, tokenId, 2);
+        const signedTransaction = await user.signTx(requestTx);
+        const { txHash } = await submitTx(mpfs, signedTransaction);
+        const { requests } = await getToken(log, mpfs, tokenId, 2);
         assertThrows(
             requests.length === 1,
             'Request was not created or multiple requests found'
@@ -103,46 +91,41 @@ const canRequestAChangeToAtToken = async ({
             'Request change data does not match expected values'
         );
         assertThrows(
-            requests[0].owner === owner,
+            requests[0].owner === user.owner,
             'Request owner does not match expected owner'
         );
     };
-    await run(test, 'Charlie requests a change to a token');
+    await run(test, 'mpfs requests a change to a token');
 };
-const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
-    const test = async ({ address, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
-            charlie,
-            address
-        );
-        const signedBootTx = await signTx(bootTx);
-        await submitTx(charlie, signedBootTx);
+const canUpdateAToken = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle, user }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(mpfs, oracle.address);
+        const signedBootTx = await oracle.signTx(bootTx);
+        await submitTx(mpfs, signedBootTx);
         const { unsignedTransaction: requestTx } = await requestChangeTx(
-            charlie,
-            address,
+            mpfs,
+            user.address,
             tokenId,
             { type: 'insert', key: 'key1', value: 'value1' }
         );
-        const signedRequestTx = await signTx(requestTx);
-        const { txHash } = await submitTx(charlie, signedRequestTx);
+        const signedRequestTx = await user.signTx(requestTx);
+        const { txHash } = await submitTx(mpfs, signedRequestTx);
         const requestOutputRef = mkOutputRefId(firstOutputRef(txHash));
         const { unsignedTransaction: updateTx } = await updateTokenTx(
-            charlie,
-            address,
+            mpfs,
+            oracle.address,
             tokenId,
             [requestOutputRef] // requireds
         );
-        const signedUpdateTx = await signTx(updateTx);
-        const { txHash: updateTxHash } = await submitTx(
-            charlie,
-            signedUpdateTx
-        );
-        const { requests } = await getToken(log, charlie, tokenId, 2);
+        const signedUpdateTx = await oracle.signTx(updateTx);
+        const { txHash: updateTxHash } = await submitTx(mpfs, signedUpdateTx);
+        const { requests } = await getToken(log, mpfs, tokenId, 2);
         assertThrows(
             requests.length === 0,
             'Request was not updated or still exists after update'
         );
-        const facts = await getTokenFacts(log, charlie, tokenId);
+        const facts = await getTokenFacts(log, mpfs, tokenId);
         assertThrows(
             Object.keys(facts).length === 1,
             'Token facts were not updated or multiple facts found'
@@ -152,49 +135,155 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie } }: Runner) => {
             'Token facts key1 does not match expected value'
         );
     };
-    await run(test, 'Charlie updates a token');
+    await run(test, 'mpfs updates a token');
 };
 
-const canRetractAChangeForAToken = async ({
-    run,
-    log,
-    wallets: { charlie }
-}: Runner) => {
-    const test = async ({ address, signTx }) => {
-        const { unsignedTransaction: bootTx, tokenId } = await bootTokenTx(
-            charlie,
-            address
-        );
-        const signedBootTx = await signTx(bootTx);
-        await submitTx(charlie, signedBootTx);
+const canUpdateATokenTwice = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle, user }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(mpfs, oracle.address);
+        const signedBootTx = await oracle.signTx(bootTx);
+        await submitTx(mpfs, signedBootTx);
         const { unsignedTransaction: requestTx } = await requestChangeTx(
-            charlie,
-            address,
+            mpfs,
+            user.address,
             tokenId,
             { type: 'insert', key: 'key1', value: 'value1' }
         );
-        const signedRequestTx = await signTx(requestTx);
-        const { txHash } = await submitTx(charlie, signedRequestTx);
+        const signedRequestTx = await user.signTx(requestTx);
+        const { txHash } = await submitTx(mpfs, signedRequestTx);
+        const requestOutputRef = mkOutputRefId(firstOutputRef(txHash));
+        const { unsignedTransaction: updateTx } = await updateTokenTx(
+            mpfs,
+            oracle.address,
+            tokenId,
+            [requestOutputRef] // requireds
+        );
+        const signedUpdateTx = await oracle.signTx(updateTx);
+        const { txHash: updateTxHash } = await submitTx(mpfs, signedUpdateTx);
+        const { unsignedTransaction: secondRequestTx } = await requestChangeTx(
+            mpfs,
+            user.address,
+            tokenId,
+            { type: 'insert', key: 'key2', value: 'value2' }
+        );
+        const signedSecondRequestTx = await user.signTx(secondRequestTx);
+        const { txHash: secondTxHash } = await submitTx(
+            mpfs,
+            signedSecondRequestTx
+        );
+        const secondRequestOutputRef = mkOutputRefId(
+            firstOutputRef(secondTxHash)
+        );
+        const { unsignedTransaction: secondUpdateTx } = await updateTokenTx(
+            mpfs,
+            oracle.address,
+            tokenId,
+            [secondRequestOutputRef]
+        );
+        const signedSecondUpdateTx = await oracle.signTx(secondUpdateTx);
+        const { txHash: secondUpdateTxHash } = await submitTx(
+            mpfs,
+            signedSecondUpdateTx
+        );
+        const { unsignedTransaction: deleteSecondFactTx } =
+            await requestChangeTx(mpfs, user.address, tokenId, {
+                type: 'delete',
+                key: 'key2',
+                value: 'value2'
+            });
+        const signedDeleteSecondFactTx = await user.signTx(deleteSecondFactTx);
+        const { txHash: deleteSecondFactTxHash } = await submitTx(
+            mpfs,
+            signedDeleteSecondFactTx
+        );
+        const deleteSecondFactOutputRef = mkOutputRefId(
+            firstOutputRef(deleteSecondFactTxHash)
+        );
+        const { unsignedTransaction: deleteSecondFactUpdateTx } =
+            await updateTokenTx(mpfs, oracle.address, tokenId, [
+                deleteSecondFactOutputRef
+            ]);
+        const signedDeleteSecondFactUpdateTx = await oracle.signTx(
+            deleteSecondFactUpdateTx
+        );
+        const { txHash: deleteSecondFactUpdateTxHash } = await submitTx(
+            mpfs,
+            signedDeleteSecondFactUpdateTx
+        );
+        const { unsignedTransaction: deleteFirstFactTx } =
+            await requestChangeTx(mpfs, user.address, tokenId, {
+                type: 'delete',
+                key: 'key1',
+                value: 'value1'
+            });
+        const signedDeleteFirstFactTx = await user.signTx(deleteFirstFactTx);
+        const { txHash: deleteFirstFactTxHash } = await submitTx(
+            mpfs,
+            signedDeleteFirstFactTx
+        );
+        const deleteFirstFactOutputRef = mkOutputRefId(
+            firstOutputRef(deleteFirstFactTxHash)
+        );
+        const { unsignedTransaction: deleteFirstFactUpdateTx } =
+            await updateTokenTx(mpfs, oracle.address, tokenId, [
+                deleteFirstFactOutputRef
+            ]);
+        const signedDeleteFirstFactUpdateTx = await oracle.signTx(
+            deleteFirstFactUpdateTx
+        );
+        const { txHash: deleteFirstFactUpdateTxHash } = await submitTx(
+            mpfs,
+            signedDeleteFirstFactUpdateTx
+        );
+        const { requests } = await getToken(log, mpfs, tokenId, 2);
+        assertThrows(
+            requests.length === 0,
+            'Request was not updated or still exists after update'
+        );
+        const facts = await getTokenFacts(log, mpfs, tokenId);
+        assertThrows(
+            Object.keys(facts).length === 0,
+            'Token facts key1 does not match expected value'
+        );
+    };
+    await run(test, 'mpfs updates a token');
+};
+
+const canRetractAChangeForAToken = async ({ run, log, mpfs }: Runner) => {
+    const test = async ({ oracle, user }) => {
+        const { unsignedTransaction: bootTx, value: tokenId } =
+            await bootTokenTx(mpfs, oracle.address);
+        const signedBootTx = await oracle.signTx(bootTx);
+        await submitTx(mpfs, signedBootTx);
+        const { unsignedTransaction: requestTx } = await requestChangeTx(
+            mpfs,
+            user.address,
+            tokenId,
+            { type: 'insert', key: 'key1', value: 'value1' }
+        );
+        const signedRequestTx = await user.signTx(requestTx);
+        const { txHash } = await submitTx(mpfs, signedRequestTx);
         const requestOutputRefId = mkOutputRefId(firstOutputRef(txHash));
         const { unsignedTransaction: retractTx } = await retractChangeTx(
-            charlie,
-            address,
+            mpfs,
+            user.address,
             requestOutputRefId
         );
-        const signedRetractTx = await signTx(retractTx);
-        await submitTx(charlie, signedRetractTx);
-        const { requests } = await getToken(log, charlie, tokenId, 2);
+        const signedRetractTx = await user.signTx(retractTx);
+        await submitTx(mpfs, signedRetractTx);
+        const { requests } = await getToken(log, mpfs, tokenId, 2);
         assertThrows(
             requests.length === 0,
             'Request was not retracted or still exists after retraction'
         );
-        const facts = await getTokenFacts(log, charlie, tokenId);
+        const facts = await getTokenFacts(log, mpfs, tokenId);
         assertThrows(
             Object.keys(facts).length === 0,
             'Token facts were not retracted or still exist after retraction'
         );
     };
-    await run(test, 'Charlie retracts a change for a token');
+    await run(test, 'mpfs retracts a change for a token');
 };
 
 describe('E2E Signingless', () => {
@@ -210,5 +299,10 @@ describe('E2E Signingless', () => {
         'can retract a change for a token',
         canRetractAChangeForAToken,
         60
+    );
+    e2eVitest(
+        'can update a token twice with different values',
+        canUpdateATokenTwice,
+        120
     );
 });

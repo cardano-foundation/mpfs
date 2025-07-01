@@ -11,25 +11,23 @@ import { withTempDir } from '../../../test/lib';
 import { validatePort } from '../../../lib';
 import { topup, yaciProvider } from '../../../transactions/context/lib';
 
-export type Wallets = {
-    charlie: string;
-    bob: string;
-    alice: string;
-};
-
-export type TestCtx = {
+export type Actor = {
     address: string;
     owner: string;
     signTx: (cbor: string) => Promise<string>;
 };
 
+type TestCtx = {
+    oracle: Actor;
+    user: Actor;
+};
 export type Runner = {
     run: (
         test: (testCtx: TestCtx) => Promise<void>,
         name: string
     ) => Promise<void>;
     log: (message: string) => void;
-    wallets: Wallets;
+    mpfs: string;
 };
 
 export async function withRunner(test) {
@@ -61,10 +59,30 @@ export async function withRunner(test) {
             return `http://localhost:${portNumber}`;
         }
     };
+    const mkWallet = async () => {
+        const mnemonics = generateMnemonic();
+        const clientWallet = new MeshWallet({
+            networkId: 0,
+            fetcher: provider,
+            submitter: provider,
+            key: {
+                type: 'mnemonic',
+                words: mnemonics.split(' ')
+            }
+        });
+        await topup(provider)(clientWallet.getChangeAddress(), 10_000);
 
+        const address = clientWallet.getChangeAddress();
+        const owner = deserializeAddress(address).pubKeyHash;
+        const signTx = async (cbor: string) => {
+            const signed = await clientWallet.signTx(cbor);
+            await sync(charlie, 2); // wait for the transaction to be included
+            return signed;
+        };
+        return { address, owner, signTx };
+    };
     const charlie = await setupService('CHARLIE_PORT', 'charlie');
-    const bob = await setupService('BOB_PORT', 'bob');
-    const alice = await setupService('ALICE_PORT', 'alice');
+
     await withTempDir(async tmpDir => {
         await withServices(
             tmpDir,
@@ -74,36 +92,21 @@ export async function withRunner(test) {
             ogmiosHost,
             null,
             async () => {
-                const wallets: Wallets = { charlie, bob, alice };
-
-                const mnemonics = generateMnemonic();
-                const clientWallet = new MeshWallet({
-                    networkId: 0,
-                    fetcher: provider,
-                    submitter: provider,
-                    key: {
-                        type: 'mnemonic',
-                        words: mnemonics.split(' ')
-                    }
-                });
-                await topup(provider)(clientWallet.getChangeAddress(), 10_000);
-
-                const address = clientWallet.getChangeAddress();
-                const owner = deserializeAddress(address).pubKeyHash;
-                const signTx = async (cbor: string) => {
-                    const signed = await clientWallet.signTx(cbor);
-                    await sync(charlie, 2); // wait for the transaction to be included
-                    return signed;
-                };
+                const oracle = await mkWallet();
+                const requester = await mkWallet();
                 const runner: Runner = {
                     run: async (
                         fn: (test: TestCtx) => Promise<void>,
                         name: string
-                    ) => await fn({ address, owner, signTx }),
+                    ) =>
+                        await fn({
+                            oracle,
+                            user: requester
+                        }),
                     log: async (s: string) => {
                         // console.log(`  - ${s}`);
                     },
-                    wallets
+                    mpfs: charlie
                 };
                 await test(runner);
             }
@@ -120,3 +123,19 @@ export async function e2eTest(
         await withRunner(f);
     });
 }
+
+// export async function preprodTest(requesterAddress,oracleAddress,
+//     name: string,
+//     f: (runner: Runner) => Promise<void>,
+//     secs = 120
+// ) {
+//     const withRunner = async (testFn: (runner: Runner) => Promise<void>) => {
+//         await testFn({
+//             requesterAddress,
+//             oracleAddress,
+//             owner: address,
+//             signTx: async (cbor: string) => {})
+//     it(name, { concurrent: true, timeout: secs * 1000, retry: 0 }, async () => {
+//         await withRunner(f);
+//     });
+// }
