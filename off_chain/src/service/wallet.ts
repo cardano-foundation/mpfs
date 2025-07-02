@@ -45,11 +45,11 @@ const revealAddress = async filename => {
     return { enterpriseAddressBech32, signerHash };
 };
 
-const signTransaction = async (filename, transaction) => {
-    if (!fs.existsSync(filename)) {
-        throw new Error(`Wallet file ${filename} does not exist.`);
+const signTransaction = async (wallet, file) => {
+    if (!fs.existsSync(wallet)) {
+        throw new Error(`Wallet file ${wallet} does not exist.`);
     }
-    const walletData = JSON.parse(fs.readFileSync(filename, 'utf8'));
+    const walletData = JSON.parse(fs.readFileSync(wallet, 'utf8'));
     const clientWallet = new MeshWallet({
         networkId: 0,
         key: {
@@ -57,8 +57,9 @@ const signTransaction = async (filename, transaction) => {
             words: walletData.mnemonics.split(' ')
         }
     });
-    const signedTransaction = await clientWallet.signTx(transaction);
-    return signedTransaction;
+    const unsigned = fs.readFileSync(file, 'utf8');
+    const signedTransaction = await clientWallet.signTx(unsigned);
+    fs.writeFileSync(file, signedTransaction, 'utf8');
 };
 
 yargs(hideBin(process.argv))
@@ -104,11 +105,7 @@ yargs(hideBin(process.argv))
                 });
         },
         async argv => {
-            const signedTransaction = await signTransaction(
-                argv.filename,
-                argv.transaction
-            );
-            console.log(signedTransaction);
+            await signTransaction(argv.filename, argv.transaction);
         }
     )
     .demandCommand(1, 'You need to specify a command')
