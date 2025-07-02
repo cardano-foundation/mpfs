@@ -134,9 +134,11 @@ services:
     container_name: yaci-store-db-preprod
     environment:
       - POSTGRES_DB=yaci_store
+      - POSTGRES_USER=${POSTGRES_USER:-yaci_store_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-yaci_store_password}
 
     volumes:
-      - ${NODE_DIR}/yaci-store:/var/lib/postgresql/data
+      - ${NODE_DIR}/yaci-store/db:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "sh -c 'pg_isready -U yaci -d yaci_store'" ]
       interval: 10s
