@@ -13,8 +13,9 @@ import { createRollbacks, Rollbacks } from './state/rollbacks';
 import { createTokens, Token, Tokens } from './state/tokens';
 import { createRequests, Requests } from './state/requests';
 import { Request } from '../request';
-import { OutputRef, WithOrigin } from '../lib';
+import { OutputRef, rootHex, WithOrigin } from '../lib';
 import { Level } from 'level';
+import { assert } from 'console';
 
 export type Slotted<T> = {
     slot: RollbackKey;
@@ -132,11 +133,21 @@ export const createState = async (
             const { tokenId } = tokenChange.token;
             const existing = await tokens.getToken(tokenId);
             if (existing) {
-                let updatedToken: CurrentToken;
-                await tries.trie(tokenId, async trie => {
-                    await trie.update(tokenChange.change);
-                });
-                await tokens.putToken(tokenId, tokenChange.token.current);
+                let trieRoot;
+                let stateRoot;
+                try {
+                    await tries.trie(tokenId, async trie => {
+                        await trie.update(tokenChange.change);
+                        trieRoot = rootHex(trie.root());
+                    });
+                    await tokens.putToken(tokenId, tokenChange.token.current);
+                    stateRoot = tokenChange.token.current.state.root;
+                } finally {
+                    assert(
+                        trieRoot === stateRoot,
+                        `Trie root ${trieRoot} does not match state root ${stateRoot}`
+                    );
+                }
                 await rollbacks.put(slot, {
                     type: 'UpdateToken',
                     tokenChange: {
@@ -175,14 +186,28 @@ export const createState = async (
                         break;
                     }
                     case 'UpdateToken': {
-                        const { tokenChange } = rollback;
-                        await tries.trie(tokenChange.tokenId, async trie => {
-                            await trie.update(tokenChange.change);
-                        });
-                        await tokens.putToken(
-                            tokenChange.tokenId,
-                            tokenChange.current
-                        );
+                        let trieRoot;
+                        let stateRoot;
+                        try {
+                            const { tokenChange } = rollback;
+                            await tries.trie(
+                                tokenChange.tokenId,
+                                async trie => {
+                                    await trie.update(tokenChange.change);
+                                    trieRoot = rootHex(trie.root());
+                                }
+                            );
+                            await tokens.putToken(
+                                tokenChange.tokenId,
+                                tokenChange.current
+                            );
+                            stateRoot = tokenChange.current.state.root;
+                        } finally {
+                            assert(
+                                trieRoot === stateRoot,
+                                `Trie root ${trieRoot} does not match state root ${stateRoot}`
+                            );
+                        }
                         break;
                     }
                 }
