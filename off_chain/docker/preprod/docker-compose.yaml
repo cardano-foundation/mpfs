@@ -2,7 +2,7 @@ services:
 
   mpfsw:
     build:
-      context: /code/iohk/mpfs/off_chain
+      context: ../..
       dockerfile: docker/Dockerfile.signing
 
     command:
@@ -46,7 +46,7 @@ services:
       - "traefik.http.middlewares.auth.basicauth.users=hal:$$2a$$12$$jVCNxmow9xpzSACsGj72J.1S.fkmHCpwJUEbjBRYm5spHKScY1kIW"
   mpfs:
     build:
-      context: /code/iohk/mpfs/off_chain
+      context: ../..
       dockerfile: docker/Dockerfile.signingless
 
     command:
@@ -123,6 +123,7 @@ services:
       options:
         max-size: "1m"
         max-file: "50"
+    restart: always
 
     networks:
        - ${NODE_NETWORK} # N2N connection to cardano-node-preprod
