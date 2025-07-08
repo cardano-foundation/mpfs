@@ -141,7 +141,7 @@ describe('State', () => {
                 change: {
                     key: 'key-1',
                     value: 'value-1',
-                    operation: 'insert'
+                    type: 'insert'
                 }
             }
         };
@@ -193,7 +193,7 @@ describe('State', () => {
             expect(req).toBeUndefined();
         });
     });
-    it('can update a token', async () => {
+    it('can update a token 42', async () => {
         await withTempTrieAndState(async (state, tries) => {
             await addToken(state, 1, 'token-1', nullHash);
             await state.updateToken({
@@ -204,22 +204,26 @@ describe('State', () => {
                             outputRef: unmkOutputRefId('tx-1'),
                             state: {
                                 owner: 'owner-2',
-                                root: '2o342op'
+                                root: '6eda8924048b23b396a15c94bbdfc902f9688e8f8eaac56ba07b1f7c83fc9acd'
                             }
                         },
                         tokenId: 'token-1'
                     },
-                    change: {
-                        key: 'key-1',
-                        value: 'value-2',
-                        type: 'insert'
-                    }
+                    changes: [
+                        {
+                            key: 'key-1',
+                            value: 'value-2',
+                            type: 'insert'
+                        }
+                    ]
                 }
             });
             const token = await state.tokens.getToken('token-1');
             expect(token).toBeDefined();
             expect(token!.state.owner).toBe('owner-2');
-            expect(token!.state.root).toBe('2o342op');
+            expect(token!.state.root).toBe(
+                '6eda8924048b23b396a15c94bbdfc902f9688e8f8eaac56ba07b1f7c83fc9acd'
+            );
             expect(token!.outputRef).toEqual(unmkOutputRefId('tx-1'));
         });
     });
@@ -234,16 +238,18 @@ describe('State', () => {
                             outputRef: unmkOutputRefId('tx-1'),
                             state: {
                                 owner: 'owner-2',
-                                root: '2o342op'
+                                root: '6eda8924048b23b396a15c94bbdfc902f9688e8f8eaac56ba07b1f7c83fc9acd'
                             }
                         },
                         tokenId: 'token-1'
                     },
-                    change: {
-                        key: 'key-1',
-                        value: 'value-2',
-                        type: 'insert'
-                    }
+                    changes: [
+                        {
+                            key: 'key-1',
+                            value: 'value-2',
+                            type: 'insert'
+                        }
+                    ]
                 }
             });
             await state.rollback(slot(1));

@@ -16,6 +16,7 @@ import { Request } from '../request';
 import { OutputRef, rootHex, WithOrigin } from '../lib';
 import { Level } from 'level';
 import { assert } from 'console';
+import { Mutex } from 'async-mutex';
 
 export type Slotted<T> = {
     slot: RollbackKey;
@@ -24,7 +25,7 @@ export type Slotted<T> = {
 
 export type TokenChange = {
     token: Token;
-    change: Change;
+    changes: Change[];
 };
 
 export type State = {
@@ -59,6 +60,9 @@ export const createState = async (
     const requests = await createRequests(state);
     const rollbacks = await createRollbacks(state);
     const checkpoints = await createCheckpoints(state, checkpointsSize, since);
+
+    const lock = new Mutex();
+
     return {
         close: async (): Promise<void> => {
             try {
@@ -86,134 +90,156 @@ export const createState = async (
             };
         },
         addRequest: async (request: Slotted<Request>): Promise<void> => {
-            const { slot, value } = request;
-            await requests.put(mkOutputRefId(value.ref), value.core);
-            await rollbacks.put(slot, {
-                type: 'RemoveRequest',
-                request: mkOutputRefId(value.ref)
-            });
+            const release = await lock.acquire();
+            try {
+                const { slot, value } = request;
+                await requests.put(mkOutputRefId(value.ref), value.core);
+                await rollbacks.put(slot, {
+                    type: 'RemoveRequest',
+                    request: mkOutputRefId(value.ref)
+                });
+            } finally {
+                release();
+            }
         },
         removeRequest: async (request: Slotted<OutputRef>): Promise<void> => {
-            const ref = request.value;
-            const refId = mkOutputRefId(ref);
-            const existing = await requests.get(refId);
-            if (existing) {
-                await requests.delete(refId);
-                await rollbacks.put(request.slot, {
-                    type: 'AddRequest',
-                    ref,
-                    request: existing
-                });
+            const release = await lock.acquire();
+            try {
+                const ref = request.value;
+
+                const refId = mkOutputRefId(ref);
+                const existing = await requests.get(refId);
+                if (existing) {
+                    await requests.delete(refId);
+                    await rollbacks.put(request.slot, {
+                        type: 'AddRequest',
+                        ref,
+                        request: existing
+                    });
+                }
+            } finally {
+                release();
             }
         },
         addToken: async (token: Slotted<Token>): Promise<void> => {
-            const { slot, value } = token;
-            await tokens.putToken(value.tokenId, value.current);
-            await tries.trie(value.tokenId, async trie => {});
-            await rollbacks.put(slot, {
-                type: 'RemoveToken',
-                tokenId: value.tokenId
-            });
+            const release = await lock.acquire();
+            try {
+                const { slot, value } = token;
+                await tokens.putToken(value.tokenId, value.current);
+                await tries.trie(value.tokenId, async trie => {});
+                await rollbacks.put(slot, {
+                    type: 'RemoveToken',
+                    tokenId: value.tokenId
+                });
+            } finally {
+                release();
+            }
         },
         removeToken: async (token: Slotted<string>): Promise<void> => {
-            const { slot, value: tokenId } = token;
-            const existing = await tokens.getToken(tokenId);
-            if (existing) {
-                await tries.hide(tokenId);
-                await tokens.deleteToken(tokenId);
-                await rollbacks.put(slot, {
-                    type: 'AddToken',
-                    tokenId: tokenId,
-                    token: existing
-                });
+            const release = await lock.acquire();
+            try {
+                const { slot, value: tokenId } = token;
+                const existing = await tokens.getToken(tokenId);
+                if (existing) {
+                    await tries.hide(tokenId);
+                    await tokens.deleteToken(tokenId);
+                    await rollbacks.put(slot, {
+                        type: 'AddToken',
+                        tokenId: tokenId,
+                        token: existing
+                    });
+                }
+            } finally {
+                release();
             }
         },
         updateToken: async (change: Slotted<TokenChange>): Promise<void> => {
-            const { slot, value: tokenChange } = change;
-            const { tokenId } = tokenChange.token;
-            const existing = await tokens.getToken(tokenId);
-            if (existing) {
-                let trieRoot;
-                let stateRoot;
-                try {
-                    await tries.trie(tokenId, async trie => {
-                        await trie.update(tokenChange.change);
-                        trieRoot = rootHex(trie.root());
+            const release = await lock.acquire();
+            try {
+                const { slot, value: tokenChange } = change;
+                const { tokenId } = tokenChange.token;
+                const existing = await tokens.getToken(tokenId);
+                if (existing) {
+                    const root = await tries.trie(tokenId, async trie => {
+                        for (const change of tokenChange.changes) {
+                            await trie.update(change);
+                        }
                     });
                     await tokens.putToken(tokenId, tokenChange.token.current);
-                    stateRoot = tokenChange.token.current.state.root;
-                } finally {
-                    assert(
-                        trieRoot === stateRoot,
-                        `Trie root ${trieRoot} does not match state root ${stateRoot}`
-                    );
+
+                    await rollbacks.put(slot, {
+                        type: 'UpdateToken',
+                        tokenChange: {
+                            current: existing,
+                            changes: tokenChange.changes
+                                .reverse()
+                                .map(invertChange),
+                            tokenId: tokenId
+                        }
+                    });
                 }
-                await rollbacks.put(slot, {
-                    type: 'UpdateToken',
-                    tokenChange: {
-                        current: existing,
-                        change: invertChange(tokenChange.change),
-                        tokenId: tokenId
-                    }
-                });
+            } finally {
+                release();
             }
         },
         rollback: async (slot: WithOrigin<RollbackKey>): Promise<void> => {
-            await checkpoints.rollback(slot);
-            const rollbackSteps = await rollbacks.extractAfter(slot);
-            for (const rollback of rollbackSteps) {
-                switch (rollback.type) {
-                    case 'RemoveRequest': {
-                        const request = rollback.request;
-                        await requests.delete(request);
-                        break;
-                    }
-                    case 'AddRequest': {
-                        const { ref, request } = rollback;
-                        await requests.put(mkOutputRefId(ref), request);
-                        break;
-                    }
-                    case 'RemoveToken': {
-                        const tokenId = rollback.tokenId;
-                        await tokens.deleteToken(tokenId);
-                        await tries.delete(tokenId);
-                        break;
-                    }
-                    case 'AddToken': {
-                        const { tokenId, token } = rollback;
-                        await tokens.putToken(tokenId, token);
-                        await tries.unhide(tokenId);
-                        break;
-                    }
-                    case 'UpdateToken': {
-                        let trieRoot;
-                        let stateRoot;
-                        try {
+            const release = await lock.acquire();
+            try {
+                await checkpoints.rollback(slot);
+                const rollbackSteps = await rollbacks.extractAfter(slot);
+                for (const rollback of rollbackSteps) {
+                    switch (rollback.type) {
+                        case 'RemoveRequest': {
+                            const request = rollback.request;
+                            await requests.delete(request);
+                            break;
+                        }
+                        case 'AddRequest': {
+                            const { ref, request } = rollback;
+                            await requests.put(mkOutputRefId(ref), request);
+                            break;
+                        }
+                        case 'RemoveToken': {
+                            const tokenId = rollback.tokenId;
+                            await tokens.deleteToken(tokenId);
+                            await tries.delete(tokenId);
+                            break;
+                        }
+                        case 'AddToken': {
+                            const { tokenId, token } = rollback;
+                            await tokens.putToken(tokenId, token);
+                            await tries.unhide(tokenId);
+                            break;
+                        }
+                        case 'UpdateToken': {
                             const { tokenChange } = rollback;
-                            await tries.trie(
-                                tokenChange.tokenId,
-                                async trie => {
-                                    await trie.update(tokenChange.change);
-                                    trieRoot = rootHex(trie.root());
-                                }
-                            );
+                            for (const change of tokenChange.changes) {
+                                await tries.trie(
+                                    tokenChange.tokenId,
+                                    async trie => {
+                                        await trie.update(change);
+                                    }
+                                );
+                            }
                             await tokens.putToken(
                                 tokenChange.tokenId,
                                 tokenChange.current
                             );
-                            stateRoot = tokenChange.current.state.root;
-                        } finally {
-                            assert(
-                                trieRoot === stateRoot,
-                                `Trie root ${trieRoot} does not match state root ${stateRoot}`
-                            );
+                            break;
                         }
-                        break;
                     }
                 }
+            } finally {
+                release();
             }
         }
     };
+};
+
+const assertThrow = (condition: boolean, message: string): void => {
+    if (!condition) {
+        throw new Error(message);
+    }
 };
 
 export const withState = async (

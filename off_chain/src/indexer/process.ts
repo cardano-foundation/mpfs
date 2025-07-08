@@ -3,6 +3,7 @@ import { parseRequestCbor, RequestCore } from '../request';
 import { State } from './state';
 import { RollbackKey } from './state/rollbackkey';
 import { inputToOutputRef } from '../lib';
+import { Change } from '../trie/change';
 
 export type Process = (slotNumber: RollbackKey, tx: any) => Promise<void>;
 
@@ -40,6 +41,7 @@ export const createProcess =
                     const present = await state.tokens.getToken(tokenId);
 
                     if (present) {
+                        let changes: Change[] = [];
                         for (const input of tx.inputs) {
                             const ref = inputToOutputRef(input);
 
@@ -47,23 +49,32 @@ export const createProcess =
                             if (!request) {
                                 continue; // skip inputs with no request
                             }
-                            await state.updateToken({
-                                slot: slotNumber,
-                                value: {
-                                    change: request.core.change,
-                                    token: {
-                                        tokenId,
-                                        current: {
-                                            outputRef: {
-                                                txHash: tx.id,
-                                                outputIndex
-                                            },
-                                            state: tokenState
-                                        }
+                            changes.push(request.core.change);
+                            const current =
+                                await state.tokens.getToken(tokenId);
+                            if (!current) {
+                                throw new Error(
+                                    `Token ${tokenId} not found after update`
+                                );
+                            }
+                        }
+
+                        await state.updateToken({
+                            slot: slotNumber,
+                            value: {
+                                changes,
+                                token: {
+                                    tokenId,
+                                    current: {
+                                        outputRef: {
+                                            txHash: tx.id,
+                                            outputIndex
+                                        },
+                                        state: tokenState
                                     }
                                 }
-                            });
-                        }
+                            }
+                        });
                     } else {
                         await state.addToken({
                             slot: slotNumber,

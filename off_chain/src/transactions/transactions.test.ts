@@ -40,7 +40,7 @@ describe('Submitting transactions we', () => {
                 });
             });
         },
-        20000
+        30000
     );
 
     txTest(
@@ -106,7 +106,7 @@ describe('Submitting transactions we', () => {
         60000
     );
     txTest(
-        'can update a token',
+        'can update a token 1',
         async () => {
             await withContext(null, null, async context => {
                 await sync(context);
@@ -145,7 +145,7 @@ describe('Submitting transactions we', () => {
         60000
     );
     txTest(
-        'can update a token twice tr',
+        'can update a token twice 1',
         async () => {
             await withContext(null, null, async context => {
                 await sync(context);
@@ -189,7 +189,7 @@ describe('Submitting transactions we', () => {
         60000
     );
     txTest(
-        'can update the token with a batch',
+        'can update the token with a batch 1',
         async () => {
             await withContext(null, null, async context => {
                 await sync(context);

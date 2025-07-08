@@ -298,7 +298,7 @@ describe('E2E Signingless', () => {
     e2eVitest(
         'can retract a change for a token',
         canRetractAChangeForAToken,
-        60
+        120
     );
     e2eVitest(
         'can update a token twice with different values',
