@@ -13,7 +13,7 @@ import { createRollbacks, Rollbacks } from './state/rollbacks';
 import { createTokens, Token, Tokens } from './state/tokens';
 import { createRequests, Requests } from './state/requests';
 import { Request } from '../request';
-import { OutputRef, rootHex, WithOrigin } from '../lib';
+import { nullHash, OutputRef, rootHex, WithOrigin } from '../lib';
 import { Level } from 'level';
 import { assert } from 'console';
 import { Mutex } from 'async-mutex';
@@ -155,16 +155,19 @@ export const createState = async (
         },
         updateToken: async (change: Slotted<TokenChange>): Promise<void> => {
             const release = await lock.acquire();
+            let root: String;
             try {
                 const { slot, value: tokenChange } = change;
                 const { tokenId } = tokenChange.token;
                 const existing = await tokens.getToken(tokenId);
                 if (existing) {
-                    const root = await tries.trie(tokenId, async trie => {
+                    const rootBuffer = await tries.trie(tokenId, async trie => {
                         for (const change of tokenChange.changes) {
                             await trie.update(change);
                         }
+                        return trie.root();
                     });
+                    root = rootBuffer ? rootHex(rootBuffer) : nullHash;
                     await tokens.putToken(tokenId, tokenChange.token.current);
 
                     await rollbacks.put(slot, {
@@ -177,6 +180,10 @@ export const createState = async (
                             tokenId: tokenId
                         }
                     });
+                    assertThrow(
+                        root == tokenChange.token.current.state.root,
+                        `Root of token ${tokenId} does not match after update`
+                    );
                 }
             } finally {
                 release();
@@ -213,14 +220,22 @@ export const createState = async (
                         }
                         case 'UpdateToken': {
                             const { tokenChange } = rollback;
-                            for (const change of tokenChange.changes) {
-                                await tries.trie(
-                                    tokenChange.tokenId,
-                                    async trie => {
+                            const root = await tries.trie(
+                                tokenChange.tokenId,
+                                async trie => {
+                                    for (const change of tokenChange.changes) {
                                         await trie.update(change);
                                     }
-                                );
-                            }
+                                    const rootBuffer = await trie.root();
+                                    return rootBuffer
+                                        ? rootHex(rootBuffer)
+                                        : nullHash;
+                                }
+                            );
+                            assertThrow(
+                                root == tokenChange.current.state.root,
+                                `Root of token ${tokenChange.tokenId} does not match after rollback`
+                            );
                             await tokens.putToken(
                                 tokenChange.tokenId,
                                 tokenChange.current

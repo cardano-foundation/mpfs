@@ -10,12 +10,12 @@ export type TrieManager = {
     close(): Promise<void>;
     hide: (tokenId: string) => Promise<void>;
     unhide: (tokenId: string) => Promise<void>;
-    trie(tokenId: string, f: (trie: SafeTrie) => Promise<any>): Promise<void>;
+    trie<T>(tokenId: string, f: (trie: SafeTrie) => Promise<T>): Promise<T>;
     delete: (tokenId: string) => Promise<void>;
     hash: () => Promise<string>;
 };
 
-const withLock = async (lock: Mutex, f: () => Promise<void>) => {
+const withLock = async <T>(lock: Mutex, f: () => Promise<T>) => {
     const release = await lock.acquire();
     try {
         return await f();
@@ -135,14 +135,14 @@ export const createTrieManager = async (
                 tries[tokenId]?.unhide();
             });
         },
-        trie: async (tokenId: string, f: (trie: SafeTrie) => Promise<any>) => {
-            await withLock(lock, async () => {
+        trie: async <T>(tokenId: string, f: (trie: SafeTrie) => Promise<T>) => {
+            return await withLock(lock, async () => {
                 const stashableTrie = tries[tokenId];
                 if (!stashableTrie) {
                     const newTrie = await createSafeTrie(tokenId, managerDB);
                     await appendTokenId(managerDB, tokenId);
                     tries[tokenId] = createStashable(newTrie);
-                    await f(newTrie);
+                    return await f(newTrie);
                 } else {
                     const trie = stashableTrie.get();
                     if (!trie) {
@@ -150,7 +150,7 @@ export const createTrieManager = async (
                             `Trie for token ID ${tokenId} is not available.`
                         );
                     }
-                    await f(trie);
+                    return await f(trie);
                 }
             });
         },
