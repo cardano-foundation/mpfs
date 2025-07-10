@@ -195,7 +195,7 @@ export const createIndexer = async (
                             const moreRecent = sampleCheckpoints[0];
                             if (response.result.point === 'origin') {
                                 if (moreRecent !== 'origin') {
-                                    throw new Error(
+                                    console.error(
                                         `Impossible request, more recent is ${JSON.stringify(moreRecent)}`
                                     );
 
