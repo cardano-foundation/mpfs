@@ -90,11 +90,11 @@ run-server-generate:
         --provider yaci --yaci-store-host http://localhost:8080 \
         --yaci-admin-host http://localhost:10000
 
-run-server:
+run-signingless-server:
     #!/usr/bin/env bash
     cd off_chain
     rm -rf tmp
-    npx tsx service/main.ts --port 3000 --seed mnemonics.txt \
+    npx tsx src/service/signingless/main.ts --port 3000 \
         --provider yaci --yaci-store-host http://localhost:8080 \
         --yaci-admin-host http://localhost:10000
 
