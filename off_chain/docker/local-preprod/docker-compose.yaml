@@ -1,0 +1,44 @@
+services:
+  yaci-cli:
+    image: bloxbean/yaci-cli:0.10.6
+    environment:
+      - yaci_store_enabled=true
+      - ogmios_enabled=true
+      - kupo_enabled=false
+      - node=node1
+      - yaci_cli_mode=native
+      - yaci_store_mode=native
+      - conwayHardForkAtEpoch=1
+      - shiftStartTimeBehind=true
+    entrypoint: ["/app/yaci-cli.sh", "create-node", "-o", "--start"]
+    networks:
+      - yaci-network
+    ports:
+      - "${YACI_ADMIN_PORT:-10000}:10000"
+
+  mpfs:
+    image: ghcr.io/paolino/mpfs/mpfs:0.0.1
+    command:
+      - --port
+      - "3000"
+      - --provider
+      - "yaci"
+      - --yaci-store-host
+      - "http://yaci-cli:8080"
+      - --yaci-admin-host
+      - "http://yaci-cli:10000"
+      - --ogmios-host
+      - "http://yaci-cli:1337"
+      - --seed
+      - /data/seed
+      - --generate
+    restart:
+      always
+    networks:
+      - yaci-network
+    container_name: mpfs
+    ports:
+      - "${MPFS_PORT:-3000}:3000"
+
+networks:
+  yaci-network:
