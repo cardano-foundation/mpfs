@@ -174,8 +174,6 @@ describe('Submitting transactions we', () => {
                 await update(context, tokenId, [requestRef2]);
 
                 await sync(context);
-
-                await sync(context);
                 const facts = await context.facts(tokenId);
                 expect(facts).toEqual({
                     key1: 'value1',
@@ -184,6 +182,53 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 await end(context, tokenId);
+            });
+        },
+        60000
+    );
+    txTest(
+        'cannot update a token in the same way twice',
+        async () => {
+            await withContext(null, null, async context => {
+                await sync(context);
+                const { value: tokenId } = await boot(context);
+
+                await sync(context);
+                const { txHash: requestTxHash1 } = await request(
+                    context,
+                    tokenId,
+                    { type: 'insert', key: 'key1', value: 'value1' }
+                );
+                const requestRef1 = firstOutputRef(requestTxHash1);
+
+                await sync(context);
+                await update(context, tokenId, [requestRef1]);
+
+                await sync(context);
+                const { txHash: requestTxHash2 } = await request(
+                    context,
+                    tokenId,
+                    { type: 'insert', key: 'key1', value: 'value1' }
+                );
+                const requestRef2 = firstOutputRef(requestTxHash2);
+
+                await sync(context);
+                try {
+                    await update(context, tokenId, [requestRef2]);
+                } catch (_) {
+                    await sync(context);
+                    const facts = await context.facts(tokenId);
+                    expect(facts).toEqual({
+                        key1: 'value1'
+                    });
+
+                    await sync(context);
+                    await end(context, tokenId);
+                    return;
+                }
+                throw new Error(
+                    'Expected an error when updating with the same request twice'
+                );
             });
         },
         60000
