@@ -1,9 +1,9 @@
 # Aiken compilation artifacts
-artifacts/
+on_chain/artifacts/
 # Aiken's project working directory
-build/
+on_chain/build/
 # Aiken's default documentation export
-docs/
+on_chain/docs/
 # artifacts
 tmp/
 
