@@ -1,38 +1,4 @@
-# Merkle Patricia Forestry Service
-
-## Overview
-
-The Merkle Patricia Forestry (MPF) service provides an HTTP service over
-<https://aiken-lang.github.io/merkle-patricia-forestry/aiken/merkle_patricia_forestry.html>.
-
-The service is designed to manage a MPF value inside a Cardano token. The
-token is enforced to start with the MPF in an empty state, and all updates to
-the MPF value are tracked inside Cardano transactions. The token is caged forever
-in a smart contract that makes sure of the following:
-- The MPF root never leaves the address. Transactions that updated the MPF value
-  can only update it at the same address.
-- The root of the new MPF is verified on-chain as well as the changes that are
-  all included in the transactions that update the MPF value.
-Moreover, when the MPF token is created, its minting policy enforces its state to be empty and
-its address to be the caging address.
-
-This system is designed so that the updates can only be performed by a single
-designated owner at any given time.
-
-The requests to update the token must be reviewed by the owner, who determines
-which updates are valid. The owner then includes these updates in transactions,
-effectively acting as **an oracle** by ensuring that only updates reflecting
-external realities are applied.
-
-Key implications of this design are as follows:
-- The spending validator that cages the token is universal, meaning it can be
-    used to track any MPF token. This is referred to as the `universal MPF caging
-    address` or simply `caging address`.
-- The ownership of the MPF token (i.e., the right to update the MPF value) is encoded within
-    the token itself.
-- The initial ownership of an MPF token is determined at the time of minting.
-- The updates to the MPF value are submitted as requests, which are placed in the
-    caging address along with their respective target MPF token.
+# Signingful Merkle Patricia Forestry Service (OUTDATED)
 
 ## Running the service
 
@@ -43,57 +9,6 @@ mnemonics of the wallet in order to make transactions.
 The file with the mnemonics is passed as `--seed` argument.
 Using the `-g` option one can overwrite the mnemonics file with the new mnemonics.
 
-### Blockchain interaction
-
-The blockchain can be interacted via either yaci or blockfrost.
-
-#### Via yaci
-
-To run the service, you need to have [yaci](https://github.com/bloxbean/yaci-devkit?tab=readme-ov-file) running.
-
-Start it with its store enabled (after going to nix via `nix develop`):
-
-
-
-```bash
-yaci-cli up --enable-yaci-store
-```
-
-or alternatively
-
-```bash
-just run-yaci
-```
-
-This will spin up a local cluster so that you can experimnent with the service. The rest of the
-commands will be run against `yaci` and the local cluster.
-
-**NOTE**: `yaci-store` listens by default on port 8080, which is what the following instructions expect. Should you happen to modify `yaci-store`'s default configuration please use the correct port. In the `yaci-cli/config/application.properties` check the following lines
-
-```
-## Default ports
-#ogmios.port=1337
-#kupo.port=1442
-#yaci.store.port=8080
-#socat.port=3333
-#prometheus.port=12798
-```
-
-#### Via blockfrost
-
-To use blockfrost with preview network just export your blockfrost key:
-
-```bash
-export BLOCKFROST_PROJECT_ID=your_blockfrost_key
-```
-
-and, in the next example, use the `--provider` option to specify `blockfrost` and `--blockfrost-project-id` to specify `$BLOCKFROST_PROJECT_ID`
-
-i.e.
-
-```bash
-npx tsx service/main.ts --seed ./mnemonics.txt --provider blockfrost --blockfrost-project-id $BLOCKFROST_PROJECT_ID --port $WALLET_PORT
-```
 
 ## Illustrative example
 
@@ -567,12 +482,3 @@ docker compose -f docker/docker-compose.yaml down --volumes
 ```
 
 ## Radicle
-
-We are using [radicle](https://radicle.xyz/) to track the code and the issues.
-You can observe the code at [rad:zpZ4szHxvnyVyDiy2acfcVEzxza9](https://app.radicle.xyz/nodes/ash.radicle.garden/rad:zpZ4szHxvnyVyDiy2acfcVEzxza9)
-
-Developers:
- - paolino, [did:key:z6MksH6Yr4pkJqPYnY4N5e5a5bCdyCW88grKRkkK6KeMGwLN](https://app.radicle.xyz/nodes/ash.radicle.garden/users/did:key:z6MksH6Yr4pkJqPYnY4N5e5a5bCdyCW88grKRkkK6KeMGwLN)
- - paweljakubas, [did:key:z6Mks4nj3eXrWhjEXknLooeH8ac9c8XcTSzmM7GaooaVyEMN](https://app.radicle.xyz/nodes/ash.radicle.garden/users/did:key:z6Mks4nj3eXrWhjEXknLooeH8ac9c8XcTSzmM7GaooaVyEMN)
- - anviking, [did:key:z6MkoqswZoM5EtGgsWyTYbrbAw2MXWd2JmSvsQ8Ns9jstmCX](https://app.radicle.xyz/nodes/ash.radicle.garden/users/did:key:z6MkoqswZoM5EtGgsWyTYbrbAw2MXWd2JmSvsQ8Ns9jstmCX)
- - abailly, [did:key:z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11](https://app.radicle.xyz/nodes/ash.radicle.garden/users/did:key:z6MkhgPg6WShnhJcmfwox4G5yL3EvJ2zW8L31SZLD95yUi11)
