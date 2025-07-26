@@ -155,7 +155,7 @@ Also notice the empty set of requests, meaning no change-requests have been made
 
 For the sake of the manual we are not going to impersonate different roles, but you can imagine that requests for changes are made by different actors, which means different wallets, addresses and public key hashes. Specifically we are reusing ADDR env var and tmp/test.json mnemonics considering the token owner as requesting changes to himself.
 
-### Inserting a fact
+### Request to insert a fact
 
 A fact in this context is a key-value pair. MPFS impose no semantics so you are free to pass a json string for both. In case of binary data some encoding could be necessary, mpfs is not supporting any ATM.
 
@@ -191,23 +191,177 @@ The request owner is relevant when it comes to retracting it. With the current v
 
 ### Retracting a request
 
-As we know there is only
 The owner of the request can retract it with
 
-TBC
+```bash
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/retract-change/$OUTPUT_REF"
+  )
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
 
+Now inspecting the token will show that the request has been removed:
+
+```bash
+inspect_token | jq -r '.requests'
+```
+### Processing a request
+
+Let's re-create the request to insert a fact, but this time we will process it.
+
+```bash
+result=$(curl -s -X 'POST' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/request-insert/$TOKEN_ID" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "key": "exampleKey",
+  "value": "exampleValue"
+   }')
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+Now as token owner we can process it into the token state with
+
+```bash
+
+OUTPUT_REF="$txId-0"
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/update-token/$TOKEN_ID?request=$OUTPUT_REF" \
+  -H 'accept: application/json'
+  )
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+Now inspecting the token will show that the request has been processed as the state is not the empty hash:
+```bash
+inspect_token | jq -r '.state.root'
+```
+
+Moreover the mpfs service is storing the facts of each token by indexing the blockchain so we can query them with
+
+```bash
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/token/$TOKEN_ID/facts" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  )
+echo $result | jq
+```
+
+## Request to update a fact
+
+Anyone can request to update a fact by requesting an update to the existing key-value pair. The request is similar to the insert request, but it will update the value of an existing key.
+
+```bash
+result=$(curl -s -X 'POST' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/request-update/$TOKEN_ID" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "key": "exampleKey",
+  "oldValue": "exampleValue",
+  "newValue": "newExampleValue"
+   }')
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+The token owner can process the request in the same way as before:
+
+```bash
+OUTPUT_REF="$txId-0"
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/update-token/$TOKEN_ID?request=$OUTPUT_REF" \
+  -H 'accept: application/json'
+  )
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+Now inspecting the facts at 'exampleKey' will show the updated value:
+
+```bash
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/token/$TOKEN_ID/facts" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  )
+echo $result | jq -r '.exampleKey'
+```
+
+## Request to delete a fact
+
+Anyone can request to delete a fact by requesting a deletion of the key-value pair. The request is similar to the insert request, but it will remove the key from the token state.
+
+```bash
+result=$(curl -s -X 'POST' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/request-delete/$TOKEN_ID" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "key": "exampleKey"
+  , "value": "newExampleValue"
+   }')
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+The token owner can process the request in the same way as before:
+
+```bash
+OUTPUT_REF="$txId-0"
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/update-token/$TOKEN_ID?request=$OUTPUT_REF" \
+  -H 'accept: application/json')
+echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
+txId=$(sign_and_submit)
+wait_for_tx $txId
+```
+
+Now facts will not contain the deleted key:
+
+```bash
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/token/$TOKEN_ID/facts" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  )
+echo $result | jq
+```
+
+And the token state will be back to a null hash
+
+```bash
+inspect_token | jq -r '.state.root'
+```
 
 ## Deleting a token
 
 The owner of the token can delete the token making impossible to refer to its facts in other smart contracts with
 
 ```bash
-result=$(curl -X 'GET' \
-  'https://mpfs.plutimus.com/transaction/$ADDR/end-token/$TOKEN_ID' \
+result=$(curl -s -X 'GET' \
+  "https://mpfs.plutimus.com/transaction/$ADDR/end-token/$TOKEN_ID" \
   -H 'accept: application/json')
 echo $result | jq -r '.unsignedTransaction' > tmp/tx.cbor
 txId=$(sign_and_submit tmp/tx.cbor)
 wait_for_tx $txId
 ```
 
-And that's it
+And that's it, the token is deleted and its facts are no longer accessible.
+
+```bash
+inspect_token
+}
+```
+
