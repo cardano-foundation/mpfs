@@ -19,7 +19,7 @@ const createWallet = async filename => {
 
     const address = clientWallet.getChangeAddress();
 
-    const data = { mnemonics: mnemonics, address: address };
+    const data = { mnemonics: mnemonics };
 
     fs.writeFileSync(filename, JSON.stringify(data), 'utf8');
 };
@@ -42,7 +42,7 @@ const revealAddress = async filename => {
     }
     const signerHash = deserializeAddress(enterpriseAddressBech32).pubKeyHash;
 
-    return { enterpriseAddressBech32, signerHash };
+    return { address: enterpriseAddressBech32, signerHash };
 };
 
 const signTransaction = async (wallet, file) => {
@@ -58,7 +58,7 @@ const signTransaction = async (wallet, file) => {
         }
     });
     const unsigned = fs.readFileSync(file, 'utf8');
-    const signedTransaction = await clientWallet.signTx(unsigned);
+    const signedTransaction = await clientWallet.signTx(unsigned.trim());
     fs.writeFileSync(file, signedTransaction, 'utf8');
 };
 
