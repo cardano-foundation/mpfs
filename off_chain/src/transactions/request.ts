@@ -47,7 +47,7 @@ export const requestTx = async (
     const tx = context.newTxBuilder();
     await tx
         .txOut(context.cagingScript.address, [
-            { unit: 'lovelace', quantity: '5000000' }
+            { unit: 'lovelace', quantity: '10000000' }
         ])
         .txOutInlineDatumValue(datum)
         .changeAddress(walletAddress)
