@@ -1,10 +1,10 @@
 import { deserializeDatum, UTxO } from '@meshsdk/core';
 import { fromHex, OutputRef } from './lib';
-import { Change } from './trie/change';
+import { UnslottedChange } from './trie/change';
 
 export type RequestCore = {
     tokenId: string;
-    change: Change;
+    change: UnslottedChange;
     owner: string;
 };
 export type Request = {
@@ -12,6 +12,7 @@ export type Request = {
     ref: OutputRef;
 };
 
+// we pass the slot number of the change-request tx but we would like to store the slot number of the state change
 export function parseRequestCbor(cbor: string): RequestCore | undefined {
     try {
         const datum = deserializeDatum(cbor);
@@ -21,7 +22,7 @@ export function parseRequestCbor(cbor: string): RequestCore | undefined {
         const op = stateDatum.fields[3].constructor as number;
         const key = fromHex(stateDatum.fields[2].bytes);
         const owner = stateDatum.fields[1].bytes;
-        let change: Change;
+        let change: UnslottedChange;
         switch (op) {
             case 0:
                 change = {

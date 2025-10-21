@@ -4,6 +4,8 @@ import { Level } from 'level';
 import { createStashable, Stashable } from './stashing';
 import { createHash } from 'crypto';
 import stableStringify from 'json-stable-stringify';
+import { Change, UnslottedChange } from './trie/change';
+import { ValueSlotted } from './trie/fatcs';
 
 export type TrieManager = {
     trieIds(): Promise<string[]>;
@@ -195,4 +197,51 @@ export const withTrieManager = async (
     } finally {
         await manager.close();
     }
+};
+
+const getFactsValue = async (
+    tries: TrieManager,
+    tokenId: string,
+    key: string
+): Promise<ValueSlotted> => {
+    return tries.trie(tokenId, async trie => {
+        const facts = await trie.allFacts();
+        return facts[key];
+    });
+};
+
+export const addSlot = async (
+    tries: TrieManager,
+    tokenId: string,
+    slot: number,
+    changes: UnslottedChange[]
+): Promise<Change[]> => {
+    const slottedChanges: Change[] = [];
+    for (const change of changes) {
+        switch (change.type) {
+            case 'insert':
+                slottedChanges.push({
+                    type: 'insert',
+                    key: change.key,
+                    value: { value: change.value, slot }
+                });
+                break;
+            case 'delete':
+                slottedChanges.push({
+                    type: 'delete',
+                    key: change.key,
+                    value: await getFactsValue(tries, tokenId, change.key)
+                });
+                break;
+            case 'update':
+                slottedChanges.push({
+                    type: 'update',
+                    key: change.key,
+                    oldValue: await getFactsValue(tries, tokenId, change.key),
+                    newValue: { value: change.newValue, slot }
+                });
+                break;
+        }
+    }
+    return slottedChanges;
 };

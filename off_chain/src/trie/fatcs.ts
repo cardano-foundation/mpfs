@@ -1,9 +1,14 @@
 import { AbstractSublevel } from 'abstract-level';
 import { levelHash } from '../indexer/level-hash';
 
+export type ValueSlotted = {
+    value: string;
+    slot: number;
+};
+
 export type Facts = {
-    set(key: string, value: string): Promise<void>;
-    get(key: string): Promise<string | undefined>;
+    set(key: string, value: ValueSlotted): Promise<void>;
+    get(key: string): Promise<ValueSlotted | undefined>;
     getAll(): Promise<Record<string, string>>;
     delete(key: string): Promise<void>;
     close(): Promise<void>;
@@ -16,18 +21,20 @@ export const createFacts = async (
     const db = parent.sublevel('facts');
 
     return {
-        async set(key: string, value: string): Promise<void> {
-            await db.put(key, value);
+        async set(key: string, value: ValueSlotted): Promise<void> {
+            await db.put(key, JSON.stringify(value));
         },
 
-        async get(key: string): Promise<string | undefined> {
-            return await db.get(key);
+        async get(key: string): Promise<ValueSlotted | undefined> {
+            return await db.get(key).then(str => {
+                return JSON.parse(str!);
+            });
         },
 
-        async getAll(): Promise<Record<string, string>> {
-            const result: Record<string, string> = {};
+        async getAll(): Promise<Record<string, ValueSlotted>> {
+            const result: Record<string, ValueSlotted> = {};
             for await (const [key, value] of db.iterator()) {
-                result[key] = value;
+                result[key] = JSON.parse(value);
             }
             return result;
         },

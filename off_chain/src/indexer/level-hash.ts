@@ -6,7 +6,8 @@ export const levelHash = async (db): Promise<string> => {
 
     for await (const [key, value] of db.iterator()) {
         hash.update(key.toString('hex')); // Serialize key
-        hash.update(stableStringify(value) || ''); // Canonical serialization of value with fallback
+        const { _slot, val } = value; // We want values, without slots to be part of the hash
+        hash.update(stableStringify(val) || ''); // Canonical serialization of value with fallback
     }
 
     return hash.digest('hex');

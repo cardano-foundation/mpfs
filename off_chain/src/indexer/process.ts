@@ -3,12 +3,18 @@ import { parseRequestCbor, RequestCore } from '../request';
 import { State } from './state';
 import { RollbackKey } from './state/rollbackkey';
 import { inputToOutputRef } from '../lib';
-import { Change } from '../trie/change';
+import { UnslottedChange } from '../trie/change';
+import { addSlot, TrieManager } from '../trie';
 
 export type Process = (slotNumber: RollbackKey, tx: any) => Promise<void>;
 
 export const createProcess =
-    (state: State, address: string, policyId: string): Process =>
+    (
+        tries: TrieManager,
+        state: State,
+        address: string,
+        policyId: string
+    ): Process =>
     async (slotNumber: RollbackKey, tx: any): Promise<void> => {
         const minted = tx.mint?.[policyId];
         if (minted) {
@@ -41,7 +47,7 @@ export const createProcess =
                     const present = await state.tokens.getToken(tokenId);
 
                     if (present) {
-                        let changes: Change[] = [];
+                        let changes: UnslottedChange[] = [];
                         for (const input of tx.inputs) {
                             const ref = inputToOutputRef(input);
 
@@ -62,7 +68,12 @@ export const createProcess =
                         await state.updateToken({
                             slot: slotNumber,
                             value: {
-                                changes,
+                                changes: await addSlot(
+                                    tries,
+                                    tokenId,
+                                    slotNumber.valueOf(),
+                                    changes
+                                ),
                                 token: {
                                     tokenId,
                                     current: {

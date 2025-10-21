@@ -101,13 +101,13 @@ describe('TrieManager', () => {
 
                 async function onTrie(trie) {
                     await trie.update({
+                        type: 'insert',
                         key: 'testKey',
-                        value: 'testValue',
-                        type: 'insert'
+                        value: { slot: 0, value: 'testValue' }
                     });
                     expect(trie.root()).toBeDefined();
                     expect(await trie.allFacts()).toEqual({
-                        testKey: 'testValue'
+                        testKey: { value: 'testValue', slot: 0 }
                     });
                 }
                 await trieManager.trie('testTokenId', onTrie);
@@ -152,7 +152,7 @@ describe('TrieManager', () => {
                 async function onTrie(trie) {
                     await trie.update({
                         key: 'testKey',
-                        value: 'testValue',
+                        value: { slot: 0, value: 'testValue' },
                         type: 'insert'
                     });
                 }
@@ -167,7 +167,7 @@ describe('TrieManager', () => {
                 ]);
                 await reopenedTrieManager.trie('testTokenId', async trie => {
                     expect(await trie.allFacts()).toEqual({
-                        testKey: 'testValue'
+                        testKey: { value: 'testValue', slot: 0 }
                     });
                 });
                 await reopenedTrieManager.close();

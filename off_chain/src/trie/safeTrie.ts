@@ -1,20 +1,27 @@
 import { Proof } from '../mpf/lib';
 import { Buffer } from 'buffer';
-import { createFacts } from './fatcs';
+import { ValueSlotted, createFacts } from './fatcs';
 import { AbstractSublevel } from 'abstract-level';
-import { Change, invertChange, updateTrie } from '../trie/change';
+import {
+    Change,
+    invertChange,
+    invertUnslottedChange,
+    toUnslottedChange,
+    UnslottedChange,
+    updateTrie
+} from '../trie/change';
 import { createLoaded } from '../trie/loaded';
 import { createHash } from 'crypto';
 import { nullHash, rootHex } from '../lib';
 
 export type SafeTrie = {
     getKey(key: string): Promise<Buffer | undefined>;
-    temporaryUpdate(change: Change): Promise<Proof>;
+    temporaryUpdate(change: UnslottedChange): Promise<Proof>;
     rollback(): Promise<void>;
     update(change: Change): Promise<Proof>;
     root(): Buffer;
     close(): Promise<void>;
-    allFacts(): Promise<Record<string, string>>;
+    allFacts(): Promise<Record<string, ValueSlotted>>;
     hash(): Promise<string>;
 };
 
@@ -27,18 +34,18 @@ export const createSafeTrie = async (
     });
     const loaded = await createLoaded(tokenId, db);
     const facts = await createFacts(db);
-    let tempChanges: Change[] = [];
+    let tempChanges: UnslottedChange[] = [];
     return {
         getKey: async (key: string): Promise<Buffer | undefined> => {
             return loaded.trie.get(key);
         },
-        temporaryUpdate: async (change: Change): Promise<Proof> => {
+        temporaryUpdate: async (change: UnslottedChange): Promise<Proof> => {
             tempChanges.push(change);
             return await updateTrie(loaded.trie, change);
         },
         rollback: async (): Promise<void> => {
             for (const change of tempChanges.reverse()) {
-                const inverted = invertChange(change);
+                const inverted = invertUnslottedChange(change);
                 await updateTrie(loaded.trie, inverted);
             }
             tempChanges = [];
@@ -55,7 +62,7 @@ export const createSafeTrie = async (
                     await facts.set(change.key, change.newValue);
                     break;
             }
-            return await updateTrie(loaded.trie, change);
+            return await updateTrie(loaded.trie, toUnslottedChange(change));
         },
         root: (): Buffer => {
             return loaded.trie.hash;
@@ -65,7 +72,7 @@ export const createSafeTrie = async (
             await facts.close();
             await db.close();
         },
-        allFacts: async (): Promise<Record<string, string>> => {
+        allFacts: async (): Promise<Record<string, ValueSlotted>> => {
             return await facts.getAll();
         },
         hash: async (): Promise<string> => {

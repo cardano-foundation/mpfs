@@ -1,5 +1,5 @@
 import { RequestCore } from '../../request';
-import { Change } from '../../trie/change';
+import { UnslottedChange } from '../../trie/change';
 import { AbstractSublevel } from 'abstract-level';
 import { levelHash } from '../level-hash';
 
@@ -9,7 +9,9 @@ export type Requests = {
     delete(outputRefId: string): Promise<void>;
     byToken(
         tokenId: string | null
-    ): Promise<{ outputRefId: string; change: Change; owner: string }[]>;
+    ): Promise<
+        { outputRefId: string; change: UnslottedChange; owner: string }[]
+    >;
     close(): Promise<void>;
     hash(): Promise<string>;
 };
@@ -35,11 +37,11 @@ export async function createRequests(
         byToken: async (
             tokenId: string | null
         ): Promise<
-            { outputRefId: string; change: Change; owner: string }[]
+            { outputRefId: string; change: UnslottedChange; owner: string }[]
         > => {
             const requests: {
                 outputRefId: string;
-                change: Change;
+                change: UnslottedChange;
                 owner: string;
             }[] = [];
             for await (const [key, value] of requestStore.iterator()) {

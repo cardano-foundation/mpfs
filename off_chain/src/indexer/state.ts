@@ -3,7 +3,6 @@ import { AbstractSublevel } from 'abstract-level';
 import { RollbackKey } from './state/rollbackkey';
 import { TrieManager } from '../trie';
 import { mkOutputRefId } from '../outputRef';
-import { CurrentToken } from '../token';
 import {
     Checkpoint,
     Checkpoints,
@@ -15,7 +14,6 @@ import { createRequests, Requests } from './state/requests';
 import { Request } from '../request';
 import { nullHash, OutputRef, rootHex, WithOrigin } from '../lib';
 import { Level } from 'level';
-import { assert } from 'console';
 import { Mutex } from 'async-mutex';
 
 export type Slotted<T> = {
@@ -172,6 +170,7 @@ export const createState = async (
 
                     await rollbacks.put(slot, {
                         type: 'UpdateToken',
+                        slot,
                         tokenChange: {
                             current: existing,
                             changes: tokenChange.changes
