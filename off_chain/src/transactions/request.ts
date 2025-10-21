@@ -1,12 +1,12 @@
 import { mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 import { Context } from './context';
 import { signAndSubmit, WithTxHash } from './context/lib';
-import { Change } from '../trie/change';
+import { UnslottedChange } from '../trie/change';
 
 export async function request(
     context: Context,
     tokenId: string,
-    change: Change
+    change: UnslottedChange
 ): Promise<WithTxHash<null>> {
     return await signAndSubmit(context, async walletAddress => {
         return await requestTx(context, walletAddress, tokenId, change);
@@ -17,7 +17,7 @@ export const requestTx = async (
     context: Context,
     walletAddress: string,
     tokenId: string,
-    change: Change
+    change: UnslottedChange
 ): Promise<{ unsignedTransaction: string; value: null }> => {
     const { utxos, signerHash } = await context.addressWallet(walletAddress);
     if (!utxos.length) {

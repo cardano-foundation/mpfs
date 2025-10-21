@@ -1,7 +1,8 @@
 import { MeshTxBuilder } from '@meshsdk/core';
 import { CurrentToken } from '../token';
 import { Indexer } from '../indexer/indexer';
-import { Change } from '../trie/change';
+import { UnslottedChange } from '../trie/change';
+import { ValueSlotted } from '../trie/fatcs';
 import { SafeTrie } from '../trie/safeTrie';
 import { Token } from '../indexer/state/tokens';
 import { State } from '../indexer/state';
@@ -34,7 +35,9 @@ export type Context = {
     fetchToken: (tokenId: string) => Promise<CurrentToken | undefined>;
     fetchRequests: (
         tokenId: string | null
-    ) => Promise<{ outputRefId: string; change: Change; owner: string }[]>;
+    ) => Promise<
+        { outputRefId: string; change: UnslottedChange; owner: string }[]
+    >;
     evaluate: (txHex: string) => Promise<any>;
     trie: (
         tokenId: string,
@@ -43,7 +46,7 @@ export type Context = {
     waitBlocks(n: number): Promise<number>;
     tips(): Promise<{ networkTip: number | null; indexerTip: number | null }>;
     waitSettlement(txHash: string): Promise<string>;
-    facts(tokenId: string): Promise<Record<string, string>>;
+    facts(tokenId: string): Promise<Record<string, ValueSlotted>>;
     pauseIndexer: () => Promise<() => void>;
     submitTx: (txHex: string) => Promise<string>;
     txInfo: (txHash: string) => Promise<any | null>;

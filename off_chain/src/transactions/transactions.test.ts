@@ -24,7 +24,7 @@ describe('Submitting transactions we', () => {
         'can create and delete a token 1',
         async () => {
             await withTempDir(async () => {
-                await withContext(null, null, async context => {
+                await withContext(null, null, async (context: Context) => {
                     await sync(context);
 
                     const { value: tokenId } = await boot(context);
@@ -46,7 +46,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can create a request',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -76,7 +76,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can retract a request',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -94,7 +94,7 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const reqs = await context.fetchRequests(tokenId);
-                if (reqs.some(req => req.outputRef === reqId)) {
+                if (reqs.some(req => req.outputRefId === reqId)) {
                     throw new Error(
                         `Request ID ${reqId} still found in requests after retraction`
                     );
@@ -108,7 +108,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can update a token 1',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -126,7 +126,7 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const requests = await context.fetchRequests(tokenId);
-                if (requests.some(req => req.outputRef === requestRefId)) {
+                if (requests.some(req => req.outputRefId === requestRefId)) {
                     throw new Error(
                         `Request ID ${requestRefId} still found in requests after update`
                     );
@@ -134,9 +134,9 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const facts = await context.facts(tokenId);
-                expect(facts).toEqual({
-                    key: 'value'
-                });
+                const { value: fact, slot } = facts['key'];
+                expect(fact).toEqual('value');
+                expect(slot).toBeGreaterThan(0);
 
                 await sync(context);
                 await end(context, tokenId);
@@ -147,7 +147,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can update a token twice 1',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -175,10 +175,11 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const facts = await context.facts(tokenId);
-                expect(facts).toEqual({
-                    key1: 'value1',
-                    key2: 'value2'
-                });
+                const { value: fact1, slot: slot1 } = facts['key1'];
+                const { value: fact2, slot: slot2 } = facts['key2'];
+                expect(fact1).toEqual('value1');
+                expect(fact2).toEqual('value2');
+                expect(slot1).toBeLessThan(slot2);
 
                 await sync(context);
                 await end(context, tokenId);
@@ -189,7 +190,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'cannot update a token in the same way twice',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -218,9 +219,9 @@ describe('Submitting transactions we', () => {
                 } catch (_) {
                     await sync(context);
                     const facts = await context.facts(tokenId);
-                    expect(facts).toEqual({
-                        key1: 'value1'
-                    });
+                    const { value: fact1, slot: slot1 } = facts['key1'];
+                    expect(fact1).toEqual('value1');
+                    expect(slot1).toBeGreaterThan(0);
 
                     await sync(context);
                     await end(context, tokenId);
@@ -236,7 +237,7 @@ describe('Submitting transactions we', () => {
     txTest(
         'can update the token with a batch 1',
         async () => {
-            await withContext(null, null, async context => {
+            await withContext(null, null, async (context: Context) => {
                 await sync(context);
                 const { value: tokenId } = await boot(context);
 
@@ -264,8 +265,8 @@ describe('Submitting transactions we', () => {
                 await sync(context);
                 const requests = await context.fetchRequests(tokenId);
                 if (
-                    requests.some(req => req.outputRef === requestRefId1) ||
-                    requests.some(req => req.outputRef === requestRefId2)
+                    requests.some(req => req.outputRefId === requestRefId1) ||
+                    requests.some(req => req.outputRefId === requestRefId2)
                 ) {
                     throw new Error(
                         `Request IDs ${requestRefId1} or ${requestRefId2} still found in requests after update`
@@ -274,11 +275,11 @@ describe('Submitting transactions we', () => {
 
                 await sync(context);
                 const facts = await context.facts(tokenId);
-                expect(facts).toEqual({
-                    key1: 'value1',
-                    key2: 'value2'
-                });
-
+                const { value: fact1, slot: slot1 } = facts['key1'];
+                const { value: fact2, slot: slot2 } = facts['key2'];
+                expect(fact1).toEqual('value1');
+                expect(fact2).toEqual('value2');
+                expect(slot1).toEqual(slot2);
                 await sync(context);
                 await end(context, tokenId);
             });
@@ -293,38 +294,46 @@ describe('Restarting the service', () => {
         async () => {
             const mnemonics = generateMnemonic();
             await withTempDir(async tmpDir => {
-                await withContext(tmpDir, mnemonics, async context1 => {
-                    await sync(context1);
-                    const { value: tokenId } = await boot(context1);
-                    expect(tokenId).toBeDefined();
-                    await sync(context1);
-                    const { txHash } = await request(context1, tokenId, {
-                        type: 'insert',
-                        key: 'key1',
-                        value: 'value1'
-                    });
-                    const rq1 = firstOutputRef(txHash);
-                    await sync(context1);
-                    await update(context1, tokenId, [rq1]);
-                    await sync(context1);
-                    await end(context1, tokenId);
-                });
+                await withContext(
+                    tmpDir,
+                    mnemonics,
+                    async (context1: Context) => {
+                        await sync(context1);
+                        const { value: tokenId } = await boot(context1);
+                        expect(tokenId).toBeDefined();
+                        await sync(context1);
+                        const { txHash } = await request(context1, tokenId, {
+                            type: 'insert',
+                            key: 'key1',
+                            value: 'value1'
+                        });
+                        const rq1 = firstOutputRef(txHash);
+                        await sync(context1);
+                        await update(context1, tokenId, [rq1]);
+                        await sync(context1);
+                        await end(context1, tokenId);
+                    }
+                );
                 await sleep(5);
 
-                await withContext(tmpDir, mnemonics, async context2 => {
-                    await sync(context2);
-                    const { value: tokenId } = await boot(context2);
-                    expect(tokenId).toBeDefined();
-                    await sync(context2);
-                    await end(context2, tokenId);
-                });
+                await withContext(
+                    tmpDir,
+                    mnemonics,
+                    async (context2: Context) => {
+                        await sync(context2);
+                        const { value: tokenId } = await boot(context2);
+                        expect(tokenId).toBeDefined();
+                        await sync(context2);
+                        await end(context2, tokenId);
+                    }
+                );
             });
         },
         60_000
     );
 });
 
-export const mkWallet = mnemonic => provider =>
+export const mkWallet = (mnemonic: string) => (provider: any) =>
     new MeshWallet({
         networkId: 0,
         fetcher: provider,
@@ -364,7 +373,7 @@ export async function withContext(
             const tries = await createTrieManager(db);
             const state = await createState(db, tries, 2160);
             const { address, policyId } = getCagingScript();
-            const process = createProcess(state, address, policyId);
+            const process = createProcess(tries, state, address, policyId);
 
             const indexer = await createIndexer(state, process, ogmios);
             try {
