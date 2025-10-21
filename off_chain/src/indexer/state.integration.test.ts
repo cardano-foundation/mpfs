@@ -36,7 +36,12 @@ describe('State and Indexer', () => {
                     tries,
                     checkpointsSize
                 );
-                const process = createProcess(stateManager, address, policyId);
+                const process = createProcess(
+                    tries,
+                    stateManager,
+                    address,
+                    policyId
+                );
                 const indexer = await createIndexer(
                     stateManager,
                     process,
@@ -59,7 +64,12 @@ describe('State and Indexer', () => {
                     tries,
                     checkpointsSize
                 );
-                const process = createProcess(reopenedState, address, policyId);
+                const process = createProcess(
+                    tries,
+                    reopenedState,
+                    address,
+                    policyId
+                );
 
                 const indexer = await createIndexer(
                     reopenedState,
@@ -97,6 +107,7 @@ describe('State and Indexer', () => {
                         checkpointsSize
                     );
                     const process = createProcess(
+                        tries,
                         stateManager,
                         address,
                         policyId
@@ -126,6 +137,7 @@ describe('State and Indexer', () => {
                         checkpointsSize
                     );
                     const process = createProcess(
+                        tries,
                         reopenedState,
                         address,
                         policyId
@@ -329,7 +341,7 @@ const withSetup = async (
     await withLevelDB(tmpDir, async db => {
         await withTrieManager(db, async tries => {
             await withState(db, tries, checkpointsSize, null, async state => {
-                const process = createProcess(state, address, policyId);
+                const process = createProcess(tries, state, address, policyId);
                 await withIndexer(
                     state,
                     process,

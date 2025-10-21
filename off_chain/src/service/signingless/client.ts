@@ -1,23 +1,23 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
-import { Change } from '../../trie/change';
+import { UnslottedChange } from '../../trie/change';
 
 type Log = (s: string) => void;
 
 const sync = async (host: string, blocks: number) => {
-    const response = await axios.post(`${host}/indexer/wait-blocks`, {
+    await axios.post(`${host}/indexer/wait-blocks`, {
         n: blocks
     });
 };
 
-export async function getTokens(log: Log, host: string, blocks = 2) {
+export async function getTokens(_log: Log, host: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(`${host}/tokens`);
     assertThrows(response.status === 200, 'Failed to get tokens');
     return response.data;
 }
 
-export async function bootTokenTx(host: string, address, blocks = 2) {
+export async function bootTokenTx(host: string, address: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(
         `${host}/transaction/${address}/boot-token`
@@ -27,7 +27,7 @@ export async function bootTokenTx(host: string, address, blocks = 2) {
 }
 
 export async function getToken(
-    log: Log,
+    _log: Log,
     host: string,
     tokenId: string,
     blocks = 2
@@ -53,7 +53,7 @@ export async function endTokenTx(
 }
 
 export async function getTokenFacts(
-    log: Log,
+    _log: Log,
     host: string,
     tokenId: string,
     blocks = 2
@@ -68,7 +68,7 @@ export async function requestChangeTx(
     host: string,
     address: string,
     tokenId: string,
-    change: Change,
+    change: UnslottedChange,
 
     blocks = 2
 ): Promise<{ unsignedTransaction: string; value: null }> {
@@ -94,7 +94,7 @@ export async function requestChangeTx(
             url = `${host}/transaction/${address}/request-update/${tokenId}`;
             params = {
                 key: change.key,
-                value: change.newValue,
+                newValue: change.newValue,
                 oldValue: change.oldValue
             };
             break;

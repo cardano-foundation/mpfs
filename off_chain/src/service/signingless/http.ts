@@ -232,7 +232,11 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
                     context,
                     address,
                     tokenId,
-                    { key, value, type: 'insert' }
+                    {
+                        key,
+                        value,
+                        type: 'insert'
+                    }
                 );
                 res.json({ unsignedTransaction });
             } catch (error) {
@@ -448,7 +452,7 @@ export async function withService(
         const state = await createState(db, tries, 2160, since);
 
         const { address, policyId } = getCagingScript();
-        const process = createProcess(state, address, policyId);
+        const process = createProcess(tries, state, address, policyId);
 
         const indexer = await createIndexer(state, process, ogmios);
         try {

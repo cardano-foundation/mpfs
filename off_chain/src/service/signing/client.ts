@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { assertThrows } from '../test/E2E/lib';
-import { Change } from '../../trie/change';
+import { UnslottedChange } from '../../trie/change';
 
 type Log = (s: string) => void;
 
 const sync = async (host: string, blocks: number) => {
-    const response = await axios.post(`${host}/indexer/wait-blocks`, {
+    await axios.post(`${host}/indexer/wait-blocks`, {
         n: blocks
     });
 };
@@ -31,21 +31,21 @@ async function walletTopup(host: string) {
     );
     return response.data;
 }
-async function getTokens(log: Log, host: string, blocks = 2) {
+async function getTokens(_log: Log, host: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(`${host}/tokens`);
     assertThrows(response.status === 200, 'Failed to get tokens');
     return response.data;
 }
 
-async function createToken(log, host: string, blocks = 2) {
+async function createToken(_log: Log, host: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.post(`${host}/token`);
     assertThrows(response.status === 200, 'Failed to create token');
     return response.data.tokenId;
 }
 
-async function getToken(log: Log, host: string, tokenId: string, blocks = 2) {
+async function getToken(_log: Log, host: string, tokenId: string, blocks = 2) {
     await sync(host, blocks);
     const response = await axios.get(`${host}/token/${tokenId}`);
     assertThrows(response.status === 200, 'Failed to get token');
@@ -53,7 +53,7 @@ async function getToken(log: Log, host: string, tokenId: string, blocks = 2) {
 }
 
 async function deleteToken(
-    log: Log,
+    _log: Log,
     host: string,
     tokenId: string,
     blocks = 2
@@ -86,7 +86,7 @@ async function updateToken(
 }
 
 async function getTokenFacts(
-    log: Log,
+    _log: Log,
     host: string,
     tokenId: string,
     blocks = 2
@@ -97,10 +97,10 @@ async function getTokenFacts(
     return response.data;
 }
 async function createRequest(
-    log,
+    _log: Log,
     host: string,
     tokenId: string,
-    change: Change,
+    change: UnslottedChange,
     blocks = 2
 ) {
     await sync(host, blocks);
@@ -112,7 +112,7 @@ async function createRequest(
 }
 
 async function deleteRequest(
-    log: Log,
+    _log: Log,
     host: string,
     outputRefId: string,
     blocks = 2

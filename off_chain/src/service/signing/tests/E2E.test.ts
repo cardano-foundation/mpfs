@@ -14,7 +14,7 @@ import {
 } from '../client';
 import { Runner, Wallets } from './fixtures';
 import { assertThrows, shouldFail } from '../../test/E2E/lib';
-import { Change } from '../../../trie/change';
+import { UnslottedChange } from '../../../trie/change';
 
 const canAccessWallets = async ({
     run,
@@ -45,7 +45,11 @@ const canRetrieveTokens = async ({
     await run(test, 'users can retrieve their tokens');
 };
 
-const canCreateTokenAndDelete = async ({ run, log, wallets: { charlie } }) => {
+const canCreateTokenAndDelete = async ({
+    run,
+    log,
+    wallets: { charlie }
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -70,7 +74,7 @@ const cannotDeleteAnotherUsersToken = async ({
     run,
     log,
     wallets: { charlie, bob }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -82,7 +86,11 @@ const cannotDeleteAnotherUsersToken = async ({
     await run(test, 'users cannot delete another user token');
 };
 
-const canRetractRequest = async ({ run, log, wallets: { charlie, bob } }) => {
+const canRetractRequest = async ({
+    run,
+    log,
+    wallets: { charlie, bob }
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -104,7 +112,7 @@ const cannotRetractAnotherUsersRequest = async ({
     run,
     log,
     wallets: { charlie, bob }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -126,7 +134,7 @@ const cannotUpdateATokenWithNoRequests = async ({
     run,
     log,
     wallets: { charlie }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -142,7 +150,7 @@ const canInspectRequestsForAToken = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -178,7 +186,11 @@ const canInspectRequestsForAToken = async ({
     await run(test, 'users can inspect requests for a token');
 };
 
-const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
+const canUpdateAToken = async ({
+    run,
+    log,
+    wallets: { charlie, bob }
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -193,8 +205,7 @@ const canUpdateAToken = async ({ run, log, wallets: { charlie, bob } }) => {
         const { requests } = await getToken(log, charlie, tk);
         assertThrows(requests.length === 0, 'Requests are not one');
         const facts = await getTokenFacts(log, charlie, tk);
-        assertThrows(facts['abc'] === 'value', 'Token fact is not value');
-        assertThrows(facts['abc'] === 'value', 'Token fact is not value');
+        assertThrows(facts['abc'].value === 'value', 'Token fact is not value');
         await deleteToken(log, charlie, tk);
         log('charlie deleted the mpf token');
     };
@@ -205,7 +216,7 @@ export const canUpdateATokenTwice = async ({
     run,
     log,
     wallets: { charlie, bob }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -225,12 +236,12 @@ export const canUpdateATokenTwice = async ({
         await updateToken(log, charlie, tk, [ref2]);
         log('charlie updated the mpf token');
         const factsCharlie = await getTokenFacts(log, charlie, tk);
-        assertThrows(factsCharlie['a'] === 'a', 'Token fact a is not a');
-        assertThrows(factsCharlie['b'] === 'b', 'Token fact b is not b');
+        assertThrows(factsCharlie['a'].value === 'a', 'Token fact a is not a');
+        assertThrows(factsCharlie['b'].value === 'b', 'Token fact b is not b');
         log('charlie verified the token facts');
         const factsBob = await getTokenFacts(log, bob, tk);
-        assertThrows(factsBob['a'] === 'a', 'Token fact a is not a');
-        assertThrows(factsBob['b'] === 'b', 'Token fact b is not b');
+        assertThrows(factsBob['a'].value === 'a', 'Token fact a is not a');
+        assertThrows(factsBob['b'].value === 'b', 'Token fact b is not b');
         log('bob verified the token facts');
 
         await deleteToken(log, charlie, tk);
@@ -242,7 +253,7 @@ const cannotUpdateAnotherUsersToken = async ({
     run,
     log,
     wallets: { charlie, bob }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -266,7 +277,7 @@ const canDeleteFacts = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -300,7 +311,7 @@ const canBatchUpdate = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, charlie);
         log('charlie created an mpf token');
@@ -319,8 +330,14 @@ const canBatchUpdate = async ({
         await updateToken(log, charlie, tk, [bobRequest, aliceRequest]);
         log('charlie updated the mpf token');
         const facts = await getTokenFacts(log, charlie, tk);
-        assertThrows(facts['abc'] === 'value', 'Token fact abc is not value');
-        assertThrows(facts['abd'] === 'value', 'Token fact abd is not value');
+        assertThrows(
+            facts['abc'].value === 'value',
+            'Token fact abc is not value'
+        );
+        assertThrows(
+            facts['abd'].value === 'value',
+            'Token fact abd is not value'
+        );
         log('charlie verified the token facts');
         await deleteToken(log, charlie, tk);
         log('charlie deleted the mpf token');
@@ -329,10 +346,10 @@ const canBatchUpdate = async ({
 };
 
 const requestAndUpdate = async (
-    log,
-    owner,
+    log: any,
+    owner: string,
     tk,
-    requests: { author; change: Change }[]
+    requests: { author: string; change: UnslottedChange }[]
 ) => {
     let refs: string[] = [];
     for (const { author, change } of requests) {
@@ -348,7 +365,7 @@ const insertCommutes = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, bob);
         log('bob created an mpf token');
@@ -402,7 +419,7 @@ const deleteCommutes = async ({
     run,
     log,
     wallets: { charlie, bob, alice }
-}) => {
+}: Runner) => {
     const test = async () => {
         const tk = await createToken(log, bob);
         log('bob created an mpf token');

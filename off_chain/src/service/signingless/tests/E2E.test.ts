@@ -14,6 +14,7 @@ import {
 import { assertThrows } from '../../test/E2E/lib';
 import { mkOutputRefId } from '../../../outputRef';
 import { firstOutputRef } from '../../../lib';
+import { Token } from '../../../indexer/state/tokens';
 
 const canBootAToken = async ({ run, log, mpfs }: Runner) => {
     const test = async ({ oracle }) => {
@@ -54,7 +55,7 @@ const canEndABootedToken = async ({ run, log, mpfs }: Runner) => {
         await submitTx(mpfs, signedTransaction);
         const { tokens } = await getTokens(log, mpfs, 2);
         assertThrows(
-            !tokens.some(token => token.tokenId === tokenId),
+            !tokens.some((token: Token) => token.tokenId === tokenId),
             'Token was not deleted after ending'
         );
     };
@@ -131,7 +132,7 @@ const canUpdateAToken = async ({ run, log, mpfs }: Runner) => {
             'Token facts were not updated or multiple facts found'
         );
         assertThrows(
-            facts.key1 === 'value1',
+            facts.key1.value === 'value1',
             'Token facts key1 does not match expected value'
         );
     };
