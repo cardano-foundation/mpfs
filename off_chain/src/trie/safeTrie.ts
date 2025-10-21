@@ -53,7 +53,7 @@ export const createSafeTrie = async (
         update: async (change: Change): Promise<Proof> => {
             switch (change.type) {
                 case 'insert':
-                    await facts.set(change.key, change.value);
+                    await facts.set(change.key, change.newValue);
                     break;
                 case 'delete':
                     await facts.delete(change.key);

@@ -223,14 +223,14 @@ export const addSlot = async (
                 slottedChanges.push({
                     type: 'insert',
                     key: change.key,
-                    value: { value: change.value, slot }
+                    newValue: { value: change.newValue, slot }
                 });
                 break;
             case 'delete':
                 slottedChanges.push({
                     type: 'delete',
                     key: change.key,
-                    value: await getFactsValue(tries, tokenId, change.key)
+                    oldValue: await getFactsValue(tries, tokenId, change.key)
                 });
                 break;
             case 'update':

@@ -72,7 +72,7 @@ const canRequestAChangeToAtToken = async ({ run, log, mpfs }: Runner) => {
             mpfs,
             user.address,
             tokenId,
-            { type: 'insert', key: 'key1', value: 'value1' }
+            { type: 'insert', key: 'key1', newValue: 'value1' }
         );
         const signedTransaction = await user.signTx(requestTx);
         const { txHash } = await submitTx(mpfs, signedTransaction);
@@ -87,7 +87,7 @@ const canRequestAChangeToAtToken = async ({ run, log, mpfs }: Runner) => {
         );
         assertThrows(
             requests[0].change.key === 'key1' &&
-                requests[0].change.value === 'value1' &&
+                requests[0].change.newValue === 'value1' &&
                 requests[0].change.type === 'insert',
             'Request change data does not match expected values'
         );
@@ -108,7 +108,7 @@ const canUpdateAToken = async ({ run, log, mpfs }: Runner) => {
             mpfs,
             user.address,
             tokenId,
-            { type: 'insert', key: 'key1', value: 'value1' }
+            { type: 'insert', key: 'key1', newValue: 'value1' }
         );
         const signedRequestTx = await user.signTx(requestTx);
         const { txHash } = await submitTx(mpfs, signedRequestTx);
@@ -149,7 +149,7 @@ const canUpdateATokenTwice = async ({ run, log, mpfs }: Runner) => {
             mpfs,
             user.address,
             tokenId,
-            { type: 'insert', key: 'key1', value: 'value1' }
+            { type: 'insert', key: 'key1', newValue: 'value1' }
         );
         const signedRequestTx = await user.signTx(requestTx);
         const { txHash } = await submitTx(mpfs, signedRequestTx);
@@ -166,7 +166,7 @@ const canUpdateATokenTwice = async ({ run, log, mpfs }: Runner) => {
             mpfs,
             user.address,
             tokenId,
-            { type: 'insert', key: 'key2', value: 'value2' }
+            { type: 'insert', key: 'key2', newValue: 'value2' }
         );
         const signedSecondRequestTx = await user.signTx(secondRequestTx);
         const { txHash: secondTxHash } = await submitTx(
@@ -191,7 +191,7 @@ const canUpdateATokenTwice = async ({ run, log, mpfs }: Runner) => {
             await requestChangeTx(mpfs, user.address, tokenId, {
                 type: 'delete',
                 key: 'key2',
-                value: 'value2'
+                oldValue: 'value2'
             });
         const signedDeleteSecondFactTx = await user.signTx(deleteSecondFactTx);
         const { txHash: deleteSecondFactTxHash } = await submitTx(
@@ -216,7 +216,7 @@ const canUpdateATokenTwice = async ({ run, log, mpfs }: Runner) => {
             await requestChangeTx(mpfs, user.address, tokenId, {
                 type: 'delete',
                 key: 'key1',
-                value: 'value1'
+                oldValue: 'value1'
             });
         const signedDeleteFirstFactTx = await user.signTx(deleteFirstFactTx);
         const { txHash: deleteFirstFactTxHash } = await submitTx(
@@ -261,7 +261,7 @@ const canRetractAChangeForAToken = async ({ run, log, mpfs }: Runner) => {
             mpfs,
             user.address,
             tokenId,
-            { type: 'insert', key: 'key1', value: 'value1' }
+            { type: 'insert', key: 'key1', newValue: 'value1' }
         );
         const signedRequestTx = await user.signTx(requestTx);
         const { txHash } = await submitTx(mpfs, signedRequestTx);

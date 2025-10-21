@@ -6,12 +6,12 @@ export type AChange<T> =
     | {
           type: 'insert';
           key: string;
-          value: T;
+          newValue: T;
       }
     | {
           type: 'delete';
           key: string;
-          value: T;
+          oldValue: T;
       }
     | {
           type: 'update';
@@ -29,13 +29,13 @@ export const invertUnslottedChange = (
             return {
                 type: 'delete',
                 key: change.key,
-                value: change.value
+                oldValue: change.newValue
             };
         case 'delete':
             return {
                 type: 'insert',
                 key: change.key,
-                value: change.value
+                newValue: change.oldValue
             };
         case 'update':
             return {
@@ -55,13 +55,13 @@ export const invertChange = (change: Change): Change => {
             return {
                 type: 'delete',
                 key: change.key,
-                value: change.value
+                oldValue: change.newValue
             };
         case 'delete':
             return {
                 type: 'insert',
                 key: change.key,
-                value: change.value
+                newValue: change.oldValue
             };
         case 'update':
             return {
@@ -79,13 +79,13 @@ export const toUnslottedChange = (change: Change): UnslottedChange => {
             return {
                 type: 'insert',
                 key: change.key,
-                value: change.value.value
+                newValue: change.newValue.value
             };
         case 'delete':
             return {
                 type: 'delete',
                 key: change.key,
-                value: change.value.value
+                oldValue: change.oldValue.value
             };
         case 'update':
             return {
@@ -103,7 +103,7 @@ export async function updateTrie(
 ): Promise<Proof> {
     switch (change.type) {
         case 'insert':
-            await trie.insert(change.key, change.value);
+            await trie.insert(change.key, change.newValue);
             return await trie.prove(change.key);
         case 'delete':
             const proof = await trie.prove(change.key);

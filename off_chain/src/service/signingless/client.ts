@@ -80,14 +80,14 @@ export async function requestChangeTx(
             url = `${host}/transaction/${address}/request-insert/${tokenId}`;
             params = {
                 key: change.key,
-                value: change.value
+                newValue: change.newValue
             };
             break;
         case 'delete':
             url = `${host}/transaction/${address}/request-delete/${tokenId}`;
             params = {
                 key: change.key,
-                value: change.value
+                oldValue: change.oldValue
             };
             break;
         case 'update':

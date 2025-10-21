@@ -29,10 +29,10 @@ export const requestTx = async (
     let operation;
     switch (change.type) {
         case 'insert':
-            operation = mConStr0([change.value]);
+            operation = mConStr0([change.newValue]);
             break;
         case 'delete':
-            operation = mConStr1([change.value]);
+            operation = mConStr1([change.oldValue]);
             break;
         case 'update':
             operation = mConStr2([change.oldValue, change.newValue]);

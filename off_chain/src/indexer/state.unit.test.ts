@@ -212,7 +212,7 @@ describe('State', () => {
                     changes: [
                         {
                             key: 'key-1',
-                            value: { slot: 2, value: 'value-2' },
+                            newValue: { slot: 2, value: 'value-2' },
                             type: 'insert'
                         }
                     ]
@@ -246,7 +246,7 @@ describe('State', () => {
                     changes: [
                         {
                             key: 'key-1',
-                            value: { slot: 2, value: 'value-2' },
+                            newValue: { slot: 2, value: 'value-2' },
                             type: 'insert'
                         }
                     ]

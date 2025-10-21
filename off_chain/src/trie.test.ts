@@ -103,7 +103,7 @@ describe('TrieManager', () => {
                     await trie.update({
                         type: 'insert',
                         key: 'testKey',
-                        value: { slot: 0, value: 'testValue' }
+                        newValue: { slot: 0, value: 'testValue' }
                     });
                     expect(trie.root()).toBeDefined();
                     expect(await trie.allFacts()).toEqual({
@@ -152,7 +152,7 @@ describe('TrieManager', () => {
                 async function onTrie(trie) {
                     await trie.update({
                         key: 'testKey',
-                        value: { slot: 0, value: 'testValue' },
+                        newValue: { slot: 0, value: 'testValue' },
                         type: 'insert'
                     });
                 }

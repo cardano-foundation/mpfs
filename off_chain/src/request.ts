@@ -28,14 +28,14 @@ export function parseRequestCbor(cbor: string): RequestCore | undefined {
                 change = {
                     type: 'insert',
                     key,
-                    value: fromHex(stateDatum.fields[3].fields[0].bytes)
+                    newValue: fromHex(stateDatum.fields[3].fields[0].bytes)
                 };
                 break;
             case 1:
                 change = {
                     type: 'delete',
                     key,
-                    value: fromHex(stateDatum.fields[3].fields[0].bytes)
+                    oldValue: fromHex(stateDatum.fields[3].fields[0].bytes)
                 };
                 break;
             case 2:

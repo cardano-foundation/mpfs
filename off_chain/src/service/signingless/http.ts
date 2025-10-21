@@ -226,7 +226,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         '/transaction/:address/request-insert/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
-            const { key, value } = req.body;
+            const { key, newValue } = req.body;
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
@@ -234,7 +234,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
                     tokenId,
                     {
                         key,
-                        value,
+                        newValue,
                         type: 'insert'
                     }
                 );
@@ -251,13 +251,13 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
         '/transaction/:address/request-delete/:tokenId',
         async (req, res) => {
             const { tokenId, address } = req.params;
-            const { key, value } = req.body;
+            const { key, oldValue } = req.body;
             try {
                 const { unsignedTransaction } = await requestTx(
                     context,
                     address,
                     tokenId,
-                    { key, value, type: 'delete' }
+                    { key, oldValue, type: 'delete' }
                 );
                 res.json({ unsignedTransaction });
             } catch (error) {

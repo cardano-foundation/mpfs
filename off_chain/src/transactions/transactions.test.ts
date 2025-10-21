@@ -54,7 +54,7 @@ describe('Submitting transactions we', () => {
                 const { txHash } = await request(context, tokenId, {
                     type: 'insert',
                     key: 'key1',
-                    value: 'value1'
+                    newValue: 'value1'
                 });
                 const refId = mkOutputRefId(firstOutputRef(txHash));
 
@@ -84,7 +84,7 @@ describe('Submitting transactions we', () => {
                 const { txHash } = await request(context, tokenId, {
                     type: 'insert',
                     key: 'key',
-                    value: 'value'
+                    newValue: 'value'
                 });
                 const req = firstOutputRef(txHash);
                 const reqId = mkOutputRefId(req);
@@ -116,7 +116,7 @@ describe('Submitting transactions we', () => {
                 const { txHash } = await request(context, tokenId, {
                     type: 'insert',
                     key: 'key',
-                    value: 'value'
+                    newValue: 'value'
                 });
                 const requestRef = firstOutputRef(txHash);
                 const requestRefId = mkOutputRefId(requestRef);
@@ -155,7 +155,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash1 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key1', value: 'value1' }
+                    { type: 'insert', key: 'key1', newValue: 'value1' }
                 );
                 const requestRef1 = firstOutputRef(requestTxHash1);
 
@@ -166,7 +166,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash2 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key2', value: 'value2' }
+                    { type: 'insert', key: 'key2', newValue: 'value2' }
                 );
                 const requestRef2 = firstOutputRef(requestTxHash2);
 
@@ -198,7 +198,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash1 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key1', value: 'value1' }
+                    { type: 'insert', key: 'key1', newValue: 'value1' }
                 );
                 const requestRef1 = firstOutputRef(requestTxHash1);
 
@@ -209,7 +209,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash2 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key1', value: 'value1' }
+                    { type: 'insert', key: 'key1', newValue: 'value1' }
                 );
                 const requestRef2 = firstOutputRef(requestTxHash2);
 
@@ -245,7 +245,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash1 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key1', value: 'value1' }
+                    { type: 'insert', key: 'key1', newValue: 'value1' }
                 );
                 const requestRef1 = firstOutputRef(requestTxHash1);
                 const requestRefId1 = mkOutputRefId(requestRef1);
@@ -254,7 +254,7 @@ describe('Submitting transactions we', () => {
                 const { txHash: requestTxHash2 } = await request(
                     context,
                     tokenId,
-                    { type: 'insert', key: 'key2', value: 'value2' }
+                    { type: 'insert', key: 'key2', newValue: 'value2' }
                 );
                 const requestRef2 = firstOutputRef(requestTxHash2);
                 const requestRefId2 = mkOutputRefId(requestRef2);
@@ -305,7 +305,7 @@ describe('Restarting the service', () => {
                         const { txHash } = await request(context1, tokenId, {
                             type: 'insert',
                             key: 'key1',
-                            value: 'value1'
+                            newValue: 'value1'
                         });
                         const rq1 = firstOutputRef(txHash);
                         await sync(context1);

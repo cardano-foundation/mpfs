@@ -282,7 +282,7 @@ describe('State and Indexer', () => {
                         const { txHash } = await request(context, tokenId, {
                             type: 'insert',
                             key: 'key-1',
-                            value: 'value-1'
+                            newValue: 'value-1'
                         });
                         const requestId = firstOutputRef(txHash);
                         await pushCheckpoint();
