@@ -119,3 +119,16 @@ plutimus-mpfs:
     #!/usr/bin/env bash
     cd off_chain/docker/preprod
     docker compose up -d --build
+
+build-docker tag='latest':
+    #!/usr/bin/env bash
+    cd off_chain
+    # shellcheck disable=SC1083
+    docker build -t ghcr.io/cardano-foundation/mpfs/mpfs:{{ tag }} -f docker/Dockerfile.signingless .
+    # shellcheck disable=SC1083
+    docker tag ghcr.io/cardano-foundation/mpfs/mpfs:{{ tag }} ghcr.io/cardano-foundation/mpfs/mpfs:latest
+
+push-docker tag='latest':
+    # shellcheck disable=SC1083
+    docker push ghcr.io/cardano-foundation/mpfs/mpfs:{{ tag }}
+    docker push ghcr.io/cardano-foundation/mpfs/mpfs:latest
