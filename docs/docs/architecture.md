@@ -1,64 +1,98 @@
 # System architecture
 
-The purpose of the system is to store a knowledge database. The knowledge is a set of keys. In addition, each key can come with a value which we refer to as state.
+
+```mermaid
+architecture-beta
+
+    service chain(internet)[Cardano Blockchain]
+    group alice(cloud)[alice Box]
+        service aliceMPFS(server)[alice MPFS Service] in alice
+        service requester1(server)[alice client] in alice
+        requester1:R -- L:aliceMPFS
+    aliceMPFS:R -- L:chain
+
+    service bobMPFS(server)[public MPFS Service]
+    service requester2(server)[bob client]
+    requester2:R -- L:bobMPFS
+
+    service requester3(server)[willy client]
+    requester3:L -- R:bobMPFS
+
+    bobMPFS:T -- B:chain
+    group oracle(cloud)[oracle Box]
+        service oracleMPFS(server)[oracle MPFS Service] in oracle
+        service oracleClient(server)[oracle client] in oracle
+        oracleClient:L -- R:oracleMPFS
+    oracleMPFS:B -- T:chain
+
+```
+
+## Components
+
+### MPF Token
+
+The MPF token is a native token living on the Cardano blockchain. It is associated with a merkle trie root and the public key hash of the oracle controlling it.
+
+### MPF Token facts
+
+Facts are key-value pairs stored in the merkle trie associated with an MPF token. They represent the knowledge stored in the database.
 
 ## Parties
 
-### Knowledge Owner
-
-Someone who controls what is inside the knowledge database.
-
-### Knowledge Contributors
-
-Anyone who wants to contribute to the knowledge database.
-
-### Knowledge Observers
-
-Anyone who needs to queries the knowledge database.
-
-## Blockchain
+### Blockchain
 
 The blockchain is used to store the state of the knowledge database and to validate operations on it.
 
+### Oracle
+
+Someone who controls which facts are part of an MPF token.
+
+### Requester
+
+Anyone who wants to change the facts in an MPF token.
+
+### Observer
+
+Anyone who needs to queries the knowledge database and/or use any fact as input to a smart contract.
+
 ## Overview
 
-### Knowledge Storage
+### Facts Storage
 
 All knowledge is stored on the blockchain history, so it's reconstructable by anyone with access to it.
 Moreover each of its facts are referrable as transaction inputs to be consumed in smart contracts as if they were stored in the current state of the blockchain.
 
-### Knowledge Control
+### Token Ownership
 
-The knowledge owner is the only one who can add or remove knowledge from the database. To do so he has to consume requests from knowledge contributors. In the current shape of the system, the knowledge owner has full control over the knowledge database, but in the future it could be possible to implement a more decentralized model where this power is distributed among multiple parties.
-We often refer to the knowledge owner as the "knowledge authority" or simply "oracle".
+The token owner (a.k.a. oracle) is the only one who can add or remove facts from the database. To do so he has to consume requests from requesters. In the current shape of the system, the oracle has full control over the facts, but in the future it could be possible to implement a more decentralized model where this power is distributed among multiple parties.
 
 ## Interaction
 
-### Knowledge Token
+### MPF Token
 
-We refer to the current state of the knowledge as the "knowledge token". The token is the only value that is part of the blockchain state and it contains the hash of the knowledge and the public key hash of the knowledge owner.
+We refer to the current state of the knowledge as the "MPF token". The token is the only value that is part of the blockchain state and it contains the hash of the current facts and the public key of the oracle controlling it.
 All tokens are sitting at the system address which is determined by the smart contract controlling its identifier and its updating.
 
-### Knowledge Token Transactions
+### Token Transactions
 
 3 transactions are possible involving tokens
 
-1. **Boot**: Anyone can become a knowledge owner by creating a new knowledge token. This token will be started with the null hash and be uniquely identified by an id, the token-id. The knowledge owner will also set the public key hash of the knowledge owner in the token.
-2. **Update**: The knowledge owner can update the knowledge token by adding or removing facts from the database. This transaction will consume requests from contributorts and will update the knowledge hash in the token and potentially change the ownership of the token.
-3. **End**: The knowledge owner can delete the knowledge token, which will remove the token-id, so no other updates can be applied on it. Future versions of this sytem will allow to use a deleted token knowledge hash as a starting point for a new knowledge token, so the knowledge can be transferred in a new token without losing the history of the previous one.
+1. **Boot**: Anyone can become an oracle by creating a new MPF token. This token will be started with the null hash and be uniquely identified by an id, the token-id. The oracle will also set the public key of the oracle in the token.
+2. **Update**: The oracle can update the MPF token by adding or removing facts from the database. This transaction will consume requests from contributorts and will update the knowledge hash in the token and potentially change the ownership of the token.
+3. **End**: The oracle can delete the MPF token, which will remove the token-id, so no other updates can be applied on it. Future versions of this sytem will allow to use a deleted token knowledge hash as a starting point for a new MPF token, so the knowledge can be transferred in a new token without losing the history of the previous one.
 
-### Knowledge Change Requests
+### Change Requests
 
-Knowledge contributors can send requests to the system address. They will be spent in the update transaction of the token they are referring to. The request will contain the key and the value to be added or removed from the knowledge database as well as the token-id of the knowledge token they wantt to be applied to.
-The request will also contain the public key hash of the contributor, so
+Facts contributors can send requests to the system address. They will be spent in one update token transaction of the token they are referring to. The request will contain the key and the value to be added or removed from the knowledge database as well as the token-id of the MPF token they wantt to be applied to.
+The request will also contain the public key of the requester, so
 - The request publisher can retract the request if needed.
-- The token owner knows how to restitute part of the value that is locked in the request to the contributor.
+- The oracle knows how to restitute part of the value that is locked in the request to the contributor.
 
 3 Transactions are possible involving requests
 
-1. **Request**: Anyone can create a request to add or remove knowledge from the database. The request will be stored in the blockchain state and can be consumed by the knowledge owner in the update transaction.
-2. **Retract**: The request publisher can retract the request in case the token owner does not accept it.
-3. **Update**: This is the same transaction as the update of the knowledge token, which consumes both a token and the requests that were targeting it.
+1. **Request**: Anyone can create a request to add or remove knowledge from the database. The request will be stored in the blockchain state and can be consumed by the oracle in the update transaction.
+2. **Retract**: The requester can retract the request in case the oracle does not accept it.
+3. **Update**: This is the same transaction as the update of the MPF token, which consumes both a token and the requests that were targeting it.
 
 ### Smart contracts
 
@@ -76,3 +110,36 @@ For each of these transactions, the smart contract will enforce rules to ensure 
   - The token owner is the one who is performing the end
 - `retract`:
   - The request publisher is the one who is performing the retract
+
+## Protocol example
+
+```mermaid
+
+sequenceDiagram
+    participant A as Alice
+    participant C as Bob
+    participant B as Blockchain
+    participant O as Oracle
+    participant Pub as Anyone
+
+    O->>B: Boot MPF Token X
+
+    A->>B: Request to Insert Fact A
+    C->>B: Request to Insert Fact B
+
+    O->>B: Update MPF Token X
+
+    Pub->>B: Observe MPF Token X
+    B-->>Pub: Return Facts A, B
+
+    A->>B: Delete Fact B Request
+    O->>B: Update MPF Token
+    Pub->>B: Observe MPF Token X
+    B-->>Pub: Return Fact A
+
+    C->>B: Delete Fact A Request
+    C->>B: Retract Change Request to Delete Fact A
+    O->>B: Update MPF Token X
+    Pub->>B: Observe MPF Token X
+    B-->>Pub: Return Fact A
+```
