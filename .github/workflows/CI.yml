@@ -50,4 +50,4 @@ jobs:
           export OGMIOS_PORT=1337
           cd off_chain
           npx ava
-          npx vitest --fileParallelism=false --threads=1 run
+          npx vitest --fileParallelism=false --maxConcurrency=1 run
