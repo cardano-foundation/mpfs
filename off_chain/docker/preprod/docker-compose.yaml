@@ -1,53 +1,7 @@
 services:
 
-  mpfsw:
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.signing
-
-    command:
-      - --port
-      - "3000"
-      - --provider
-      - yaci
-      - --yaci-store-host
-      - http://yaci-store-preprod:8080
-      - --ogmios-host
-      - "http://ogmios-preprod:1337"
-      - --seed
-      - /secrets/mnemonics.txt
-      - --database-path
-      - /data/mpfs.db
-      - --since-slot
-      - "94898393"
-      - --since-block-id
-      - "ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc1"
-    networks:
-      - ogmios-preprod # connect to ogmios-preprod
-      - yaci-store-preprod # connect to yaci-store-preprod
-      - ${TRAEFIK_NETWORK}
-    depends_on:
-      - ogmios-preprod
-      - yaci-store-preprod
-
-    ports:
-      - "${MPFSW_PORT:-3200}:3000"
-    restart: on-failure
-    volumes:
-      - ${SECRETS_DIR}:/secrets
-      - ${MPFSW_DIR}:/data
-    labels:
-      - traefik.docker.network=${TRAEFIK_NETWORK}
-      - traefik.http.routers.mpfsw.rule=(Host(`${MPFSW_HOST}`))
-      - traefik.http.routers.mpfsw.tls=true
-      - traefik.http.services.mpfsw.loadbalancer.server.port=3000
-      - traefik.http.routers.mpfsw.tls.certresolver=le
-      - traefik.http.routers.mpfsw.middlewares=auth
-      - "traefik.http.middlewares.auth.basicauth.users=hal:$$2a$$12$$jVCNxmow9xpzSACsGj72J.1S.fkmHCpwJUEbjBRYm5spHKScY1kIW"
   mpfs:
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile.signingless
+    image: ghcr.io/cardano-foundation/mpfs/mpfs:v1.1.0
 
     command:
       - --port
@@ -67,19 +21,17 @@ services:
     networks:
       - ogmios-preprod # connect to ogmios-preprod
       - yaci-store-preprod # connect to yaci-store-preprod
-      - ${TRAEFIK_NETWORK}
+      - web
     depends_on:
       - ogmios-preprod
       - yaci-store-preprod
 
-    ports:
-      - "${MPFS_PORT:-3210}:3000"
     restart: on-failure
     volumes:
       - ${MPFS_DIR}:/data
     labels:
-      - traefik.docker.network=${TRAEFIK_NETWORK}
-      - traefik.http.routers.mpfs.rule=(Host(`${MPFS_HOST}`))
+      - traefik.docker.network=web
+      - traefik.http.routers.mpfs.rule=(Host(`mpfs.plutimus.com`))
       - traefik.http.routers.mpfs.tls=true
       - traefik.http.services.mpfs.loadbalancer.server.port=3000
       - traefik.http.routers.mpfs.tls.certresolver=le
@@ -107,7 +59,7 @@ services:
       - ogmios-preprod # serve on 1337
 
   yaci-store-preprod:
-    image: bloxbean/yaci-store:2.0.0-beta1
+    image: bloxbean/yaci-store:2.0.0-beta4
     container_name: yaci-store-preprod
     environment:
       - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://yaci-store-db-preprod:5432/yaci_store?currentSchema=utxo_indexer}
@@ -115,9 +67,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
 
     volumes:
-      - ${NODE_DIR}/yaci-store/logs:/app/logs/
       - ./application.properties:/app/config/application.properties
-      - ${NODE_DIR}/node.socket:/ipc/node.socket
     logging:
       driver: "json-file"
       options:
@@ -126,7 +76,7 @@ services:
     restart: always
 
     networks:
-       - ${NODE_NETWORK} # N2N connection to cardano-node-preprod
+       - cardano-node-preprod # N2N connection to cardano-node-preprod
        - yaci-store-preprod # serve on 8080
        - yaci-store-db-preprod # connect to the db
 
@@ -139,7 +89,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-yaci_store_password}
 
     volumes:
-      - ${NODE_DIR}/yaci-store/db:/var/lib/postgresql/data
+      - yaci-store-db:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "sh -c 'pg_isready -U yaci -d yaci_store'" ]
       interval: 10s
@@ -153,6 +103,9 @@ services:
         max-file: "100"
     networks:
       - yaci-store-db-preprod # serve on 5432
+
+volumes:
+  yaci-store-db:
 
 networks:
     web:
