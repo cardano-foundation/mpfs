@@ -1,6 +1,29 @@
 # Introduction to MPFS
 
-_MPFS_ is an http service wrapping the functionalities from the [Merkle Patricia Forestry library](https://github.com/aiken-lang/merkle-patricia-forestry) in one smart contract tracking and controlling the merkle-tree history of changes and an off-chain transaction builder that helps building transactions to interact with the smart contract.
+## Merkle Patricia Forestry
+
+A Merkle Patricia Forestry (MPF) is a data structure that allows storing key-value pairs (facts) in a verifiable and immutable way on the a blockchain.
+For a primer on MPF, see [CF Presentation](https://cardanofoundation.org/blog/merkle-patricia-tries-deep-dive).
+
+Storing facts inside an MPF provides cryptographic proofs of inclusion and exclusion for each fact, allowing anyone to verify the integrity of the data. When an MPF is available inside a UTxO on the Cardano blockchain i.e., transactions can refer to it as input to pass smart contract validation.
+
+How to provide and access MPF's facts and how to publish the MPF root is left to be decided.
+MPFS takes some decisions to provide a complete solution to manage MPF tokens on Cardano.
+
+### Design choices to run MPF on Cardano
+
+- All modifications to an MPF root have to appear on-chain. This gives anyone with access to the blockchain history the ability to reconstruct the full history of changes and so the current facts.
+- All modifications must be consumed under a smart contract validation. This eliminates the burden to prove that an MPF contains only facts that are the result of modifications that have been on chain.
+- MPF are owned. This gives the smart contract the ability to operate on multiple MPF tokens, each controlled by a different user. Products of MPF roots and owners are referred to as MPF tokens from now on.
+- MPF token can be modified only by their owner. This gives full control to the owner on which facts are part of the MPF token. The owner of an MPF token is referred to as `oracle` from now on.
+- MPF tokens have a unique identifier. This gives the ability to address a specific MPF token inside a modification.
+- Specific MPF modifications are owned. This gives the modification requester the ability to retract modifications if they are not accepted by the owner. The owner of a modification request is referred to as `requester` from now on.
+
+## MPFS: the service
+_MPFS_ is an http service wrapping
+    - MPF operations from the [Merkle Patricia Forestry library](https://github.com/aiken-lang/merkle-patricia-forestry) in one smart contract to track and validate each MPF history of changes
+    - an off-chain transaction builder that helps building transactions to interact with the smart contract
+    - an indexer over the smart contract events to reconstruct and serve the MPF state
 
 It is designed to be used by anyone who wants to store and manage knowledge in a decentralized manner, allowing contributors to add or remove facts while ensuring the integrity and history of the knowledge database.
 
@@ -21,7 +44,7 @@ The mpfs service in itself is a typescript application so any nodejs supported p
 
 ## Getting started
 
-### Linux and docker
+### Docker
 
 The image is available on ghcr.io and can be pulled with the command:
 
@@ -30,6 +53,7 @@ docker pull ghcr.io/cardano-foundation/mpfs/mpfs:v1.1.0
 ```
 
 This is an expample of a working deployment: [mpfs in CF](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/docker-compose.yml)
+Consider sourcing [bootstrap.sh](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/bootstrap.sh) as mentioned in [setup instructions](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/README.md) to speedup the node syncing.
 
 ### Source
 
@@ -48,7 +72,7 @@ npx tsx src/service/signingless/main.ts --port 3000 \
 
 This will start the service on port 3000, using the Yaci store running on http://localhost:8080 and the Ogmios server running on http://localhost:1337. The database will be stored in the file `mpfs.db` in the current directory. The `since-slot` and `since-block-id` parameters are used to specify the starting point for the service to track events.
 
-> Be careful to start indexing before the token you are going to use was created. If you are creating a new token, just start 5 days ago.
+> Be careful to start indexing before the token you are going to use was created. If you are creating a new token, just start from nowish.
 
 ## Usage
 
