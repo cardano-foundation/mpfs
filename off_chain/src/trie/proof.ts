@@ -1,6 +1,25 @@
+/**
+ * Proof serialization for on-chain MPF validation.
+ *
+ * This module converts MPF proofs from their JavaScript representation
+ * to Plutus Data format suitable for on-chain validation.
+ *
+ * The proof structure matches the Aiken `Proof` type which is a list of steps:
+ * - Branch: ConStr0 with skip count and neighbors hash
+ * - Fork: ConStr1 with skip count and neighbor info (nibble, prefix, root)
+ * - Leaf: ConStr2 with skip count and neighbor (key, value)
+ * @module
+ */
+
 import { Proof } from '../mpf/lib';
 import { Data, mConStr0, mConStr1, mConStr2 } from '@meshsdk/core';
 
+/**
+ * Serialize a single proof step to Plutus Data format.
+ *
+ * @param step - The proof step from the MPF library
+ * @returns Plutus Data representation of the step
+ */
 const serializeStepJ = (step: Record<string, unknown>): Data => {
     if (step.type === 'leaf') {
         const skip = step.skip as number;
@@ -22,6 +41,15 @@ const serializeStepJ = (step: Record<string, unknown>): Data => {
     }
 };
 
+/**
+ * Serialize a complete MPF proof to Plutus Data format.
+ *
+ * Converts the proof to JSON and maps each step to its Plutus Data equivalent.
+ * The result can be used as a redeemer in the Modify transaction.
+ *
+ * @param proof - The MPF proof object
+ * @returns Array of Plutus Data representing the proof steps
+ */
 export const serializeProof = (proof: Proof): Data => {
     const json = proof.toJSON() as Array<Record<string, unknown>>;
     return json.map((item: Record<string, unknown>) => serializeStepJ(item));
