@@ -39,7 +39,6 @@ nav:
   - Architecture: architecture.md
   - Manuals:
       - Signingless: manual/signingless.md
-      - Signingful: manual/signingful.md
   - Code Documentation:
       - On-chain: code/on-chain.md
       - Off-chain: code/off-chain.md
