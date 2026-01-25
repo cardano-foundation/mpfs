@@ -5,8 +5,14 @@ import {
     generateMnemonic,
     MeshWallet
 } from '@meshsdk/core';
-import { sync } from '../../signing/client';
+import axios from 'axios';
 import { it } from 'vitest';
+
+const sync = async (host: string, blocks: number) => {
+    await axios.post(`${host}/indexer/wait-blocks`, {
+        n: blocks
+    });
+};
 import { withTempDir } from '../../../test/lib';
 import { validatePort } from '../../../lib';
 import { topup, yaciProvider } from '../../../transactions/context/lib';

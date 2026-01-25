@@ -27,29 +27,6 @@ wait_for_service service_name port:
         sleep 1
     done
 
-run-docker-E2E-tests:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    just build-on-chain
-    just build-off-chain
-    cd off_chain
-    export CHARLIE_PORT=$(shuf -i 1024-65535 -n 1)
-    export BOB_PORT=$(shuf -i 1024-65535 -n 1)
-    export ALICE_PORT=$(shuf -i 1024-65535 -n 1)
-    name=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
-    docker compose -f docker/docker-compose.yaml -p "$name" up  -d
-    down="docker compose -f docker/docker-compose.yaml -p $name down --volumes"
-    trap '$down' EXIT
-
-    just wait_for_service "charlie" "$CHARLIE_PORT"
-    just wait_for_service "bob" "$BOB_PORT"
-    just wait_for_service "alice" "$ALICE_PORT"
-    echo "All services are up and running."
-
-    npx vitest run -t "E2E Signing Tests"
-
-
-
 # shellcheck disable=SC2035
 run-tests pat:
     #!/usr/bin/env bash
@@ -74,7 +51,7 @@ test-all:
     export OGMIOS_PORT=1337
     cd off_chain
     npx ava
-    npx vitest --bail 1 --exclude '**/service/signing/**' run
+    npx vitest --bail 1 run
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash
@@ -150,7 +127,7 @@ test-docker:
     export OGMIOS_PORT=1337
     cd off_chain
     npx ava
-    npx vitest --fileParallelism=false --maxConcurrency=1 --exclude '**/service/signing/**' run
+    npx vitest --fileParallelism=false --maxConcurrency=1 run
 
 format:
     #!/usr/bin/env bash
