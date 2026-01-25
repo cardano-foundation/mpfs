@@ -1,20 +1,39 @@
-// NFT mint
-// This validator is instantiated with a script address
-// and a root datum.
-// The script address is the address we expect the token to be sent to.
-// The root is the datum we expect to be found in the token datum.
-
-// The validator will receive a redeemer with the following fields:
-// - asset: the hash of the output reference. This must be one of the transaction
-//      inputs and source of uniqueness for the asset name.
-// - owner: the public key of the owner of the token. This is not used in the
-//      validator, but it will be passed verbatim in the datum.
-
-// The validator will check that
-// - the target address is a script address
-// - the asset minted has quantity 1
-// - the asset has the name of the hash of the output reference in the redeemer
-// - the minted token has the owner and the root datum
+/// MPF Cage Validator - A self-custodial Merkle Patricia Forestry on Cardano.
+///
+/// This validator implements the "cage" pattern for managing NFTs with associated
+/// on-chain data structures. A caged token is an NFT locked at this script's address
+/// with a Merkle Patricia Forestry (MPF) root as part of its datum.
+///
+/// ## Minting Policy
+///
+/// When minting a new caged token, the validator ensures:
+/// - The asset name is derived from a consumed UTxO (ensuring uniqueness)
+/// - Exactly one token is minted
+/// - The token is sent to this script's address
+/// - The initial MPF root is empty
+///
+/// ## Spending Validator
+///
+/// The validator supports four operations:
+///
+/// - **Modify**: Owner updates the MPF by processing pending requests.
+///   Requires proofs for each request being folded into the MPF.
+///
+/// - **Contribute**: Links a Request UTxO to a State UTxO, validating
+///   that the request targets the correct token.
+///
+/// - **Retract**: Allows a request owner to reclaim their Request UTxO
+///   if the token owner hasn't accepted it.
+///
+/// - **End**: Burns the caged token, destroying the cage entirely.
+///
+/// ## Data Flow
+///
+/// 1. User creates a caged token via `Minting` (empty MPF root)
+/// 2. Others submit requests as separate UTxOs with `RequestDatum`
+/// 3. Owner accepts requests via `Modify`, updating the MPF root
+/// 4. Request owners can `Retract` unprocessed requests
+/// 5. Owner can `End` the cage when done
 
 use aiken/collection/list.{find, foldl, has, head}
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry, Proof, empty, root}
@@ -31,7 +50,16 @@ use types.{
   Modify, Request, RequestDatum, Retract, State, StateDatum, Update, UpdateRedeemer,
 }
 
+/// The main validator for caged MPF tokens.
+///
+/// This validator serves as both a minting policy and a spending validator,
+/// using the same script hash for both purposes. This ensures that minted
+/// tokens can only be sent to this script's address.
 validator mpfCage {
+  /// Minting policy: validates creation and destruction of caged tokens.
+  ///
+  /// - `Minting`: Creates a new caged token with an empty MPF root
+  /// - `Burning`: Allows burning (no additional validation needed)
   mint(redeemer: MintRedeemer, policyId: PolicyId, tx: Transaction) {
     trace @"minting": redeemer
     when redeemer is {
@@ -43,6 +71,13 @@ validator mpfCage {
     }
   }
 
+  /// Spending validator: validates operations on caged UTxOs.
+  ///
+  /// Dispatches to different validation logic based on the redeemer:
+  /// - `Retract`: Request owner reclaims their request
+  /// - `Contribute`: Links a request to a state UTxO
+  /// - `Modify`: Owner updates the MPF with pending requests
+  /// - `End`: Owner burns the caged token
   spend(
     maybeDatum: Option<CageDatum>,
     redeemer: UpdateRedeemer,
@@ -87,17 +122,22 @@ validator mpfCage {
   }
 }
 
+/// Extract the token from a transaction input by its output reference.
+///
+/// Finds the input matching the given output reference and extracts the
+/// single token from its value. Fails if the input is not found or
+/// doesn't contain exactly one non-ADA token.
 pub fn extractToken(what: OutputReference, tx: Transaction) {
-  // fail with no input for the output reference
   expect Some(input) =
     find(tx.inputs, fn(input) { input.output_reference == what })
-  // fail when the input does not contain only one token-id aside lovelaces
   expect Some(tokenId) = tokenFromValue(input.output.value)
   (input, tokenId)
 }
 
-// We do not check for quantities. We expect the minting policy and the ledger
-// to safeguard against any quantity different from (-1)
+/// Validate that the token is being burned.
+///
+/// Checks that the mint field contains the same token as the one being spent.
+/// The minting policy and ledger ensure the quantity is exactly -1.
 fn validateEnd(tokenId, tx) {
   let Transaction { mint, .. } = tx
   // fail when the mint does not contain only one token-id aside lovelaces
@@ -107,6 +147,10 @@ fn validateEnd(tokenId, tx) {
   True
 }
 
+/// Validate that the state owner has signed the transaction.
+///
+/// Checks that the owner's verification key hash is in the transaction's
+/// extra signatories list.
 fn validateOwnership(state: State, tx: Transaction) {
   let Transaction { extra_signatories, .. } = tx
   let State { owner, .. } = state
@@ -114,14 +158,21 @@ fn validateOwnership(state: State, tx: Transaction) {
   True
 }
 
+/// Validate that a request matches the token being updated.
+///
+/// Ensures the request's target token matches the token at the given
+/// output reference. This prevents requests from being applied to
+/// the wrong caged token.
 fn validRequest(request: Request, tokenRef: OutputReference, tx: Transaction) {
   let Request { requestToken, .. } = request
   let (_input, tokenId) = extractToken(tokenRef, tx)
-  // fail when the hinted input token-id is not the same as the one in the request
   expect requestToken == tokenId
   True
 }
 
+/// Helper to deconstruct a non-empty list with continuation.
+///
+/// Calls the continuation with the head and tail. Fails on empty list.
 fn uncons(list: List<a>, cont: fn(a, List<a>) -> b) -> b {
   when list is {
     [] -> fail
@@ -129,6 +180,11 @@ fn uncons(list: List<a>, cont: fn(a, List<a>) -> b) -> b {
   }
 }
 
+/// Create an update function for folding requests into the MPF.
+///
+/// Returns a function that, given an input and accumulator, checks if
+/// the input contains a Request targeting this token. If so, applies
+/// the request's operation to the MPF using the corresponding proof.
 fn mkUpdate(tokenId) {
   fn(input: Input, acc: (MerklePatriciaForestry, List<Proof>)) -> (
     MerklePatriciaForestry,
@@ -160,6 +216,16 @@ fn mkUpdate(tokenId) {
   }
 }
 
+/// Validate that the MPF root was correctly updated.
+///
+/// This is the core validation for the `Modify` operation. It:
+/// 1. Extracts the new root from the output datum
+/// 2. Folds all input requests into the current MPF using the provided proofs
+/// 3. Verifies the computed root matches the output's root
+/// 4. Ensures the token stays at the same script address
+///
+/// The proofs list must contain one proof per request being processed,
+/// in the same order as the requests appear in the inputs.
 fn validRootUpdate(
   state: State,
   input: Input,
@@ -169,25 +235,28 @@ fn validRootUpdate(
 ) {
   let Transaction { outputs, inputs, .. } = tx
   let State { root, .. } = state
-  // fail when there is not only one output with the token-id (impossible)
   expect Some(output) = head(outputs)
-  // fail when the output datum is not inline
   expect InlineDatum(state) = output.datum
-  // fail when the output datum is not a state
   expect StateDatum(State { root: newRoot, .. }) = state
 
-  // collect addendums
+  // Fold all requests into the MPF, consuming proofs as we go
   let (expectedNewRoot, _) =
     inputs |> foldl((mpf.from_root(root), proofs), mkUpdate(tokenId))
-  // fail when root was not updated as expected
+  // Verify the new root matches what we computed
   expect (mpf.root(expectedNewRoot) == newRoot)?
-  // fail when the output address is not the same as the input address
+  // Ensure the token stays locked at the same script
   expect
     output.address.payment_credential == input.output.address.payment_credential
-  // fail with no signature from the token-id owner
   True
 }
 
+/// Validate minting of a new caged token.
+///
+/// Ensures:
+/// - The asset name source (output reference) is consumed in the transaction
+/// - Exactly one token is minted
+/// - The token is sent to this script's address
+/// - The output datum contains an empty MPF root
 pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
   let Mint { asset } = minting
   let Transaction { outputs, mint, inputs, .. } = tx
@@ -214,7 +283,9 @@ pub fn validateMint(minting: Mint, policyId: PolicyId, tx: Transaction) {
   True
 }
 
-// tests //
+// ============================================================================
+// Tests
+// ============================================================================
 
 const testScriptAddress = from_script("counter_cage")
 
@@ -343,101 +414,3 @@ test canMint() {
     },
   )
 }
-// // Test that the script fails if the owner of the token-id-id hasn't signed
-// // the transaction
-// test missingSignature() fail {
-//   let datum = Some(State { owner: "owner", root: 0 })
-//   let input =
-//     Input {
-//       output_reference: test_tx_in,
-//       output: Output {
-//         address: test_script_address,
-//         value: test_value,
-//         datum: InlineDatum(datum),
-//         reference_script: None,
-//       },
-//     }
-//   let output =
-//     Output {
-//       address: test_script_address,
-//       value: test_value,
-//       datum: InlineDatum(State { owner: "new-owner", root: 1 }),
-//       reference_script: None,
-//     }
-//   counter_cage.spend(
-//     datum,
-//     Void,
-//     test_tx_in,
-//     Transaction {
-//       ..transaction.placeholder,
-//       outputs: [output],
-//       extra_signatories: ["owner-other"],
-//       inputs: [input],
-//     },
-//   )
-// }
-
-// // Test that the script fails if the root was not updated accordingly
-// test wrongDatum() fail {
-//   let datum = Some(State { owner: "owner", root: 0 })
-//   let input =
-//     Input {
-//       output_reference: test_tx_in,
-//       output: Output {
-//         address: test_script_address,
-//         value: test_value,
-//         datum: InlineDatum(datum),
-//         reference_script: None,
-//       },
-//     }
-//   let output =
-//     Output {
-//       address: test_script_address,
-//       value: test_value,
-//       datum: InlineDatum(State { owner: "new-owner", root: 2 }),
-//       reference_script: None,
-//     }
-//   counter_cage.spend(
-//     datum,
-//     Void,
-//     test_tx_in,
-//     Transaction {
-//       ..transaction.placeholder,
-//       outputs: [output],
-//       extra_signatories: ["owner"],
-//       inputs: [input],
-//     },
-//   )
-// }
-
-// test tokenNotCaged() fail {
-//   let datum = Some(State { owner: "owner", root: 0 })
-//   let input =
-//     Input {
-//       output_reference: test_tx_in,
-//       output: Output {
-//         address: test_script_address,
-//         value: test_value,
-//         datum: InlineDatum(datum),
-//         reference_script: None,
-//       },
-//     }
-//   let output =
-//     Output {
-//       address: from_script("wrong_script_address"),
-//       value: test_value,
-//       datum: InlineDatum(State { owner: "new-owner", root: 1 }),
-//       reference_script: None,
-//     }
-//   counter_cage.spend(
-//     datum,
-//     Void,
-//     test_tx_in,
-//     Transaction {
-//       ..transaction.placeholder,
-//       outputs: [output],
-//       extra_signatories: ["owner"],
-//       inputs: [input],
-//     },
-//   )
-// }

@@ -18,10 +18,10 @@
     cardano-addresses = {
       url = "github:intersectMBO/cardano-addresses?ref=4.0.0";
     };
-
+    mkdocs.url = "github:paolino/dev-assets?dir=mkdocs";
   };
 
-  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli, cardano-addresses }:
+  outputs = { self, nixpkgs, flake-utils, cardano-node-runtime, yaci-cli, cardano-addresses, mkdocs }:
     let
       mkOutputs = system:
         let
@@ -31,6 +31,7 @@
           cardano-cli = node-pkgs.cardano-cli;
           cardano-submit-api = node-pkgs.cardano-submit-api;
           cardano-address = cardano-addresses.packages.${system}."cardano-addresses:exe:cardano-address";
+          mkdocsPkgs = mkdocs.packages.${system};
         in {
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
@@ -43,6 +44,8 @@
               nodePackages.npm
               asciinema
               cardano-address
+              mkdocsPkgs.from-nixpkgs
+              mkdocsPkgs.markdown-callouts
             ];
             shellHook = ''
 

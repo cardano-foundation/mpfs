@@ -1,0 +1,46 @@
+site_name: Merkle Patricia Forestry Service (MPFS)
+site_url: https://cardano-foundation.github.io/mpfs/
+repo_url: https://github.com/cardano-foundation/mpfs
+docs_dir: docs-mkdocs
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+  features:
+    - navigation.indexes
+    - toc.integrate
+    - content.code.copy
+    - navigation.path
+
+plugins:
+  - search
+
+markdown_extensions:
+  - callouts
+  - pymdownx.snippets:
+      base_path: !relative
+      check_paths: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Manuals:
+      - Signingless: manual/signingless.md
+      - Signingful: manual/signingful.md
+  - Code Documentation:
+      - On-chain: code/on-chain.md
+      - Off-chain: code/off-chain.md
+  - API Reference:
+      - Swagger UI: swagger-ui.md
