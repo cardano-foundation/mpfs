@@ -17,7 +17,8 @@ plugins:
   - search
 
 markdown_extensions:
-  - callouts
+  - admonition
+  - pymdownx.details
   - pymdownx.snippets:
       base_path: !relative
       check_paths: true

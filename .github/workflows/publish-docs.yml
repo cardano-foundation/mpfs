@@ -25,7 +25,6 @@ jobs:
     - name: Install mkdocs and dependencies
       run: |
         pip install mkdocs-material
-        pip install mkdocs-callouts
         pip install pymdown-extensions
 
     - name: Build documentation
