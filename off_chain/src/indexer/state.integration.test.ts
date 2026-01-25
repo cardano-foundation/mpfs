@@ -23,6 +23,13 @@ import {
     yaciProvider
 } from '../transactions/context/lib';
 
+const ogmiosPort = process.env.OGMIOS_PORT || '1337';
+const ogmiosUrl = `http://localhost:${ogmiosPort}`;
+const yaciStorePort = process.env.YACI_STORE_PORT || '8080';
+const yaciStoreUrl = `http://localhost:${yaciStorePort}`;
+const yaciAdminPort = process.env.YACI_ADMIN_PORT || '10000';
+const yaciAdminUrl = `http://localhost:${yaciAdminPort}`;
+
 describe('State and Indexer', () => {
     it('can restart with indexer', { timeout: 20000 }, async () => {
         const checkpointsSize = 10;
@@ -45,7 +52,7 @@ describe('State and Indexer', () => {
                 const indexer = await createIndexer(
                     stateManager,
                     process,
-                    'http://localhost:1337'
+                    ogmiosUrl
                 );
                 await indexer.waitBlocks(0);
                 await indexer.close();
@@ -74,7 +81,7 @@ describe('State and Indexer', () => {
                 const indexer = await createIndexer(
                     reopenedState,
                     process,
-                    'http://localhost:1337'
+                    ogmiosUrl
                 );
                 await indexer.waitBlocks(1);
                 await indexer.close();
@@ -115,7 +122,7 @@ describe('State and Indexer', () => {
                     const indexer = await createIndexer(
                         stateManager,
                         process,
-                        'http://localhost:1337'
+                        ogmiosUrl
                     );
                     await indexer.waitBlocks(0);
                     await indexer.close();
@@ -146,7 +153,7 @@ describe('State and Indexer', () => {
                     const indexer = await createIndexer(
                         reopenedState,
                         process,
-                        'http://localhost:1337'
+                        ogmiosUrl
                     );
                     await indexer.waitBlocks(1);
                     await indexer.close();
@@ -333,10 +340,7 @@ const withSetup = async (
     ) => Promise<void>
 ): Promise<void> => {
     const { address, policyId } = getCagingScript();
-    const provider = yaciProvider(
-        `http://localhost:8080`,
-        `http://localhost:10000`
-    );
+    const provider = yaciProvider(yaciStoreUrl, yaciAdminUrl);
     const mnemonics = maybeMnemonic ? maybeMnemonic : generateMnemonic();
     await withLevelDB(tmpDir, async db => {
         await withTrieManager(db, async tries => {
@@ -345,10 +349,10 @@ const withSetup = async (
                 await withIndexer(
                     state,
                     process,
-                    'http://localhost:1337',
+                    ogmiosUrl,
                     async indexer => {
                         const context = mkContext(
-                            'http://localhost:1337',
+                            ogmiosUrl,
                             provider,
                             mnemonics,
                             indexer,

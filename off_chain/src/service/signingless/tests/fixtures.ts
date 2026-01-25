@@ -41,7 +41,7 @@ export async function withRunner(test) {
 
     const provider = yaciProvider(yaciStoreHost, yaciAdminHost);
 
-    const ogmiosPort = process.env.OGMIOS_HOST || '1337';
+    const ogmiosPort = process.env.OGMIOS_PORT || '1337';
     const ogmiosPortNumber = validatePort(ogmiosPort, 'OGMIOS_PORT');
     const ogmiosHost = `http://localhost:${ogmiosPortNumber}`;
 
