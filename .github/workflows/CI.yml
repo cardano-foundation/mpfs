@@ -2,6 +2,7 @@ name: Continuous Integration of mpfs
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -10,44 +11,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Set up aiken environment
         uses: aiken-lang/setup-aiken@v1
         with:
           version: v1.1.15
+
       - name: Test on-chain code
         run: |
           cd on_chain
           aiken check
+
       - name: Build on-chain code
         run: |
           cd on_chain
           aiken build
-      - name: Set up E2E environment
+
+      - name: Set up yaci-cli
         run: |
-          curl -L https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6/yaci-cli-0.10.6-linux-X64.zip -o yaci-cli-0.10.6-linux-X64.zip
-          unzip yaci-cli-0.10.6-linux-X64.zip
+          curl -L https://github.com/bloxbean/yaci-devkit/releases/download/v0.10.6/yaci-cli-0.10.6-linux-X64.zip -o yaci-cli.zip
+          unzip yaci-cli.zip
           cd yaci-cli-0.10.6
-          ./yaci-cli up --enable-yaci-store > /dev/null &
+          ./yaci-cli up --enable-yaci-store &
+
       - name: Set up javascript environment
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+
       - name: Set up off-chain code
         run: |
           cd off_chain
           npm install
+
       - name: Install just
-        run: |
-          sudo apt update
-          sudo apt install -y just
+        uses: extractions/setup-just@v2
+
       - name: Run tests
-        run: |
-          just wait_for_service "yaci-store" 8080
-          just wait_for_service "yaci-admin" 10000
-          just wait_for_service "ogmios" 1337
-          export YACI_STORE_PORT=8080
-          export YACI_ADMIN_PORT=10000
-          export OGMIOS_PORT=1337
-          cd off_chain
-          npx ava
-          npx vitest --fileParallelism=false --maxConcurrency=1 run
+        run: just test-all

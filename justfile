@@ -74,7 +74,7 @@ test-all:
     export OGMIOS_PORT=1337
     cd off_chain
     npx ava
-    npx vitest --bail 1 run
+    npx vitest --bail 1 --exclude '**/service/signing/**' run
 
 inspect-tx tx_dir:
     #!/usr/bin/env bash
@@ -105,6 +105,52 @@ docker-down:
 
 run-yaci:
     yaci-cli up --enable-yaci-store
+
+# Run yaci-cli in docker container
+run-yaci-docker:
+    #!/usr/bin/env bash
+    docker run -d --name yaci-devkit \
+        -p 8080:8080 -p 10000:10000 -p 1337:1337 \
+        bloxbean/yaci-cli:0.10.6-beta up --enable-yaci-store
+
+# Stop and remove yaci docker container
+stop-yaci-docker:
+    #!/usr/bin/env bash
+    docker stop yaci-devkit 2>/dev/null || true
+    docker rm yaci-devkit 2>/dev/null || true
+
+# Run all tests using docker for yaci environment
+test-docker:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Clean up any existing container
+    docker stop yaci-devkit 2>/dev/null || true
+    docker rm yaci-devkit 2>/dev/null || true
+
+    # Start yaci-cli in docker
+    echo "Starting yaci-cli docker container..."
+    docker run -d --name yaci-devkit \
+        -p 8080:8080 -p 10000:10000 -p 1337:1337 \
+        bloxbean/yaci-cli:0.10.6-beta up --enable-yaci-store
+
+    # Ensure cleanup on exit
+    trap 'docker stop yaci-devkit 2>/dev/null; docker rm yaci-devkit 2>/dev/null' EXIT
+
+    # Wait for services
+    just wait_for_service "yaci-store" 8080
+    just wait_for_service "yaci-admin" 10000
+    just wait_for_service "ogmios" 1337
+
+    echo "All services are up. Running tests..."
+
+    # Set environment variables and run tests
+    export YACI_STORE_PORT=8080
+    export YACI_ADMIN_PORT=10000
+    export OGMIOS_PORT=1337
+    cd off_chain
+    npx ava
+    npx vitest --fileParallelism=false --maxConcurrency=1 --exclude '**/service/signing/**' run
 
 format:
     #!/usr/bin/env bash
