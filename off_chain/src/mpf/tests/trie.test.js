@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -349,6 +350,346 @@ test('Trie.delete: from Branch with 2+ neighbors', async t => {
   t.is(await trie.store.size(), 4);
 });
 
+test('Trie.delete+insert round-trip: single key update restores root', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+    const originalSize = trie.size;
+
+    const change = { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: '🍏' };
+
+    await updateTrie(trie, change);
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(trie.size, originalSize, `size should be restored (store=${!!store})`);
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `root hash should be restored after update round-trip (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.delete+insert round-trip: multiple keys', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const changes = [
+      { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: 'new_apple' },
+      { type: 'update', key: 'banana[uid: 218]', oldValue: '🍌', newValue: 'new_banana' },
+      { type: 'update', key: 'cherry[uid: 0]', oldValue: '🍒', newValue: 'new_cherry' },
+    ];
+
+    for (const change of changes) {
+      await updateTrie(trie, change);
+    }
+
+    for (const change of [...changes].reverse()) {
+      await updateTrie(trie, invertUnslottedChange(change));
+    }
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `root hash should be restored after multiple update round-trips (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.delete+insert round-trip: single insert then rollback', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const change = { type: 'insert', key: 'dragonfruit[uid: 99]', newValue: '🐉' };
+
+    await updateTrie(trie, change);
+    t.is(trie.size, FRUITS_LIST.length + 1);
+
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(trie.size, FRUITS_LIST.length);
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `root hash should be restored after insert round-trip (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.delete+insert round-trip: single delete then rollback', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const change = { type: 'delete', key: 'apple[uid: 58]', oldValue: '🍎' };
+
+    await updateTrie(trie, change);
+    t.is(trie.size, FRUITS_LIST.length - 1);
+
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(trie.size, FRUITS_LIST.length);
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `root hash should be restored after delete round-trip (store=${!!store})`
+    );
+  }));
+});
+
+// These tests use updateTrie + invertUnslottedChange to mirror the exact
+// production code path from change.ts and safeTrie.ts rollback.
+
+test('Trie.updateTrie round-trip: update change type', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const change = { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: '🍏' };
+
+    await updateTrie(trie, change);
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `update round-trip should restore root (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.updateTrie round-trip: insert change type', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const change = { type: 'insert', key: 'dragonfruit[uid: 99]', newValue: '🐉' };
+
+    await updateTrie(trie, change);
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `insert round-trip should restore root (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.updateTrie round-trip: delete change type', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const change = { type: 'delete', key: 'apple[uid: 58]', oldValue: '🍎' };
+
+    await updateTrie(trie, change);
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `delete round-trip should restore root (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.updateTrie round-trip: multiple update changes in sequence', async t => {
+  await Promise.all([undefined, new Store(tmpFilename())].map(async store => {
+    const trie = await Trie.fromList(FRUITS_LIST, store);
+    const originalHash = trie.hash.toString('hex');
+
+    const changes = [
+      { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: 'new_apple' },
+      { type: 'update', key: 'banana[uid: 218]', oldValue: '🍌', newValue: 'new_banana' },
+      { type: 'update', key: 'cherry[uid: 0]', oldValue: '🍒', newValue: 'new_cherry' },
+    ];
+
+    for (const change of changes) {
+      await updateTrie(trie, change);
+    }
+
+    for (const change of [...changes].reverse()) {
+      await updateTrie(trie, invertUnslottedChange(change));
+    }
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `multiple update round-trips should restore root (store=${!!store})`
+    );
+  }));
+});
+
+test('Trie.updateTrie round-trip: loaded from store (lazy children)', async t => {
+  const store = new Store(tmpFilename());
+  await store.ready();
+
+  const original = await Trie.fromList(FRUITS_LIST, store);
+  const originalHash = original.hash.toString('hex');
+
+  // Load from store — children are lazy stubs { hash: Buffer }, not Trie instances
+  const trie = await Trie.load(store);
+  t.is(trie.hash.toString('hex'), originalHash, 'loaded hash matches');
+
+  const change = { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: '🍏' };
+
+  await updateTrie(trie, change);
+  await updateTrie(trie, invertUnslottedChange(change));
+
+  t.is(
+    trie.hash.toString('hex'),
+    originalHash,
+    'loaded trie: root should be restored after update round-trip'
+  );
+});
+
+test('Trie.updateTrie round-trip: loaded from store, multiple updates', async t => {
+  const store = new Store(tmpFilename());
+  await store.ready();
+
+  const original = await Trie.fromList(FRUITS_LIST, store);
+  const originalHash = original.hash.toString('hex');
+
+  const trie = await Trie.load(store);
+
+  const changes = [
+    { type: 'update', key: 'apple[uid: 58]', oldValue: '🍎', newValue: 'new_apple' },
+    { type: 'update', key: 'banana[uid: 218]', oldValue: '🍌', newValue: 'new_banana' },
+    { type: 'update', key: 'cherry[uid: 0]', oldValue: '🍒', newValue: 'new_cherry' },
+  ];
+
+  for (const change of changes) {
+    await updateTrie(trie, change);
+  }
+
+  for (const change of [...changes].reverse()) {
+    await updateTrie(trie, invertUnslottedChange(change));
+  }
+
+  t.is(
+    trie.hash.toString('hex'),
+    originalHash,
+    'loaded trie: root should be restored after multiple update round-trips'
+  );
+});
+
+test('Trie.updateTrie round-trip: large trie (500+ entries)', async t => {
+  const largeList = [];
+  for (let i = 0; i < 600; i++) {
+    largeList.push({
+      key: `credential_${randomBytes(20).toString('hex')}[slot:${i}]`,
+      value: randomBytes(32).toString('hex'),
+    });
+  }
+
+  const store = new Store(tmpFilename());
+  await store.ready();
+
+  let trie = new Trie(store);
+  for (const { key, value } of largeList) {
+    await trie.insert(key, value);
+  }
+  const originalHash = trie.hash.toString('hex');
+
+  const targets = [largeList[0], largeList[100], largeList[299], largeList[500]];
+
+  for (const { key, value } of targets) {
+    const change = { type: 'update', key, oldValue: value, newValue: 'updated_' + value.slice(8) };
+
+    await updateTrie(trie, change);
+    await updateTrie(trie, invertUnslottedChange(change));
+
+    t.is(
+      trie.hash.toString('hex'),
+      originalHash,
+      `large trie: root should be restored after updating key ${key.slice(0, 30)}...`
+    );
+  }
+});
+
+test('Trie.updateTrie round-trip: large trie, batch of updates then batch rollback', async t => {
+  const largeList = [];
+  for (let i = 0; i < 600; i++) {
+    largeList.push({
+      key: `credential_${randomBytes(20).toString('hex')}[slot:${i}]`,
+      value: randomBytes(32).toString('hex'),
+    });
+  }
+
+  const store = new Store(tmpFilename());
+  await store.ready();
+
+  let trie = new Trie(store);
+  for (const { key, value } of largeList) {
+    await trie.insert(key, value);
+  }
+  const originalHash = trie.hash.toString('hex');
+
+  const changes = [
+    { type: 'update', key: largeList[50].key, oldValue: largeList[50].value, newValue: 'updated_50' },
+    { type: 'update', key: largeList[200].key, oldValue: largeList[200].value, newValue: 'updated_200' },
+    { type: 'update', key: largeList[400].key, oldValue: largeList[400].value, newValue: 'updated_400' },
+  ];
+
+  // Forward: apply all updates (like temporaryUpdate does)
+  for (const change of changes) {
+    await updateTrie(trie, change);
+  }
+
+  // Rollback in reverse order (like safeTrie.rollback does)
+  for (const change of [...changes].reverse()) {
+    await updateTrie(trie, invertUnslottedChange(change));
+  }
+
+  t.is(
+    trie.hash.toString('hex'),
+    originalHash,
+    'large trie: root should be restored after batch of updates + rollback'
+  );
+});
+
+test('Trie.updateTrie round-trip: large trie loaded from store', async t => {
+  const largeList = [];
+  for (let i = 0; i < 600; i++) {
+    largeList.push({
+      key: `credential_${randomBytes(20).toString('hex')}[slot:${i}]`,
+      value: randomBytes(32).toString('hex'),
+    });
+  }
+
+  const store = new Store(tmpFilename());
+  await store.ready();
+
+  let builder = new Trie(store);
+  for (const { key, value } of largeList) {
+    await builder.insert(key, value);
+  }
+  const originalHash = builder.hash.toString('hex');
+
+  // Load from store (lazy children) — exactly like production
+  const trie = await Trie.load(store);
+  t.is(trie.hash.toString('hex'), originalHash, 'loaded hash matches');
+
+  const change = {
+    type: 'update',
+    key: largeList[300].key,
+    oldValue: largeList[300].value,
+    newValue: 'UPDATED_VALUE',
+  };
+
+  await updateTrie(trie, change);
+  await updateTrie(trie, invertUnslottedChange(change));
+
+  t.is(
+    trie.hash.toString('hex'),
+    originalHash,
+    'large loaded trie: root should be restored after update round-trip'
+  );
+});
+
 test.skip('Trie.delete: whole trie in any order', async t => {
   const initial_size = FRUITS_LIST.length;
 
@@ -542,6 +883,54 @@ test('Proof.toAiken (kumquat)', async t => {
 // -----------------------------------------------------------------------------
 // ---------------------------------------------------------------- Test Helpers
 // -----------------------------------------------------------------------------
+
+// Mirrors updateTrie from ../../trie/change.ts exactly
+async function updateTrie(trie, change) {
+  let proof;
+  switch (change.type) {
+    case 'insert': {
+      await trie.insert(change.key, change.newValue);
+      proof = await trie.prove(change.key);
+      break;
+    }
+    case 'delete': {
+      proof = await trie.prove(change.key);
+      await trie.delete(change.key);
+      break;
+    }
+    case 'update': {
+      proof = await trie.prove(change.key);
+      await trie.delete(change.key);
+      await trie.insert(change.key, change.newValue);
+      break;
+    }
+  }
+
+  // Assert: after each updateTrie, the store's __root__ must match trie.hash
+  const storedRoot = await trie.store.get(
+    '__root__',
+    (_, str) => Buffer.from(str, 'hex'),
+  );
+  const expectedRoot = trie.hash ?? helpers.NULL_HASH;
+  assert(
+    storedRoot.equals(expectedRoot),
+    `store __root__ (${storedRoot.toString('hex').slice(0, 16)}) != trie.hash (${expectedRoot.toString('hex').slice(0, 16)}) after ${change.type}`
+  );
+
+  return proof;
+}
+
+// Mirrors invertUnslottedChange from ../../trie/change.ts exactly
+function invertUnslottedChange(change) {
+  switch (change.type) {
+    case 'insert':
+      return { type: 'delete', key: change.key, oldValue: change.newValue };
+    case 'delete':
+      return { type: 'insert', key: change.key, newValue: change.oldValue };
+    case 'update':
+      return { type: 'update', key: change.key, oldValue: change.newValue, newValue: change.oldValue };
+  }
+}
 
 function unindent(str) {
   const lines = str[0].split('\n').filter(n => n.length > 0);

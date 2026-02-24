@@ -138,9 +138,10 @@ export class Trie {
     }
 
     if (this.isRoot) {
+      const rootVal = (this.hash ?? NULL_HASH).toString('hex');
       await this.store.put(
         ROOT_KEY,
-        { serialise: () => (this.hash ?? NULL_HASH).toString('hex') }
+        { serialise: () => rootVal }
       );
     }
 
@@ -286,7 +287,9 @@ export class Trie {
       }
     }
 
-    const self = Object.assign(this, await target.from(...args.concat(store)))
+    const created = await target.from(...args.concat(store));
+
+    const self = Object.assign(this, created);
 
     self.isRoot = isRoot;
 
@@ -802,8 +805,11 @@ export class Branch extends Trie {
    * @throws {AssertionError} when a value already exists at the given key.
    */
   async insert(key, value) {
+    const hashBefore = this.hash;
+    const sizeBefore = this.size;
+
     try {
-      return await this.store.batch(async () => {
+      await this.store.batch(async () => {
         const loop = async (node, path, parents) => {
           const prefix = node.prefix.length > 0
             ? commonPrefix([node.prefix, path])
@@ -870,6 +876,18 @@ export class Branch extends Trie {
 
         return this;
       });
+
+      // Post-condition (success only): size must have increased by 1
+      assert(
+        this.size === sizeBefore + 1,
+        `Branch.insert: size should be ${sizeBefore + 1} but is ${this.size}`
+      );
+      assert(
+        !this.hash.equals(hashBefore),
+        `Branch.insert: hash should have changed`
+      );
+
+      return this;
     } catch(e) {
       // Ensures that children aren't kept in-memory when an insertion failed.
       await this.save();
@@ -892,6 +910,9 @@ export class Branch extends Trie {
    */
   async delete(key) {
     key = typeof key === 'string' ? Buffer.from(key) : key;
+
+    const hashBefore = this.hash;
+    const sizeBefore = this.size;
 
     function nonEmptyChildren(node) {
       return node.children.flatMap((n, ix) => n === undefined ? [] : [[n, ix]]);

@@ -166,17 +166,20 @@ export async function updateTrie(
     change: UnslottedChange
 ): Promise<Proof> {
     switch (change.type) {
-        case 'insert':
+        case 'insert': {
             await trie.insert(change.key, change.newValue);
             return await trie.prove(change.key);
-        case 'delete':
+        }
+        case 'delete': {
             const proof = await trie.prove(change.key);
             await trie.delete(change.key);
             return proof;
-        case 'update':
+        }
+        case 'update': {
             const oldProof = await trie.prove(change.key);
             await trie.delete(change.key);
             await trie.insert(change.key, change.newValue);
             return oldProof;
+        }
     }
 }

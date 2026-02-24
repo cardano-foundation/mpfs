@@ -45,6 +45,20 @@ export class Store {
       throw e;
     }
 
+    const ops = this.#batch;
+
+    // Assert: the last __root__ write in a batch must not be NULL_HASH
+    // (Trie.from() inside into(Trie) spuriously writes NULL_HASH, but
+    // the real root save must overwrite it before the batch commits)
+    const rootWrites = ops.filter(o => o.type === 'put' && o.key === '__root__');
+    if (rootWrites.length > 0) {
+      const lastRootWrite = rootWrites[rootWrites.length - 1];
+      assert(
+        lastRootWrite.value !== NULL_HASH.toString('hex'),
+        `batch would commit __root__ = NULL_HASH (${rootWrites.length} root writes in batch)`
+      );
+    }
+
     await this.#db.batch(this.#batch);
 
     this.#batch = undefined;
@@ -63,7 +77,7 @@ export class Store {
     if (this.#batch !== undefined) {
       this.#batch.push({ type: 'put', key, value });
     } else {
-      this.#db.put(key, value);
+      await this.#db.put(key, value);
     }
   }
 
@@ -73,7 +87,7 @@ export class Store {
     if (this.#batch !== undefined) {
       this.#batch.push({ type: 'del', key });
     } else {
-      this.#db.del(key);
+      await this.#db.del(key);
     }
   }
 

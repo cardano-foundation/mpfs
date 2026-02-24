@@ -171,7 +171,7 @@ export async function updateTransaction(
 
             await tx.complete();
         } catch (error) {
-            trie.rollback();
+            await trie.rollback();
             releaseIndexer();
             throw new Error(
                 `Failed to create or submit a transaction: ${error}`

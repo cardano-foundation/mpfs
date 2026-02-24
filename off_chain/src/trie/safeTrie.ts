@@ -13,6 +13,7 @@
  * @module
  */
 
+import assert from 'node:assert';
 import { Proof } from '../mpf/lib';
 import { Buffer } from 'buffer';
 import { ValueSlotted, createFacts } from './fatcs';
@@ -28,6 +29,8 @@ import {
 import { createLoaded } from '../trie/loaded';
 import { createHash } from 'crypto';
 import { nullHash, rootHex } from '../lib';
+
+const rootStr = (hash: Buffer | null) => rootHex(hash) || nullHash;
 
 /**
  * Interface for a safe trie with rollback support.
@@ -74,6 +77,7 @@ export const createSafeTrie = async (
     const loaded = await createLoaded(tokenId, db);
     const facts = await createFacts(db);
     let tempChanges: UnslottedChange[] = [];
+    let rootBeforeSpeculation: string | null = null;
     return {
         /**
          * Get the value for a key from the trie.
@@ -91,6 +95,9 @@ export const createSafeTrie = async (
          * @returns The proof for on-chain validation
          */
         temporaryUpdate: async (change: UnslottedChange): Promise<Proof> => {
+            if (tempChanges.length === 0) {
+                rootBeforeSpeculation = rootStr(loaded.trie.hash);
+            }
             tempChanges.push(change);
             return await updateTrie(loaded.trie, change);
         },
@@ -102,10 +109,15 @@ export const createSafeTrie = async (
          */
         rollback: async (): Promise<void> => {
             for (const change of tempChanges.reverse()) {
-                const inverted = invertUnslottedChange(change);
-                await updateTrie(loaded.trie, inverted);
+                await updateTrie(loaded.trie, invertUnslottedChange(change));
             }
+            const finalRoot = rootStr(loaded.trie.hash);
+            assert(
+                finalRoot === rootBeforeSpeculation,
+                `rollback failed: root=${finalRoot} but pre-speculation was ${rootBeforeSpeculation}`
+            );
             tempChanges = [];
+            rootBeforeSpeculation = null;
         },
 
         /**
