@@ -122,7 +122,7 @@ export const mkContext = (
         signingWallet: signingWallet,
         addressWallet: async (walletAddress: string) =>
             await observingWallet(walletAddress),
-        newTxBuilder: () => getTxBuilder(provider),
+        newTxBuilder: () => getTxBuilder(provider, ogmios),
         fetchTokens: async () => await state.tokens.getTokens(),
         fetchToken: async (tokenId: string) =>
             await state.tokens.getToken(tokenId),

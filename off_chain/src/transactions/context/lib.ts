@@ -12,8 +12,9 @@ import blueprint from '../../plutus.json';
 import { retry } from '../../test/lib';
 import { WalletInfo } from './wallet';
 import { Context } from '../context';
+import { mkOgmiosEvaluator } from '../../submitter';
 
-export function getTxBuilder(provider: Provider) {
+export function getTxBuilder(provider: Provider, ogmios: string) {
     return new MeshTxBuilder({
         fetcher: provider,
         submitter: provider,
@@ -21,8 +22,10 @@ export function getTxBuilder(provider: Provider) {
         // during complete() — replaces the hardcoded redeemer budgets
         // with the actual phase-2 cost. Fixes #15 (IsValid mismatch on
         // tokens whose trie depth pushes per-request cost above the
-        // hardcoded constants).
-        evaluator: provider
+        // hardcoded constants). We talk to ogmios directly rather than
+        // through yaci-store's evaluate proxy, which has been observed
+        // returning empty 500s on Plutus V3 txs.
+        evaluator: mkOgmiosEvaluator(ogmios)
     });
 }
 

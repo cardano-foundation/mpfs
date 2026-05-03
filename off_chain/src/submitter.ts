@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { sleepMs } from './lib';
+import { Action, IEvaluator } from '@meshsdk/common';
 
 const connectWebSocket = async (address: string) => {
     return new Promise<WebSocket>((resolve, reject) => {
@@ -47,6 +48,7 @@ export type Client = {
     close: () => void;
     reply: (f: (string) => Promise<void>) => void;
     submitTx: (txHex: string) => void;
+    evaluateTx: (txHex: string) => void;
 };
 
 export const createClient = (client: WebSocket): Client => {
@@ -66,6 +68,13 @@ export const createClient = (client: WebSocket): Client => {
                 'submitTransaction',
                 { transaction: { cbor: txHex } },
                 'submitTransaction'
+            );
+        },
+        evaluateTx: (txHex: string) => {
+            rpc(
+                'evaluateTransaction',
+                { transaction: { cbor: txHex } },
+                'evaluateTransaction'
             );
         },
         reply: (f: (string) => Promise<void>) => {
@@ -89,6 +98,80 @@ export class TxSubmissionError extends Error {
         this.ogmiosError = ogmiosError;
     }
 }
+
+type OgmiosValidator = {
+    purpose:
+        | 'spend'
+        | 'mint'
+        | 'publish'
+        | 'withdraw'
+        | 'vote'
+        | 'propose';
+    index: number;
+};
+
+type OgmiosBudget = { memory: number; cpu: number };
+
+type OgmiosEvalEntry = {
+    validator: OgmiosValidator;
+    budget: OgmiosBudget;
+};
+
+const ogmiosPurposeToTag = (
+    p: OgmiosValidator['purpose']
+): Action['tag'] => {
+    switch (p) {
+        case 'spend':
+            return 'SPEND';
+        case 'mint':
+            return 'MINT';
+        case 'publish':
+            return 'CERT';
+        case 'withdraw':
+            return 'REWARD';
+        case 'vote':
+            return 'VOTE';
+        case 'propose':
+            return 'PROPOSE';
+    }
+};
+
+/**
+ * IEvaluator backed by ogmios `evaluateTransaction` (JSON-RPC over the
+ * same websocket the submitter uses). Bypasses yaci-store's evaluate
+ * proxy, which has been observed returning empty 500s on Plutus V3
+ * txs. Returns Mesh's redeemer-shape { tag, index, budget: {mem,steps} }.
+ */
+export const mkOgmiosEvaluator = (ogmios: string): IEvaluator => ({
+    evaluateTx: async (txHex: string) => {
+        const client = await connect(ogmios);
+        return new Promise<Omit<Action, 'data'>[]>((resolve, reject) => {
+            client.reply(async response => {
+                if (response.id !== 'evaluateTransaction') return;
+                if (response.error) {
+                    client.close();
+                    reject(
+                        new Error(
+                            `ogmios evaluateTransaction error: ${JSON.stringify(
+                                response.error
+                            )}`
+                        )
+                    );
+                    return;
+                }
+                const entries: OgmiosEvalEntry[] = response.result;
+                const actions: Omit<Action, 'data'>[] = entries.map(e => ({
+                    tag: ogmiosPurposeToTag(e.validator.purpose),
+                    index: e.validator.index,
+                    budget: { mem: e.budget.memory, steps: e.budget.cpu }
+                }));
+                client.close();
+                resolve(actions);
+            });
+            client.evaluateTx(txHex);
+        });
+    }
+});
 
 export const submitTransaction = async (
     ogmios,
