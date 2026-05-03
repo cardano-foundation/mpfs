@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 import { Context, mkContext } from '../../transactions/context';
 import { bootTransaction } from '../../transactions/boot';
 import { requestTx } from '../../transactions/request';
@@ -26,6 +27,50 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import blueprint from '../../plutus.json';
 import { retractTransaction } from '../../transactions/retract';
+import { log, Log } from '../../log';
+
+declare global {
+    // Express 5: extend Request to carry the per-request logger
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace Express {
+        interface Request {
+            log: Log;
+        }
+    }
+}
+
+const httpLogging = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void => {
+    const requestId = randomUUID();
+    const reqLog = log.child({ component: 'http', request_id: requestId });
+    req.log = reqLog;
+    res.setHeader('X-Request-Id', requestId);
+
+    const start = Date.now();
+    let errorBody: unknown = undefined;
+    const origJson: (body: unknown) => Response = res.json.bind(res);
+    res.json = ((body: unknown) => {
+        if (res.statusCode >= 500) errorBody = body;
+        return origJson(body);
+    }) as Response['json'];
+
+    res.on('finish', () => {
+        const fields: Record<string, unknown> = {
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            duration_ms: Date.now() - start
+        };
+        if (errorBody !== undefined) fields.error_body = errorBody;
+        if (res.statusCode >= 500) reqLog.error('http_request', fields);
+        else if (res.statusCode >= 400) reqLog.warn('http_request', fields);
+        else reqLog.info('http_request', fields);
+    });
+    next();
+};
 
 const swagger = app => {
     const __filename = fileURLToPath(import.meta.url);
@@ -134,11 +179,7 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
     const app = express();
 
     app.use(express.json()); // Ensure JSON parsing middleware is applied
-    // Middleware to log HTTP requests
-    // app.use((req, res, next) => {
-    //     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    //     next();
-    // });
+    app.use(httpLogging);
 
     swagger(app);
 
@@ -298,19 +339,36 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
             Array.isArray(requests) ? requests : [requests].filter(Boolean)
         ) as string[];
 
+        const txLog = req.log.child({
+            component: 'tx_build',
+            endpoint: 'update-token',
+            token_id: tokenId
+        });
         try {
             const { unsignedTransaction, value: mpfRoot } =
                 await updateTransaction(
                     context,
                     address,
                     tokenId,
-                    requireds.map(ref => unmkOutputRefId(ref))
+                    requireds.map(ref => unmkOutputRefId(ref)),
+                    txLog
                 );
+            txLog.info('tx_build_ok', {
+                token_id: tokenId,
+                requireds_count: requireds.length,
+                mpf_root: mpfRoot,
+                unsigned_tx_size: unsignedTransaction.length
+            });
             res.json({
                 unsignedTransaction,
                 mpfRoot
             });
         } catch (error) {
+            txLog.error('tx_build_failed', {
+                token_id: tokenId,
+                requireds_count: requireds.length,
+                error: error.message
+            });
             res.status(500).json({
                 error: 'Error creating update transaction',
                 details: error.message

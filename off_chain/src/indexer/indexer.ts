@@ -3,7 +3,7 @@ import { Mutex } from 'async-mutex';
 import { RollbackKey } from './state/rollbackkey';
 import { Checkpoints } from './state/checkpoints';
 import { inputToOutputRef, sleepMs } from '../lib';
-import { Process } from './process';
+import { BlockCtx, Process } from './process';
 import { State } from './state';
 
 const connectWebSocket = async (address: string) => {
@@ -181,11 +181,18 @@ export const createIndexer = async (
 
                                     inputRefs
                                 );
-                                if (response.result.block.transactions)
+                                if (response.result.block.transactions) {
+                                    const blockCtx: BlockCtx = {
+                                        id: response.result.block.id,
+                                        height:
+                                            response.result.block.height ??
+                                            null
+                                    };
                                     for (const tx of response.result.block
                                         .transactions) {
-                                        await process(slot, tx);
+                                        await process(slot, tx, blockCtx);
                                     }
+                                }
                             }
                             client.nextBlock();
                             break;

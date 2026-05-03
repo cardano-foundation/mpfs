@@ -8,6 +8,7 @@ import {
     Provider,
     yaciProvider
 } from '../../transactions/context/lib';
+import { log, logLevel } from '../../log';
 
 async function setup() {
     try {
@@ -119,11 +120,20 @@ async function main() {
         ogmios,
         since,
         async () => {
-            console.log(`Server is running on port ${portNumber}`);
-            console.log('Press Ctrl+C to stop the server');
+            log.info('service_started', {
+                component: 'service',
+                port: portNumber,
+                ogmios,
+                database,
+                logs_path: logs,
+                log_level: logLevel
+            });
             await new Promise<void>(resolve => {
                 process.on('SIGINT', () => {
-                    console.log('Shutting down server...');
+                    log.info('service_shutdown', {
+                        component: 'service',
+                        port: portNumber
+                    });
                     resolve();
                 });
             });

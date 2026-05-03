@@ -29,6 +29,7 @@ import {
     WithTxHash,
     WithUnsignedTransaction
 } from './context/lib';
+import { Log } from '../log';
 
 /** Estimated execution cost for the Modify redeemer (State spending) */
 const guessingLowCost = {
@@ -93,7 +94,8 @@ export async function updateTransaction(
     context: Context,
     walletAddress: string,
     tokenId: string,
-    requireds: OutputRef[]
+    requireds: OutputRef[],
+    txLog?: Log
 ): Promise<WithUnsignedTransaction<string | null>> {
     const { utxos, collateral, signerHash } =
         await context.addressWallet(walletAddress);
@@ -119,6 +121,22 @@ export async function updateTransaction(
             outputRefEqual(present.resolvedRef, required)
         )
     );
+
+    txLog?.debug('tx_build_start', {
+        token_id: tokenId,
+        requireds_count: requireds.length,
+        promoteds_count: promoteds.length,
+        state_input: {
+            txHash: outputRef.txHash,
+            outputIndex: outputRef.outputIndex
+        },
+        request_inputs: promoteds.map(p => ({
+            txHash: p.resolvedRef.txHash,
+            outputIndex: p.resolvedRef.outputIndex
+        })),
+        plutus_state_cost: guessingLowCost,
+        plutus_request_cost: guessingRequestCost
+    });
 
     let proofs: Proof[] = [];
     let newRoot: string | null = null;
