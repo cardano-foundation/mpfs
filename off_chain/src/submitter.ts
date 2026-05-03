@@ -81,6 +81,15 @@ export const createClient = (client: WebSocket): Client => {
     return rpcClient;
 };
 
+export class TxSubmissionError extends Error {
+    public readonly ogmiosError: unknown;
+    constructor(message: string, ogmiosError: unknown) {
+        super(message);
+        this.name = 'TxSubmissionError';
+        this.ogmiosError = ogmiosError;
+    }
+}
+
 export const submitTransaction = async (
     ogmios,
     txHex: string
@@ -92,8 +101,9 @@ export const submitTransaction = async (
             if (response.id === 'submitTransaction') {
                 if (response.error) {
                     reject(
-                        new Error(
-                            `Transaction submission failed: ${response.error.message}`
+                        new TxSubmissionError(
+                            `Transaction submission failed: ${response.error.message}`,
+                            response.error
                         )
                     );
                 } else {

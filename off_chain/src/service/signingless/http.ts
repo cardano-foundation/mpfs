@@ -1,5 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
+import { resolveTxHash } from '@meshsdk/core';
+import { deserializeTx } from '@meshsdk/core-csl';
+import { TxSubmissionError } from '../../submitter';
 import { Context, mkContext } from '../../transactions/context';
 import { bootTransaction } from '../../transactions/boot';
 import { requestTx } from '../../transactions/request';
@@ -38,6 +41,43 @@ declare global {
         }
     }
 }
+
+type SubmitTxMeta = {
+    txid: string | null;
+    tx_size_bytes: number;
+    inputs_count: number | null;
+    outputs_count: number | null;
+    redeemers_count: number | null;
+    validity_tag: boolean | null;
+};
+
+const describeSignedTx = (txHex: string): SubmitTxMeta => {
+    const meta: SubmitTxMeta = {
+        txid: null,
+        tx_size_bytes: typeof txHex === 'string' ? txHex.length / 2 : 0,
+        inputs_count: null,
+        outputs_count: null,
+        redeemers_count: null,
+        validity_tag: null
+    };
+    if (typeof txHex !== 'string' || txHex.length === 0) return meta;
+    try {
+        meta.txid = resolveTxHash(txHex);
+    } catch {
+        // best-effort
+    }
+    try {
+        const tx = deserializeTx(txHex);
+        meta.inputs_count = tx.body().inputs().len();
+        meta.outputs_count = tx.body().outputs().len();
+        const redeemers = tx.witness_set().redeemers();
+        meta.redeemers_count = redeemers ? redeemers.len() : 0;
+        meta.validity_tag = tx.is_valid();
+    } catch {
+        // best-effort
+    }
+    return meta;
+};
 
 const httpLogging = (
     req: Request,
@@ -353,12 +393,6 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
                     requireds.map(ref => unmkOutputRefId(ref)),
                     txLog
                 );
-            txLog.info('tx_build_ok', {
-                token_id: tokenId,
-                requireds_count: requireds.length,
-                mpf_root: mpfRoot,
-                unsigned_tx_size: unsignedTransaction.length
-            });
             res.json({
                 unsignedTransaction,
                 mpfRoot
@@ -397,13 +431,30 @@ function mkAPI(topup: TopUp | undefined, context: Context) {
 
     app.post('/transaction', async (req, res) => {
         const { signedTransaction } = req.body;
+        const submitLog = req.log.child({
+            component: 'tx_submit',
+            endpoint: 'POST /transaction'
+        });
+        const meta = describeSignedTx(signedTransaction);
+        submitLog.info('tx_submit_start', meta);
         try {
             const txHash = await context.submitTx(signedTransaction);
+            submitLog.info('tx_submit_ok', { ...meta, txid: txHash });
             res.status(200).json({ txHash });
         } catch (error) {
+            const ogmiosError =
+                error instanceof TxSubmissionError
+                    ? error.ogmiosError
+                    : undefined;
+            submitLog.error('tx_submit_failed', {
+                ...meta,
+                error: error.message,
+                ogmios_error: ogmiosError
+            });
             res.status(500).json({
                 error: 'Error submitting transaction',
-                details: error.message
+                details: error.message,
+                ogmiosError
             });
         }
     });

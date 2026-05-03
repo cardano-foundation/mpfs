@@ -16,7 +16,8 @@ import {
     mConStr0,
     mConStr1,
     mConStr2,
-    mOutputReference
+    mOutputReference,
+    resolveTxHash
 } from '@meshsdk/core';
 
 import { Context } from './context';
@@ -199,8 +200,25 @@ export async function updateTransaction(
     }
     await context.trie(tokenId, onTrie);
     releaseIndexer();
+    const unsignedTransaction = tx.txHex;
+    let txid: string | null = null;
+    try {
+        txid = resolveTxHash(unsignedTransaction);
+    } catch (e) {
+        txLog?.warn('tx_hash_compute_failed', {
+            error: (e as Error).message
+        });
+    }
+    txLog?.info('tx_build_ok', {
+        token_id: tokenId,
+        requireds_count: requireds.length,
+        promoteds_count: promoteds.length,
+        txid,
+        mpf_root: newRoot,
+        unsigned_tx_size: unsignedTransaction.length
+    });
     return {
-        unsignedTransaction: tx.txHex,
+        unsignedTransaction,
         value: newRoot
     };
 }
