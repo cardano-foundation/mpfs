@@ -16,7 +16,13 @@ import { Context } from '../context';
 export function getTxBuilder(provider: Provider) {
     return new MeshTxBuilder({
         fetcher: provider,
-        submitter: provider
+        submitter: provider,
+        // Auto-correct plutus exec units via ogmios evaluateTransaction
+        // during complete() — replaces the hardcoded redeemer budgets
+        // with the actual phase-2 cost. Fixes #15 (IsValid mismatch on
+        // tokens whose trie depth pushes per-request cost above the
+        // hardcoded constants).
+        evaluator: provider
     });
 }
 
