@@ -63,7 +63,7 @@ export class Store {
     if (this.#batch !== undefined) {
       this.#batch.push({ type: 'put', key, value });
     } else {
-      this.#db.put(key, value);
+      await this.#db.put(key, value);
     }
   }
 
@@ -73,7 +73,7 @@ export class Store {
     if (this.#batch !== undefined) {
       this.#batch.push({ type: 'del', key });
     } else {
-      this.#db.del(key);
+      await this.#db.del(key);
     }
   }
 

@@ -14,7 +14,7 @@ import { retract } from '../transactions/retract';
 import { Context } from '../transactions/context';
 import { firstOutputRef } from '../lib';
 import { mkOutputRefId } from '../outputRef';
-import { sync, withContext } from '../transactions/transactions.test';
+import { sync, withContext } from '../transactions/fixtures';
 import type { LiveCostModels } from './recomputeScriptDataHash';
 import {
     LiveCostModelsIncomplete,

@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRollbacks } from './rollbacks';
 import { RollbackKey } from './rollbackkey';
 import * as fc from 'fast-check';
-import { withLevelDB } from '../../trie.test';
-import { withTempDir } from '../../test/lib';
+import { withTempDir, withLevelDB } from '../../test/lib';
 
 const withTempLevelDB = async (tmpDir, callback) => {
     await withTempDir(async tempDir => {

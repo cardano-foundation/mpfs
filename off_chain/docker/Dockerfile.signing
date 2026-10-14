@@ -1,5 +1,9 @@
 # Use the official Node.js image as the base image
-FROM node:18-alpine
+FROM node:18.20.8-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/cardano-foundation/mpfs" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}"
 
 # Set the working directory inside the container
 
@@ -7,7 +11,7 @@ FROM node:18-alpine
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy the rest of the application code to the working directory
 COPY src .

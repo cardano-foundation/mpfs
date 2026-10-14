@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { withTempDir } from '../test/lib';
-import { withLevelDB } from '../trie.test';
+import { withTempDir, withLevelDB } from '../test/lib';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { createProcess } from './process';
@@ -100,7 +99,7 @@ describe('State and Indexer', () => {
     });
     it(
         'can restart after rolling back the db by hand',
-        { timeout: 20000, retry: 3 },
+        { timeout: 20000 },
         async () => {
             const checkpointsSize = null;
             const { address, policyId } = getCagingScript();
@@ -128,7 +127,7 @@ describe('State and Indexer', () => {
                     await indexer.close();
                     const cps =
                         await stateManager.checkpoints.getAllCheckpoints();
-                    rollback = cps[Math.floor(Math.random() * cps.length)];
+                    rollback = cps[Math.floor(cps.length / 2)];
                     await stateManager.rollback(rollback.slot);
                     await stateManager.close();
                 });
@@ -176,7 +175,7 @@ describe('State and Indexer', () => {
     );
     it(
         'can restart after rolling back the db by hand and contains one empty token',
-        { timeout: 60000, retry: 3 },
+        { timeout: 60000 },
         async () => {
             let rollback: Checkpoint | undefined = undefined;
             let tokenId: string | undefined = undefined;
@@ -235,7 +234,7 @@ describe('State and Indexer', () => {
     };
     it(
         'can restart after rolling back the db by hand and contains one full token',
-        { timeout: 60000, retry: 3 },
+        { timeout: 60000 },
         async () => {
             let tokenId: string | undefined = undefined;
             let points: {

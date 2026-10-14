@@ -42,7 +42,7 @@ jobs:
       - name: Set up off-chain code
         run: |
           cd off_chain
-          npm install
+          npm ci
 
       - name: Install just
         uses: extractions/setup-just@v2
