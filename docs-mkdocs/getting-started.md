@@ -17,12 +17,12 @@ The MPFS service in itself is a TypeScript application so any Node.js supported 
 The image is available on ghcr.io and can be pulled with the command:
 
 ```bash
-docker pull ghcr.io/cardano-foundation/mpfs/mpfs:v1.1.0
+docker pull ghcr.io/cardano-foundation/mpfs/mpfs:v1.3.1@sha256:7ae4f6dbadde0f823371a0aba6173807e89d7d2167de5db9bfd72951e9df524b
 ```
 
-This is an example of a working deployment: [mpfs in CF](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/docker-compose.yml)
+This is an example of a working deployment: [mpfs in CF](https://github.com/cardano-foundation/hal/blob/main/infrastructure/mpfs/docker-compose.yml)
 
-Consider sourcing [bootstrap.sh](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/bootstrap.sh) as mentioned in [setup instructions](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/README.md) to speedup the node syncing.
+For a fresh node, follow the [setup instructions](https://github.com/cardano-foundation/hal/blob/main/infrastructure/mpfs/README.md) and their [bootstrap script](https://github.com/cardano-foundation/hal/blob/main/infrastructure/mpfs/bootstrap.sh) to speed up syncing. An existing deployment upgrade uses its current node database.
 
 ## From Source
 
@@ -30,14 +30,14 @@ Alternatively, you can run the service from source. To do so, you need to have N
 
 ```bash
 git clone https://github.com/cardano-foundation/mpfs
-cd off_chain
-npm install
+cd mpfs/off_chain
+npm ci
 npx tsx src/service/signingless/main.ts --port 3000 \
     --provider yaci --yaci-store-host http://localhost:8080 \
     --ogmios-host http://localhost:1337 \
     --database-path ./mpfs.db \
     --since-slot 94898393 \
-    --since-block-id ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc
+    --since-block-id ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc1
 ```
 
 This will start the service on port 3000, using the Yaci store running on `http://localhost:8080` and the Ogmios server running on `http://localhost:1337`. The database will be stored in the file `mpfs.db` in the current directory. The `since-slot` and `since-block-id` parameters are used to specify the starting point for the service to track events.
@@ -49,4 +49,3 @@ This will start the service on port 3000, using the Yaci store running on `http:
 
 - [Signingless API Reference](swagger-ui.md)
 - [Signingless Manual](manual/signingless.md)
-- [Signingful Manual](manual/signingful.md)

@@ -34,23 +34,23 @@ MPFS enables:
 ### Using Docker
 
 ```bash
-docker pull ghcr.io/cardano-foundation/mpfs/mpfs:v1.1.0
+docker pull ghcr.io/cardano-foundation/mpfs/mpfs:v1.3.1@sha256:7ae4f6dbadde0f823371a0aba6173807e89d7d2167de5db9bfd72951e9df524b
 ```
 
-See the [deployment guide](https://github.com/cardano-foundation/hal/blob/main/docs/deployment/mpfs/README.md) for full setup instructions.
+See the [deployment guide](https://github.com/cardano-foundation/hal/blob/main/infrastructure/mpfs/README.md) for full setup instructions.
 
 ### From Source
 
 ```bash
 git clone https://github.com/cardano-foundation/mpfs
 cd mpfs/off_chain
-npm install
+npm ci
 npx tsx src/service/signingless/main.ts --port 3000 \
     --provider yaci --yaci-store-host http://localhost:8080 \
     --ogmios-host http://localhost:1337 \
     --database-path ./mpfs.db \
     --since-slot 94898393 \
-    --since-block-id ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc
+    --since-block-id ef94934f8eb129ebf07eeaab007b81ecb1bc58b121d19ac0ffe81f928bf56cc1
 ```
 
 ### Development with Nix
