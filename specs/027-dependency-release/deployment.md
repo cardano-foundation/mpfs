@@ -22,13 +22,13 @@ At the operator's additional request, the two MPFS preprod Cardano nodes were up
 
 Each node reached 100% sync, Ogmios reconnected, and Yaci reported synced/receiving blocks. MPFS needed a controlled restart after its dependency connection was interrupted. Post-upgrade unsigned script construction/evaluation passed independently on both deployments using actual Ogmios cost-model vectors 332/332/350, digest `8430db226d71e399a2bb0e119e983b36f252fc7da25f339b444d0de792255ec2`; neither transaction was signed or submitted.
 
-Final post-node-upgrade observation is pending. No terminal acceptance is recorded yet.
+Observation logs and their computed summaries are retained with the operator receipts below. Final rollout acceptance is recorded in [the receipt PR](https://github.com/cardano-foundation/mpfs/pull/28) after the observations complete.
 
 ## Operator receipts and limits
 
 Execution records live under `/code/mpfs-review-27-20261014/execution/`, including the full test logs, transaction journey, image readback, per-host snapshots and sampled observation logs. Epyc MPFS backups are under `/srv/prod-hot/services/mpfs-compose/receipts/pr27-20261014`; Foundation backups are under `/home/paolino/deployment-receipts/mpfs-pr27-20261014`. These are operator-host paths, not public downloadable artifacts. Node upgrade receipts include configuration/image/checkpoint records, not complete node database backups. Node downgrade database compatibility was not tested.
 
-Seven of eight targeted Dependabot alerts closed after merge; bundled tar alert #235 remains open. npm audit still reports 94 entries, including three critical package entries (tar, tinypool and vitest). This release does not claim complete critical remediation.
+Seven of eight targeted Dependabot alerts closed after merge; bundled tar alert #235 remains open. npm audit still reports 94 entries, including three critical package entries (tar, tinypool and vitest). The current GitHub scan has five open critical alerts: two tinypool alerts, bundled tar, and docs-only shell-quote/proxy-addr alerts. This release does not claim complete critical remediation.
 
 Automatic MPFS WebSocket recovery after a node restart was not demonstrated; controlled restart restored service. Foundation deploys from the exact merged HAL revision in a detached checkout, preserving its divergent local main branch.
 
