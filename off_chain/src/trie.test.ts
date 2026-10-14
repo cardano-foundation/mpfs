@@ -1,24 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { withTempDir } from './test/lib';
+import { withTempDir, withLevelDB } from './test/lib';
 import { createTrieManager, TrieManager } from './trie';
 import { Store, Trie } from './mpf/lib';
 import { Level } from 'level';
 import { createLoaded } from './trie/loaded';
-
-export async function withLevelDB(
-    tmpDir,
-    callback: (db: Level<any, any>) => Promise<void>
-) {
-    const db = new Level(tmpDir, { valueEncoding: 'json' });
-    try {
-        await callback(db);
-    } catch (error) {
-        console.error('Error during LevelDB operation:', error);
-        throw error;
-    } finally {
-        await db.close();
-    }
-}
 
 describe('Trie', () => {
     it('can close and reopen without errors', async () => {

@@ -1,3 +1,4 @@
+import { Level } from 'level';
 import { rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -33,3 +34,18 @@ export const retry = async (
         }
     }
 };
+
+export async function withLevelDB(
+    tmpDir,
+    callback: (db: Level<any, any>) => Promise<void>
+) {
+    const db = new Level(tmpDir, { valueEncoding: 'json' });
+    try {
+        await callback(db);
+    } catch (error) {
+        console.error('Error during LevelDB operation:', error);
+        throw error;
+    } finally {
+        await db.close();
+    }
+}

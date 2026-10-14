@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { withTempDir } from '../test/lib';
-import { withLevelDB } from '../trie.test';
+import { withTempDir, withLevelDB } from '../test/lib';
 import { createState, State, withState } from './state';
 import { createTrieManager, TrieManager, withTrieManager } from '../trie';
 import { RollbackKey } from './state/rollbackkey';

@@ -290,7 +290,7 @@ export const createIndexer = async (
             const targetHeight = currentHeight + n;
             await new Promise<void>(resolve => {
                 const checkHeight = () => {
-                    if (blockHeight === targetHeight) {
+                    if (blockHeight !== null && blockHeight >= targetHeight) {
                         resolve();
                     } else {
                         setTimeout(checkHeight, 100);

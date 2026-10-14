@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RollbackKey } from './rollbackkey';
 import * as fc from 'fast-check';
-import { withTempDir } from '../../test/lib';
-import { withLevelDB } from '../../trie.test';
+import { withTempDir, withLevelDB } from '../../test/lib';
 import { Checkpoint, createCheckpoints } from './checkpoints';
 
 function mkHash(string: string): string {
