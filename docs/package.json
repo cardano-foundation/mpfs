@@ -44,5 +44,9 @@
   },
   "engines": {
     "node": ">=18.0"
+  },
+  "resolutions": {
+    "websocket-driver": "0.7.5",
+    "shell-quote": "1.8.4"
   }
 }
