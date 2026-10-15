@@ -1,0 +1,243 @@
+{
+  "implementation": {
+    "at": "2026-10-15T12:44:59.511Z",
+    "source": "da8779bb101e8660055d713b8ff566dd3243c09e",
+    "imageId": "sha256:ddc607d2f882c343a6c1c3822bfe8bc621986ba039cf4231349f86e3bc0c5cef",
+    "lockSha256": "988d2f8ec2d1a9741c74ad71d3b4f17c317fa47c1fca314de07813655cb7915c",
+    "axios": "1.20.0",
+    "validatorHash": "c1e392ee7da9415f946de9d2aef9607322b47d6e84e8142ef0c340bf",
+    "compiledHexTextSha256": "0ee6aa6ecf8169d2ea0052de7229f705ac2acd299f8cb4b0698dae5f2811542b"
+  },
+  "targetedGitHubRows": [
+    {
+      "number": 194,
+      "ghsa": "GHSA-35jp-ww65-95wh",
+      "range": ">= 1.0.0, < 1.16.0",
+      "firstPatched": "1.16.0"
+    },
+    {
+      "number": 190,
+      "ghsa": "GHSA-3g43-6gmg-66jw",
+      "range": ">= 1.0.0, < 1.15.2",
+      "firstPatched": "1.15.2"
+    },
+    {
+      "number": 188,
+      "ghsa": "GHSA-hfxv-24rg-xrqf",
+      "range": ">= 1.0.0, < 1.16.0",
+      "firstPatched": "1.16.0"
+    },
+    {
+      "number": 187,
+      "ghsa": "GHSA-p92q-9vqr-4j8v",
+      "range": ">= 1.0.0, < 1.16.0",
+      "firstPatched": "1.16.0"
+    },
+    {
+      "number": 186,
+      "ghsa": "GHSA-j5f8-grm9-p9fc",
+      "range": ">= 1.0.0, < 1.16.0",
+      "firstPatched": "1.16.0"
+    },
+    {
+      "number": 185,
+      "ghsa": "GHSA-777c-7fjr-54vf",
+      "range": ">= 1.7.0, < 1.16.0",
+      "firstPatched": "1.16.0"
+    },
+    {
+      "number": 173,
+      "ghsa": "GHSA-pmwg-cvhr-8vh7",
+      "range": ">= 1.0.0, < 1.15.1",
+      "firstPatched": "1.15.1"
+    },
+    {
+      "number": 165,
+      "ghsa": "GHSA-q8qp-cvcw-x6jj",
+      "range": ">= 1.0.0, < 1.15.2",
+      "firstPatched": "1.15.2"
+    },
+    {
+      "number": 153,
+      "ghsa": "GHSA-pf86-5x62-jrwf",
+      "range": ">= 1.0.0, < 1.15.1",
+      "firstPatched": "1.15.1"
+    },
+    {
+      "number": 149,
+      "ghsa": "GHSA-6chq-wfr3-2hj9",
+      "range": ">= 1.0.0, < 1.15.1",
+      "firstPatched": "1.15.1"
+    },
+    {
+      "number": 60,
+      "ghsa": "GHSA-43fc-jf86-j433",
+      "range": ">= 1.0.0, <= 1.13.4",
+      "firstPatched": "1.13.5"
+    },
+    {
+      "number": 16,
+      "ghsa": "GHSA-4hjh-wcwx-xvwj",
+      "range": ">= 1.0.0, < 1.12.0",
+      "firstPatched": "1.12.0"
+    }
+  ],
+  "lockedAxiosBefore": [
+    {
+      "path": "node_modules/axios",
+      "version": "0.28.1"
+    },
+    {
+      "path": "node_modules/@cardano-sdk/key-management/node_modules/axios",
+      "version": "1.9.0"
+    },
+    {
+      "path": "node_modules/@meshsdk/provider/node_modules/axios",
+      "version": "1.9.0"
+    }
+  ],
+  "lockedAxiosAfter": [
+    {
+      "path": "node_modules/axios",
+      "version": "1.20.0"
+    },
+    {
+      "path": "node_modules/@cardano-sdk/util-dev/node_modules/axios",
+      "version": "0.28.1",
+      "residualHighRows": 12
+    }
+  ],
+  "regression": {
+    "oldInnerVitestExit": 1,
+    "oldFailures": 3,
+    "oldPasses": 5,
+    "newInnerVitestExit": 0,
+    "newPasses": 8,
+    "description": "Bounded data URL size-limit checks at all three consumer resolutions; ordinary real HTTP GET/POST payloads and400rejection checked.",
+    "wrapperLimit": "Initial temporary wrapper masked inner failures; actual RED assertions retained. Repaired wrapper failed its deliberate failure control before the full candidate gate."
+  },
+  "fullCandidateGate": {
+    "avaPassed": 45,
+    "avaExistingSkipped": 2,
+    "vitestFiles": 19,
+    "vitestPassed": 92,
+    "innerExits": [
+      0,
+      0
+    ],
+    "wrapperExit": 0,
+    "aikenCheckExit": 0,
+    "aikenBuildExit": 0
+  },
+  "hosted": {
+    "head": "da8779bb101e8660055d713b8ff566dd3243c09e",
+    "service": "https://github.com/cardano-foundation/mpfs/actions/runs/38736969534",
+    "docs": "https://github.com/cardano-foundation/mpfs/actions/runs/38736969284",
+    "conclusion": "success"
+  },
+  "audit": {
+    "at": "2026-10-15T12:45:29.907Z",
+    "before": {
+      "info": 0,
+      "low": 11,
+      "moderate": 18,
+      "high": 62,
+      "critical": 3,
+      "total": 94
+    },
+    "after": {
+      "info": 0,
+      "low": 11,
+      "moderate": 17,
+      "high": 62,
+      "critical": 3,
+      "total": 93
+    },
+    "newHighCriticalAdvisories": [],
+    "removedHighCriticalAdvisories": [
+      {
+        "key": "axios|https://github.com/advisories/GHSA-q8qp-cvcw-x6jj",
+        "package": "axios",
+        "url": "https://github.com/advisories/GHSA-q8qp-cvcw-x6jj",
+        "severity": "high",
+        "range": ">=1.0.0 <1.15.2"
+      },
+      {
+        "key": "axios|https://github.com/advisories/GHSA-777c-7fjr-54vf",
+        "package": "axios",
+        "url": "https://github.com/advisories/GHSA-777c-7fjr-54vf",
+        "severity": "high",
+        "range": ">=1.7.0 <1.16.0"
+      },
+      {
+        "key": "axios|https://github.com/advisories/GHSA-35jp-ww65-95wh",
+        "package": "axios",
+        "url": "https://github.com/advisories/GHSA-35jp-ww65-95wh",
+        "severity": "high",
+        "range": ">=1.0.0 <1.16.0"
+      }
+    ],
+    "limit": "npm audit propagates package counts; these are not GitHub alert-row counts. Remaining Axios0.x advisories persist."
+  },
+  "livePreprod": {
+    "at": "2026-10-15T12:51:31.908Z",
+    "network": "preprod",
+    "confirmed": [
+      {
+        "name": "boot",
+        "txHash": "1da45955253106cf652e55b5d9a05e5ec60c8d23d8d1f52463a2439e0f1bc2b6",
+        "slot": 136385129,
+        "blockHeight": 5295195
+      },
+      {
+        "name": "request-insert",
+        "txHash": "d75942024c5e0a794789baea8833679d7c618de37fb3f5d055f1332f2e6e245c",
+        "slot": 136385202,
+        "blockHeight": 5295198
+      },
+      {
+        "name": "update",
+        "txHash": "ba1e833d1b295045b14412c75da3fff540eec36c3ff130b923617a8b99077401",
+        "slot": 136385236,
+        "blockHeight": 5295201
+      },
+      {
+        "name": "request-for-retraction",
+        "txHash": "d76d38e4c18aa1a665f7fcca2d3866ca133e9e303cfb6fa888ddf954644e7771",
+        "slot": 136385313,
+        "blockHeight": 5295205
+      },
+      {
+        "name": "retract",
+        "txHash": "c953f57048ec39a1aa50a22479f718477a9ba82016c3bce9067196bb3063a21c",
+        "slot": 136385349,
+        "blockHeight": 5295207
+      },
+      {
+        "name": "end-dedicated-token",
+        "txHash": "b6998a3f2bb4867f035a1ac7fe3b50092a5db036791d35e7f033226625883d72",
+        "slot": 136385406,
+        "blockHeight": 5295210
+      }
+    ]
+  },
+  "stateComparison": {
+    "existingTokens": 13,
+    "unchangedFromBefore": true,
+    "liveCandidateStatesFactsEqual": true,
+    "beforeTip": 136385099,
+    "afterTip": 136385489,
+    "snapshotSha256": {
+      "live-before-axios-journey.json": "21beddd4132019ad0e28c2cda0dd8bc0b8464f2764970d1b78906c60f615cca4",
+      "live-after-axios-journey.json": "6033fe6c1fda3fac7d63c9524311cdea7245719cac7b42ead1cf898087b7346e",
+      "shadow-after-axios-journey.json": "dcd4401a6da216d71579120855b0d3d6f5cafc11b48f6495e510eb9af2cf86e7"
+    }
+  },
+  "limits": [
+    "Twelve target GitHub alert rows have no vulnerable candidate-lock match; closure remains unclaimed until merge/rescan.",
+    "The data URL regression directly demonstrates one advisory class; other targeted advisories rely on official fixed-version/range evidence.",
+    "Older Axios0.28.1 and its12high rows remain in the separate SDK family.",
+    "The inherited devnet funding timing issue33 remains open; this candidate full run passed once, without test retries/deadline changes.",
+    "No registry publication or deployment claimed."
+  ]
+}
