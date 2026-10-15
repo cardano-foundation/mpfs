@@ -29,10 +29,10 @@ describe('bounded child classification', () => {
     const r = runBounded(here, 'const keep = []; for (;;) keep.push(new Array(1e5).fill(keep.length));', { heapMb: 32, deadlineMs: 8000 });
     assert.throws(() => finished(r, 'heap'), /process died|killed at the deadline/);
   });
-  it('runs children with core dumps disabled', { skip: process.platform !== 'linux' && 'needs /proc' }, () => {
+  it('runs children with core dumps disabled', () => {
+    // The limit a shell inherits from the bounded child is the limit any process it starts would get.
     const r = finished(runBounded(here, `
-      const line = require('node:fs').readFileSync('/proc/self/limits', 'utf8').split('\\n').find((l) => l.startsWith('Max core file size'));
-      return line.split(/\\s{2,}/).slice(1, 3);`), 'core limit');
-    assert.deepEqual(r, ['0', '0']);
+      return require('node:child_process').execFileSync('sh', ['-c', 'ulimit -c'], { encoding: 'utf8' }).trim();`), 'core limit');
+    assert.equal(r, '0');
   });
 });
