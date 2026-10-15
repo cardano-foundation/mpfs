@@ -1,0 +1,112 @@
+{
+  "implementation": {
+    "at": "2026-10-15T11:55:03.729Z",
+    "source": "0554beb85da2dab7238a799cad2dc2130e29333d",
+    "imageId": "sha256:976bedbdbad51422b48be40e69d4d476a76e2f80fd47ce09277c096954b8e011",
+    "node": "v24.22.0",
+    "npm": "10.9.9",
+    "locks": {
+      "offchain": "99f7eed9de4d622b1432012b4d1a9e4cf7bd1829735c51274acd5cd17bf8751c  /package-lock.json"
+    },
+    "validators": [
+      {
+        "title": "cage.mpfCage.mint",
+        "hash": "c1e392ee7da9415f946de9d2aef9607322b47d6e84e8142ef0c340bf",
+        "compiledHexTextSha256": "0ee6aa6ecf8169d2ea0052de7229f705ac2acd299f8cb4b0698dae5f2811542b",
+        "compiledBytesSha256": "6da5aaa7ee9315ad2ecb19ff42708155718c3543d860bc9e59502d10c5fca727"
+      },
+      {
+        "title": "cage.mpfCage.spend",
+        "hash": "c1e392ee7da9415f946de9d2aef9607322b47d6e84e8142ef0c340bf",
+        "compiledHexTextSha256": "0ee6aa6ecf8169d2ea0052de7229f705ac2acd299f8cb4b0698dae5f2811542b",
+        "compiledBytesSha256": "6da5aaa7ee9315ad2ecb19ff42708155718c3543d860bc9e59502d10c5fca727"
+      },
+      {
+        "title": "cage.mpfCage.else",
+        "hash": "c1e392ee7da9415f946de9d2aef9607322b47d6e84e8142ef0c340bf",
+        "compiledHexTextSha256": "0ee6aa6ecf8169d2ea0052de7229f705ac2acd299f8cb4b0698dae5f2811542b",
+        "compiledBytesSha256": "6da5aaa7ee9315ad2ecb19ff42708155718c3543d860bc9e59502d10c5fca727"
+      }
+    ],
+    "scope": "Read-only caught-up canary; no live transaction submitted; first isolated gate timeout still under investigation."
+  },
+  "hosted": {
+    "service": "https://github.com/cardano-foundation/mpfs/actions/runs/38730200031",
+    "docs": "https://github.com/cardano-foundation/mpfs/actions/runs/38730200259",
+    "head": "0554beb85da2dab7238a799cad2dc2130e29333d",
+    "conclusion": "success"
+  },
+  "livePreprod": {
+    "at": "2026-10-15T12:11:46.268Z",
+    "network": "preprod",
+    "confirmed": [
+      {
+        "name": "boot",
+        "txHash": "1f4aea52c1da2e4cdfa58bac26de3b71eaecdcc17ecaec72abd1f6fdbd88dba8",
+        "slot": 136382643,
+        "blockHeight": 5295088
+      },
+      {
+        "name": "request-insert",
+        "txHash": "918db69fce108e04e448e1728b98ebabc3d1bf499cc4f16985676a853af0ca99",
+        "slot": 136382702,
+        "blockHeight": 5295090
+      },
+      {
+        "name": "update",
+        "txHash": "dc80ca1941ea7f98ed27deafebd4cb6af5ea3b14bf274aa5682eccaf632e482b",
+        "slot": 136382752,
+        "blockHeight": 5295092
+      },
+      {
+        "name": "request-for-retraction",
+        "txHash": "15e0b4e0650cb431f6e0c94ee872da62b4722eed948c08efc2a7d2b970a522df",
+        "slot": 136382837,
+        "blockHeight": 5295096
+      },
+      {
+        "name": "retract",
+        "txHash": "12cc7d219a0c859fe0964ce0935d390fede7bde5aac1cc3f495f239f2bda09ab",
+        "slot": 136382914,
+        "blockHeight": 5295099
+      },
+      {
+        "name": "end-dedicated-token",
+        "txHash": "440aef2b151991ead46e0538d311c04b479aeffe0ff1138744b63ce4419d7802",
+        "slot": 136383075,
+        "blockHeight": 5295102
+      }
+    ]
+  },
+  "snapshotComparison": {
+    "at": "2026-10-15T12:12:44.708Z",
+    "existingTokens": 13,
+    "liveAndCandidateStateFactsEqual": true,
+    "indexerTips": {
+      "live": 136383086,
+      "candidate": 136383086
+    },
+    "olderSnapshotChanges": [
+      {
+        "tokenId": "21c523c3b4565f1fc1ad7e54e82ca976f60997d8e7e9946826813fabf341069b",
+        "txHash": "cc8d06a27d2906c84fedcc2afa7d63725b32d4a28ed7ba1135c48bf6ee3a63bb",
+        "slot": 136381653,
+        "priorOutput": "a5d5a2f06637116450dd9bf58cd729daaf22f59a071eacff0d1b56b5216218d8-0",
+        "currentOutput": "cc8d06a27d2906c84fedcc2afa7d63725b32d4a28ed7ba1135c48bf6ee3a63bb-0",
+        "beforeJourneyBootSlot": 136382643,
+        "explanation": "Independent chain update between older snapshot and journey; both runtimes follow the same confirmed output and root."
+      }
+    ],
+    "snapshotSha256": {
+      "live-before-node24-journey.json": "154e83c59565bfbf130fe1b9b17b2ddaf83f22e4d19eae19198839e8042426f1",
+      "live-after-node24-journey.json": "3fc186053ed110771248593fe7d0b5a0f8b1c7ec088a592a936ad2ffef61482d",
+      "shadow-after-node24-journey.json": "cd05b216bd8da1149d25252642f51246165c353c5cef71a2ba70d33b9b3c24a7"
+    }
+  },
+  "limits": [
+    "First untraced private-devnet candidate run timed out in one concurrent transaction test; later passes do not reconstruct its cause. Matched tracing observed inherited funding retries on both runtimes; issue33 retains the finding.",
+    "Docusaurus typecheck has37 baseline errors; dedicated job performs frozen install and build.",
+    "Unused signing image builds but its entrypoint was already absent on the base. Both deployments use signingless.",
+    "No high-alert closure, registry publication or deployment is claimed by this prerequisite."
+  ]
+}

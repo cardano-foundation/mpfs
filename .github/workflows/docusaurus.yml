@@ -1,0 +1,35 @@
+name: Docusaurus build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: docusaurus-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Docusaurus frozen install and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.22.0'
+
+      - name: Install yarn classic
+        run: npm install --global yarn@1.22.22
+
+      - name: Install dependencies from the lockfile
+        run: yarn install --frozen-lockfile
+
+      - name: Build site
+        run: yarn build

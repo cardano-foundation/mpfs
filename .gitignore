@@ -29,3 +29,5 @@ off_chain/secrets
 # Per-worktree ephemera (resolve-ticket / subagent run log).
 WIP.md
 .llm/
+
+/gate.sh
