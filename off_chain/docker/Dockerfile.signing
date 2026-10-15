@@ -1,5 +1,5 @@
 # Use the official Node.js image as the base image
-FROM node:18.20.8-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+FROM node:24.22.0-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
 
 ARG SOURCE_REVISION
 LABEL org.opencontainers.image.source="https://github.com/cardano-foundation/mpfs" \
@@ -10,8 +10,9 @@ LABEL org.opencontainers.image.source="https://github.com/cardano-foundation/mpf
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with an explicit npm 10 release;
+# npm 11, bundled with node 24, rejects package-lock.json as out of sync
+RUN npm install --global npm@10.9.9 && npm ci
 
 # Copy the rest of the application code to the working directory
 COPY src .

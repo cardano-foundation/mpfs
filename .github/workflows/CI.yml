@@ -37,10 +37,12 @@ jobs:
       - name: Set up javascript environment
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24.22.0'
 
       - name: Set up off-chain code
         run: |
+          # npm 11, bundled with node 24, rejects package-lock.json as out of sync
+          npm install --global npm@10.9.9
           cd off_chain
           npm ci
 
