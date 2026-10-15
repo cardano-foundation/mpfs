@@ -1,0 +1,7 @@
+# Utility and transport qualification
+
+Use one fresh Sonnet writer under the existing coordinator. Bind current source, accepted Node 24/npm toolchain, locks and validator; refresh advisories and parent constraints. Update only targeted compatible packages and necessary edges, explaining every lock change. Keep the already repaired direct Axios behavior and Vite 6.4.4 override intact. Do not run audit fix --force or edit bundled npm internals.
+
+For tar-fs, first check whether a supported dockerode parent now allows the patched 2.x line. If not, a scoped override requires bounded archive security/ordinary-input checks and the actual dockerode consumer (for example a tiny owned build context packed through its real buildImage path). Confine archive writes to owned temporary directories. For ws, exercise actual socket connection/message/close/error behavior and preserve the existing Ogmios consumer. Additional security probes must be bounded and evidence-based, with positive controls.
+
+Run a fresh executable RED on old dependencies, then GREEN without changing the requirement. Commit tests and repair together. Qualify the complete candidate image with frozen installation, native storage/startup, full isolated Yaci suite and Aiken/validator identity. Parent owns review, pushes, hosted CI, live preprod and merge. The independent docs parser PR may merge while this branch is active; parent synchronizes main only after the writer's frozen handoff.
