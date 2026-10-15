@@ -31,5 +31,10 @@ jobs:
       - name: Install dependencies from the lockfile
         run: yarn install --frozen-lockfile
 
+      - name: Run parser and build-tool security regressions
+        run: |
+          ulimit -c 0
+          yarn test:security
+
       - name: Build site
         run: yarn build

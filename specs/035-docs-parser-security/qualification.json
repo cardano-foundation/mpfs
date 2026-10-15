@@ -1,0 +1,559 @@
+{
+  "implementation": "9d5e04d29c9fe5103f9e9b2bc5831efc163a7794",
+  "reviewedHead": "22b9867470799585d9a36a95b3611eef9197cfdf",
+  "mainSynchronization": "331ad497e7a7b268804511b53c0e5f36b98b174b",
+  "lockSha256": "fb303513bae02c31a73ee6916de56e4ed28a8ece9689f9e46cdf0a0e33a031cf",
+  "toolchain": {
+    "node": "v24.22.0",
+    "yarn": "1.22.22",
+    "image": "node:24.22.0-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f",
+    "aiken": "v1.1.16+23061c0"
+  },
+  "targets": [
+    {
+      "number": 358,
+      "package": "shell-quote",
+      "severity": "critical",
+      "ghsa": "GHSA-pqg4-j6r4-53mv",
+      "range": ">= 1.8.4, < 1.11.0",
+      "firstPatched": "1.11.0"
+    },
+    {
+      "number": 354,
+      "package": "source-map-js",
+      "severity": "high",
+      "ghsa": "GHSA-68fv-2mgg-jv7q",
+      "range": ">= 1.0.0, < 1.2.2",
+      "firstPatched": "1.2.2"
+    },
+    {
+      "number": 347,
+      "package": "brace-expansion",
+      "severity": "high",
+      "ghsa": "GHSA-qhr7-859c-m2p7",
+      "range": "< 1.1.20",
+      "firstPatched": "1.1.20"
+    },
+    {
+      "number": 346,
+      "package": "brace-expansion",
+      "severity": "high",
+      "ghsa": "GHSA-6j4f-fj2g-mc7p",
+      "range": "< 1.1.19",
+      "firstPatched": "1.1.19"
+    },
+    {
+      "number": 334,
+      "package": "joi",
+      "severity": "high",
+      "ghsa": "GHSA-6h2x-m376-mqjq",
+      "range": ">= 17.2.0, < 17.13.7",
+      "firstPatched": "17.13.7"
+    },
+    {
+      "number": 331,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-qw65-cvwx-89v3",
+      "range": ">= 3.0.0, < 3.1.7",
+      "firstPatched": "3.1.7"
+    },
+    {
+      "number": 327,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-2883-xcg3-v3hh",
+      "range": ">= 4.0.0, < 4.3.2",
+      "firstPatched": "4.3.2"
+    },
+    {
+      "number": 325,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-2883-xcg3-v3hh",
+      "range": ">= 3.0.0, < 3.15.2",
+      "firstPatched": "3.15.2"
+    },
+    {
+      "number": 318,
+      "package": "svgo",
+      "severity": "high",
+      "ghsa": "GHSA-w27v-7q3p-w38r",
+      "range": ">= 3.0.0, < 3.3.5",
+      "firstPatched": "3.3.5"
+    },
+    {
+      "number": 312,
+      "package": "browserslist",
+      "severity": "high",
+      "ghsa": "GHSA-73wf-gq98-2v4g",
+      "range": "<= 4.28.6",
+      "firstPatched": "4.28.7"
+    },
+    {
+      "number": 311,
+      "package": "browserslist",
+      "severity": "high",
+      "ghsa": "GHSA-c83g-rgw3-j3cx",
+      "range": "<= 4.28.6",
+      "firstPatched": "4.28.7"
+    },
+    {
+      "number": 308,
+      "package": "nanoid",
+      "severity": "high",
+      "ghsa": "GHSA-xwg4-73v4-xw9w",
+      "range": "< 3.3.12",
+      "firstPatched": "3.3.12"
+    },
+    {
+      "number": 306,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-jqff-g426-hqxp",
+      "range": ">= 3.0.0, < 3.1.6",
+      "firstPatched": "3.1.6"
+    },
+    {
+      "number": 305,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-f65p-4m7j-42xc",
+      "range": ">= 3.0.0, < 3.1.6",
+      "firstPatched": "3.1.6"
+    },
+    {
+      "number": 301,
+      "package": "brace-expansion",
+      "severity": "high",
+      "ghsa": "GHSA-rgw5-rvv9-x895",
+      "range": "< 1.1.18",
+      "firstPatched": "1.1.18"
+    },
+    {
+      "number": 296,
+      "package": "nanoid",
+      "severity": "high",
+      "ghsa": "GHSA-2v37-7h3g-55p8",
+      "range": "< 3.3.18",
+      "firstPatched": "3.3.18"
+    },
+    {
+      "number": 294,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-v39h-62p7-jpjc",
+      "range": ">= 3.0.0, <= 3.1.1",
+      "firstPatched": "3.1.2"
+    },
+    {
+      "number": 293,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-q3j6-qgpj-74h6",
+      "range": ">= 3.0.0, <= 3.1.0",
+      "firstPatched": "3.1.1"
+    },
+    {
+      "number": 291,
+      "package": "nanoid",
+      "severity": "high",
+      "ghsa": "GHSA-28wg-ghj8-5hjv",
+      "range": "< 3.3.16",
+      "firstPatched": "3.3.16"
+    },
+    {
+      "number": 286,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-5p4m-2wfm-xmqj",
+      "range": ">= 4.0.0, < 4.3.1",
+      "firstPatched": "4.3.1"
+    },
+    {
+      "number": 282,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-5p4m-2wfm-xmqj",
+      "range": ">= 3.0.0, < 3.15.1",
+      "firstPatched": "3.15.1"
+    },
+    {
+      "number": 279,
+      "package": "brace-expansion",
+      "severity": "high",
+      "ghsa": "GHSA-mh99-v99m-4gvg",
+      "range": "< 1.1.17",
+      "firstPatched": "1.1.17"
+    },
+    {
+      "number": 269,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-7p8r-x3mc-p8w7",
+      "range": ">= 3.0.0, < 3.1.5",
+      "firstPatched": "3.1.5"
+    },
+    {
+      "number": 266,
+      "package": "postcss",
+      "severity": "high",
+      "ghsa": "GHSA-r28c-9q8g-f849",
+      "range": "<= 8.5.17",
+      "firstPatched": "8.5.18"
+    },
+    {
+      "number": 264,
+      "package": "postcss",
+      "severity": "high",
+      "ghsa": "GHSA-6g55-p6wh-862q",
+      "range": "<= 8.5.11",
+      "firstPatched": "8.5.12"
+    },
+    {
+      "number": 259,
+      "package": "brace-expansion",
+      "severity": "high",
+      "ghsa": "GHSA-3jxr-9vmj-r5cp",
+      "range": "< 1.1.16",
+      "firstPatched": "1.1.16"
+    },
+    {
+      "number": 256,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-52cp-r559-cp3m",
+      "range": ">= 4.0.0, < 4.3.0",
+      "firstPatched": "4.3.0"
+    },
+    {
+      "number": 250,
+      "package": "shell-quote",
+      "severity": "high",
+      "ghsa": "GHSA-395f-4hp3-45gv",
+      "range": "<= 1.8.4",
+      "firstPatched": "1.9.0"
+    },
+    {
+      "number": 249,
+      "package": "js-yaml",
+      "severity": "high",
+      "ghsa": "GHSA-52cp-r559-cp3m",
+      "range": ">= 3.0.0, < 3.15.0",
+      "firstPatched": "3.15.0"
+    },
+    {
+      "number": 247,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-v2hh-gcrm-f6hx",
+      "range": ">= 3.0.0, <= 3.1.3",
+      "firstPatched": "3.1.4"
+    },
+    {
+      "number": 246,
+      "package": "fast-uri",
+      "severity": "high",
+      "ghsa": "GHSA-4c8g-83qw-93j6",
+      "range": ">= 3.0.0, < 3.1.3",
+      "firstPatched": "3.1.3"
+    },
+    {
+      "number": 244,
+      "package": "svgo",
+      "severity": "high",
+      "ghsa": "GHSA-2p49-hgcm-8545",
+      "range": ">= 3.0.0, < 3.3.4",
+      "firstPatched": "3.3.4"
+    },
+    {
+      "number": 159,
+      "package": "@babel/plugin-transform-modules-systemjs",
+      "severity": "high",
+      "ghsa": "GHSA-fv7c-fp4j-7gwp",
+      "range": ">= 7.12.0, <= 7.29.3",
+      "firstPatched": "7.29.4"
+    },
+    {
+      "number": 115,
+      "package": "lodash",
+      "severity": "high",
+      "ghsa": "GHSA-r5fr-rjxr-66jc",
+      "range": ">= 4.0.0, <= 4.17.23",
+      "firstPatched": "4.18.0"
+    },
+    {
+      "number": 108,
+      "package": "lodash-es",
+      "severity": "high",
+      "ghsa": "GHSA-r5fr-rjxr-66jc",
+      "range": ">= 4.0.0, <= 4.17.23",
+      "firstPatched": "4.18.0"
+    },
+    {
+      "number": 84,
+      "package": "svgo",
+      "severity": "high",
+      "ghsa": "GHSA-xpqw-6gx7-v673",
+      "range": ">= 3.0.0, < 3.3.3",
+      "firstPatched": "3.3.3"
+    }
+  ],
+  "held": {
+    "issue": 44,
+    "highRows": 4,
+    "versions": {
+      "minimatch": "3.1.2",
+      "picomatch": "2.3.1"
+    },
+    "reproducer": {
+      "command": "yarn test:security-findings",
+      "tests": 8,
+      "pass": 2,
+      "fail": 6,
+      "exit": 1
+    }
+  },
+  "checks": {
+    "productAndOrdinaryControls": {
+      "total": 52,
+      "oldPass": 15,
+      "oldFail": 37,
+      "newPass": 52
+    },
+    "harnessAppendix": {
+      "tests": 7,
+      "originalPass": 7,
+      "portableCoreCheckHead": "22b9867470799585d9a36a95b3611eef9197cfdf",
+      "portableRunPass": 7,
+      "skip": 0,
+      "todo": 0,
+      "deliberateMutationExit": 1
+    },
+    "fullOriginalSuite": {
+      "total": 59,
+      "pass": 59,
+      "fail": 0,
+      "exit": 0,
+      "log": "logs/final-tests.log"
+    },
+    "frozenInstallExit": 0,
+    "build": {
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "filesEach": 67,
+      "htmlIdenticalModuloHashedNames": true,
+      "differingNames": [
+        "assets/css/styles.*.css",
+        "assets/js/runtime~main.*.js"
+      ]
+    },
+    "typecheck": {
+      "baselineErrors": 37,
+      "candidateErrors": 37,
+      "identical": true,
+      "exit": 2
+    },
+    "aiken": {
+      "check": 0,
+      "build": 0,
+      "validator": "c1e392ee7da9415f946de9d2aef9607322b47d6e84e8142ef0c340bf",
+      "compiledSha256": "0ee6aa6ecf8169d2ea0052de7229f705ac2acd299f8cb4b0698dae5f2811542b",
+      "plutusJsonIdentical": true
+    },
+    "audit": {
+      "baselineAdvisories": 126,
+      "candidateAdvisories": 79,
+      "resolved": 47,
+      "new": 0,
+      "baselineHighPathRows": 376,
+      "candidateHighPathRows": 110,
+      "inScopeRowsAbsent": "36/36",
+      "file": "handoffs/per-alert.json"
+    },
+    "browserComparison": {
+      "at": "2026-10-15T13:39:26.325Z",
+      "records": [
+        {
+          "variant": "base",
+          "width": 1280,
+          "route": "/mpfs/",
+          "metrics": {
+            "title": "Welcome to MPFS | MPFS",
+            "h1": "MPFS Documentation",
+            "svgCount": 7,
+            "mermaidSvgCount": 0,
+            "viewport": 1280,
+            "scrollWidth": 1280,
+            "bodyWidth": 1280,
+            "stylesheets": 1,
+            "links": 5
+          },
+          "errors": [],
+          "failed": [
+            {
+              "url": "/mpfs/img/cardano-ada-logo.svg",
+              "status": 404
+            }
+          ],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-base-1280-home.png"
+        },
+        {
+          "variant": "base",
+          "width": 1280,
+          "route": "/mpfs/docs/architecture/",
+          "metrics": {
+            "title": "System architecture | MPFS",
+            "h1": "System architecture",
+            "svgCount": 18,
+            "mermaidSvgCount": 2,
+            "viewport": 1280,
+            "scrollWidth": 1280,
+            "bodyWidth": 1280,
+            "stylesheets": 4,
+            "links": 46
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-base-1280-architecture.png"
+        },
+        {
+          "variant": "base",
+          "width": 390,
+          "route": "/mpfs/",
+          "metrics": {
+            "title": "Welcome to MPFS | MPFS",
+            "h1": "MPFS Documentation",
+            "svgCount": 11,
+            "mermaidSvgCount": 0,
+            "viewport": 390,
+            "scrollWidth": 390,
+            "bodyWidth": 390,
+            "stylesheets": 1,
+            "links": 8
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-base-390-home.png"
+        },
+        {
+          "variant": "base",
+          "width": 390,
+          "route": "/mpfs/docs/architecture/",
+          "metrics": {
+            "title": "System architecture | MPFS",
+            "h1": "System architecture",
+            "svgCount": 22,
+            "mermaidSvgCount": 2,
+            "viewport": 390,
+            "scrollWidth": 390,
+            "bodyWidth": 390,
+            "stylesheets": 4,
+            "links": 32
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-base-390-architecture.png"
+        },
+        {
+          "variant": "cand",
+          "width": 1280,
+          "route": "/mpfs/",
+          "metrics": {
+            "title": "Welcome to MPFS | MPFS",
+            "h1": "MPFS Documentation",
+            "svgCount": 7,
+            "mermaidSvgCount": 0,
+            "viewport": 1280,
+            "scrollWidth": 1280,
+            "bodyWidth": 1280,
+            "stylesheets": 1,
+            "links": 5
+          },
+          "errors": [],
+          "failed": [
+            {
+              "url": "/mpfs/img/cardano-ada-logo.svg",
+              "status": 404
+            }
+          ],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-cand-1280-home.png"
+        },
+        {
+          "variant": "cand",
+          "width": 1280,
+          "route": "/mpfs/docs/architecture/",
+          "metrics": {
+            "title": "System architecture | MPFS",
+            "h1": "System architecture",
+            "svgCount": 18,
+            "mermaidSvgCount": 2,
+            "viewport": 1280,
+            "scrollWidth": 1280,
+            "bodyWidth": 1280,
+            "stylesheets": 4,
+            "links": 46
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-cand-1280-architecture.png"
+        },
+        {
+          "variant": "cand",
+          "width": 390,
+          "route": "/mpfs/",
+          "metrics": {
+            "title": "Welcome to MPFS | MPFS",
+            "h1": "MPFS Documentation",
+            "svgCount": 11,
+            "mermaidSvgCount": 0,
+            "viewport": 390,
+            "scrollWidth": 390,
+            "bodyWidth": 390,
+            "stylesheets": 1,
+            "links": 8
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-cand-390-home.png"
+        },
+        {
+          "variant": "cand",
+          "width": 390,
+          "route": "/mpfs/docs/architecture/",
+          "metrics": {
+            "title": "System architecture | MPFS",
+            "h1": "System architecture",
+            "svgCount": 22,
+            "mermaidSvgCount": 2,
+            "viewport": 390,
+            "scrollWidth": 390,
+            "bodyWidth": 390,
+            "stylesheets": 4,
+            "links": 32
+          },
+          "errors": [],
+          "failed": [],
+          "screenshot": "/code/mpfs-security-execution-20261015/evidence/docs-browser-cand-390-architecture.png"
+        }
+      ],
+      "newBrowserErrors": false,
+      "newAssetFailures": false,
+      "layoutMetricsEqual": true,
+      "limit": "Existing baseline asset failures and overflow, if any, remain visible."
+    }
+  },
+  "provenance": {
+    "handoffSha256": "2d93de99728590f982a06fad2e39f3460779defb7d13fc28c6f960b0e9b8e879",
+    "receiptSha256": "25a32823c1a99e06bbb632916c7b26d9334ef0af23510253878f66284a693aa9",
+    "reviewAddendumSha256": "efa260d2f6b6a0e9682f01e9baf0f4ae989fd4f619d3e9ad9eab1efe0dd81378"
+  },
+  "limits": [
+    "Full59 local suite/build/audit bound to9d5e04d2; only the harness core-limit self-check changed afterward and passed focused7checks. Exact-final-head hosted CI will rerun all59/build.",
+    "Four glob high rows remain held with executable failing expectations, not accepted or skipped.",
+    "One brace-expansion advisory payload did not reproduce; other brace regressions fail on the old version and fixed-version/range evidence covers the row.",
+    "Earlier15-family attempt had a TODO and is not accepted as the final gate; original logs retained.",
+    "Typecheck retains the same37baseline errors; known missing favicon is unchanged.",
+    "No service/validator behavior change, live journey, release or deployment claimed for this docs-only slice."
+  ]
+}
